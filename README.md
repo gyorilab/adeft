@@ -1,2 +1,2 @@
-# MGx4
-Utility for disambiguating acronyms in biological texts
+# Deft Abbreviation Disambiguation Application (DADA)
+Utility for disambiguating abbreviations in biological texts
