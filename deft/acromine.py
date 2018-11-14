@@ -3,11 +3,7 @@ import string
 from collections import defaultdict
 from nltk.tokenize import word_tokenize, sent_tokenize
 from nltk.stem.snowball import EnglishStemmer
-# from scipy import spatial
-# from gensim.models import KeyedVectors as kv
 
-# model = kv.load_word2vec_format('../scratch/PubMed-and-PMC-w2v.bin',
-#                                 binary=True)
 
 _stop = set(['a', 'an', 'the', 'and', 'or', 'of', 'with', 'at', 'from',
              'into', 'to', 'for', 'on', 'by', 'be', 'being', 'been', 'am',
