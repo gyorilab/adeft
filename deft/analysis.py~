@@ -1,9 +1,0 @@
-import pandas as pd
-
-ER_df = pd.read_pickle('../scratch/ER_statements.pkl')
-ER_df = ER_df.groupby('text_id').first()
-ER_df = ER_df[~ER_df.fulltext.isna()]
-ER_df.fulltext = ER_df.fulltext.apply(lambda x: ' '.join(x.split()))
-
-
-fulltexts = ER_df.fulltext.values
