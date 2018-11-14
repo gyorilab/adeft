@@ -1,2 +1,2 @@
-# Deft Abbreviation Disambiguation Application (DADA)
+# Deft
 Utility for disambiguating abbreviations in biological texts
