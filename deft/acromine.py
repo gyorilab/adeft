@@ -4,11 +4,13 @@ from collections import defaultdict
 from nltk.tokenize import word_tokenize, sent_tokenize
 from nltk.stem.snowball import EnglishStemmer
 
-
+# Exclude candidate longforms containing any of these terms
 _stop = set(['a', 'an', 'the', 'and', 'or', 'of', 'with', 'at', 'from',
              'into', 'to', 'for', 'on', 'by', 'be', 'being', 'been', 'am',
              'is', 'are', 'was', 'were', 'in', 'that', 'as'])
 
+# Facilitate mapping of unicode greek letters to ascii text in candidate
+# longforms
 _greek_alphabet = {
     u'\u0391': 'Alpha',
     u'\u0392': 'Beta',
@@ -62,16 +64,60 @@ _greek_alphabet = {
 
 
 class SnowCounter(object):
+    """Wraps EnglishStemmer.
+
+    Keeps track of the number of times words have been mapped to particular
+    stems by the wrapped stemmer. The acromine algorithm works with stemmed
+    forms but it is useful to be able to recover actual words from stems.
+
+    Attributes
+    ----------
+    __snow: :py:class:`nltk.stem.snowball.EnglishStemmer
+
+    counts: defaultdict of defaultdict of int
+        Contains the count of the number of times a particular word has been
+        mapped to from a particular stem by the wrapped stemmer. Of the form
+        counts[stem:str][word:str] = count:int
+"""
     def __init__(self):
         self.__snow = EnglishStemmer()
         self.counts = defaultdict(lambda: defaultdict(int))
 
     def stem(self, word):
+        """Returns stemmed form of word.
+
+        Adds one to count associated to the computed stem, word pair.
+
+        Parameters
+        ----------
+        word: str
+            text to stem
+
+        Returns
+        -------
+        stemmed: str
+            stemmed form of input word
+        """
         stemmed = self.__snow.stem(word)
         self.counts[stemmed][word] += 1
         return stemmed
 
     def most_frequent(self, stemmed):
+        """Return the most frequent word mapped to a given stem
+
+        Parameters
+        ----------
+        stemmed: str
+            Stem that has previously been output by the wrapped snowball
+            stemmer.
+
+        Returns
+        -------
+        output: str|None
+            Most frequent word that has been mapped to the input stem or None
+            if the wrapped stemmer has never mapped the a word to the input
+            stem.
+        """
         candidates = self.counts[stemmed].items()
         if candidates:
             output = max(candidates, key=lambda x: x[1])[0]
@@ -81,15 +127,39 @@ class SnowCounter(object):
 
 
 class AcroMine(object):
-    """Suffix trie to hold longform candidates and their frequencies"""
+    """In house implementation of the acromine algorithm
+
+    Finds candidate longforms associated to a particular shortform in a corpus
+    of texts. An online method. Updates likelihoods of terms as it consumes
+    additional texts.
+
+    Parameters
+    ----------
+    shortform: str
+        Search for candidate longforms associated to this shortform
+
+    Attributes
+    ----------
+    _internal_dict: dict
+        Stores trie datastructure that algorithm is based upon
+
+    _longforms: dict
+        Dictionary mapping candidate longforms to their likelihoods as
+        produced by the acromine algorithm
+
+    _snow: :py:class:`deft.acromine.SnowCounter`
+        English stemmer that keeps track of counts of the number of times a
+        given word has been mapped to a given stem
+    """
     def __init__(self, shortform):
         self.shortform = shortform
         self._internal_dict = {}
         self._longforms = {}
         self._snow = SnowCounter()
-        
+
     def add(self, tokens):
-        """Add a list of tokens to the suffix trie"""
+        """Add a list of tokens to the internal suffix trie
+        """
         current = self._internal_dict
         meta = {}
         for index, token in enumerate(tokens):
