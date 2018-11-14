@@ -1,4 +1,3 @@
-import pandas as pd
 import numpy as np
 import string
 from collections import defaultdict
@@ -87,10 +86,11 @@ class SnowCounter(object):
 
 class AcroMine(object):
     """Suffix trie to hold longform candidates and their frequencies"""
-    def __init__(self):
+    def __init__(self, shortform):
+        self.shortform = shortform
         self._internal_dict = {}
         self._longforms = {}
-        self.__snow = SnowCounter()
+        self._snow = SnowCounter()
         
     def add(self, tokens):
         """Add a list of tokens to the suffix trie"""
@@ -137,11 +137,11 @@ class AcroMine(object):
 
     def consume(self, texts):
         split = [sent_tokenize(text) for text in texts]
-        ER_sentences = [sentence for text in split for sentence in text
-                        if '(ER)' in sentence]
-        ER_tokens = [word_tokenize(sentence) for sentence in ER_sentences]
-        candidates = [self._get_candidates(sentence, 'ER')[::-1]
-                      for sentence in ER_tokens]
+        sentences = [sentence for text in split for sentence in text
+                     if f'({self.shortform})' in sentence]
+        tokens = [word_tokenize(sentence) for sentence in sentences]
+        candidates = [self._get_candidates(sentence)[::-1]
+                      for sentence in tokens]
         for candidate in candidates:
             self.add(candidate)
 
@@ -150,35 +150,23 @@ class AcroMine(object):
 
         output = sorted(self._longforms.items(), key=lambda x: x[1],
                         reverse=True)[0:n]
-        print(output)
-        output = [tuple(self.__snow.most_frequent(token) for token in longform)
-                  for longform in output]
+        output = [(tuple(self._snow.most_frequent(token)
+                         for token in longform),
+                   LH)
+                  for longform, LH in output]
         return output
 
-    def _get_candidates(self, tokens, shortform):
+    def _get_candidates(self, tokens):
         for index in range(len(tokens) - 3):
-            if tokens[index] == '(' and tokens[index+1] == shortform and \
+            if tokens[index] == '(' and tokens[index+1] == self.shortform and \
                tokens[index+2] == ')':
                 output = [token for token in tokens[:index]
                           if token not in string.punctuation]
                 for i, token in enumerate(output):
                     if token in _greek_alphabet:
                         output[i] = _greek_alphabet[token]
-                output = [self.__snow.stem(token) for token in output]
+                output = [self._snow.stem(token) for token in output]
                 i = len(output)-1
                 while i >= 0 and output[i] not in _stop:
                     i -= 1
                 return output[i+1:]
-
-        
-def sublist(x, y):
-    return any(y[pos:pos+len(x)] == x
-               for pos in range(0, len(y) - len(x) + 1))
-
-
-ER_df = pd.read_pickle('../scratch/ER_statements.pkl')
-ER_df = ER_df.groupby('text_id').first()
-ER_df = ER_df[~ER_df.fulltext.isna()]
-ER_df.fulltext = ER_df.fulltext.apply(lambda x: ' '.join(x.split()))
-
-fulltexts = ER_df.fulltext.values
