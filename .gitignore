@@ -103,5 +103,8 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-# scratchwork director
+# scratchwork directory
 /scratch
+
+# data directory
+/data
