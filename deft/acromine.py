@@ -4,7 +4,7 @@ from collections import defaultdict
 from nltk.tokenize import word_tokenize, sent_tokenize
 from nltk.stem.snowball import EnglishStemmer
 
-# Exclude candidate longforms containing any of these terms
+# Default set of stop words to exclude from candidate longforms
 _stop = set(['a', 'an', 'the', 'and', 'or', 'of', 'with', 'at', 'from',
              'into', 'to', 'for', 'on', 'by', 'be', 'being', 'been', 'am',
              'is', 'are', 'was', 'were', 'in', 'that', 'as'])
@@ -126,21 +126,25 @@ class SnowCounter(object):
         return output
 
 
-class AcroMine(object):
-    """In house implementation of the acromine algorithm
+class ContinuousMiner(object):
+    """Finds possible longforms corresponding to an abbreviation in a text corpus
 
-    Finds candidate longforms associated to a particular shortform in a corpus
-    of texts. An online method. Updates likelihoods of terms as it consumes
-    additional texts.
+    An online method. Updates likelihoods of terms as it consumes
+    additional texts. Based on a trie datastructure. Likelihoods for longforms
+    are updated at the time of insertions into the trie.
 
     Parameters
     ----------
     shortform: str
         Search for candidate longforms associated to this shortform
 
+    stop_words: Optional[set of str]
+        Terms that are to be excluded from candidate longforms.
+        Default: set([])
+
     Attributes
     ----------
-    _internal_dict: dict
+    _internal_trie: dict
         Stores trie datastructure that algorithm is based upon
 
     _longforms: dict
@@ -151,16 +155,72 @@ class AcroMine(object):
         English stemmer that keeps track of counts of the number of times a
         given word has been mapped to a given stem
     """
-    def __init__(self, shortform):
+    def __init__(self, shortform, stop_words=set([])):
         self.shortform = shortform
         self._internal_dict = {}
         self._longforms = {}
         self._snow = SnowCounter()
+        self.stop_words = stop_words
 
-    def add(self, tokens):
-        """Add a list of tokens to the internal suffix trie
+    def consume(self, texts):
+        """Consume a corpus of texts and use them to train the Acromine
+
+        Each text is tokenized into sentences. Sentences are identified that
+        contain the pattern f'({self.shortform}). These sentences are then
+        tokenized into lists of words and punctuation is removed from these
+        lists. The remaining words are then stemmed and converted to lower
+        case. A maximal candidate longform is found for each of these
+        sentences. Every suffix is then considered as a candidate longform and
+        added to the internal trie, which updates the likelihoods for each of
+        the candidates.
+
+        If there are no excluded stop words, for the sentence "The growth of
+        estrogen receptor (ER)-positive breast cancer cells is inhibited by
+        all-trans-retinoic acid (RA)." The maximal candidate longform would be
+        "the growth of estrogen receptor". It and the candidates
+        "growth of estrogen receptor", "of estrogen receptor",
+        "estrogen receptor", "receptor" would then be added to the internal
+        trie.
+
+        Parameters:
+        texts: list of str
+            A list of texts
         """
-        current = self._internal_dict
+        # split each text into a list of sentences
+        split = [sent_tokenize(text) for text in texts]
+        # extract sentences defining shortform through standard pattern
+        sentences = [sentence for text in split for sentence in text
+                     if f'({self.shortform})' in sentence]
+        # tokenize these sentences into lists of words
+        tokens = [word_tokenize(sentence) for sentence in sentences]
+        # extract maximal candidate longforms from each such sentence
+        candidates = [self._get_candidates(sentence)[::-1]
+                      for sentence in tokens]
+        # add each candidate to the internal trie
+        for candidate in candidates:
+            self._add(candidate)
+
+    def top(self, n):
+        """Return top scoring candidates from the acromine."""
+
+        output = sorted(self._longforms.items(), key=lambda x: x[1],
+                        reverse=True)[0:n]
+        output = [(tuple(self._snow.most_frequent(token)
+                         for token in longform),
+                   LH)
+                  for longform, LH in output]
+        return output
+
+    def _add(self, tokens):
+        """Add a list of tokens to the internal trie and update likelihoods
+
+        Parameters
+        ----------
+        tokens: str
+            A list of tokens to add to the internal trie.
+
+        """
+        current = self._internal_trie
         meta = {}
         for index, token in enumerate(tokens):
             if token not in current:
@@ -201,27 +261,6 @@ class AcroMine(object):
                 meta = current[token][0]
                 current = current[token][1]
 
-    def consume(self, texts):
-        split = [sent_tokenize(text) for text in texts]
-        sentences = [sentence for text in split for sentence in text
-                     if f'({self.shortform})' in sentence]
-        tokens = [word_tokenize(sentence) for sentence in sentences]
-        candidates = [self._get_candidates(sentence)[::-1]
-                      for sentence in tokens]
-        for candidate in candidates:
-            self.add(candidate)
-
-    def top(self, n):
-        """Return top scoring candidates from the acromine."""
-
-        output = sorted(self._longforms.items(), key=lambda x: x[1],
-                        reverse=True)[0:n]
-        output = [(tuple(self._snow.most_frequent(token)
-                         for token in longform),
-                   LH)
-                  for longform, LH in output]
-        return output
-
     def _get_candidates(self, tokens):
         for index in range(len(tokens) - 3):
             if tokens[index] == '(' and tokens[index+1] == self.shortform and \
@@ -233,6 +272,6 @@ class AcroMine(object):
                         output[i] = _greek_alphabet[token]
                 output = [self._snow.stem(token) for token in output]
                 i = len(output)-1
-                while i >= 0 and output[i] not in _stop:
+                while i >= 0 and output[i] not in self.stop_words:
                     i -= 1
                 return output[i+1:]
