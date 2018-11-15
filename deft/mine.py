@@ -157,7 +157,7 @@ class ContinuousMiner(object):
     """
     def __init__(self, shortform, stop_words=_stop):
         self.shortform = shortform
-        self._internal_dict = {}
+        self._internal_trie = {}
         self._longforms = {}
         self._snow = SnowCounter()
         self.stop_words = stop_words
