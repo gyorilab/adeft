@@ -67,7 +67,7 @@ class SnowCounter(object):
     """Wraps the nltk.snow EnglishStemmer.
 
     Keeps track of the number of times words have been mapped to particular
-    stems by the wrapped stemmer. The acromine algorithm works with stemmed
+    stems by the wrapped stemmer. Algorithm works with stemmed
     forms but it is useful to be able to recover actual words from stems.
 
     Attributes
@@ -127,6 +127,8 @@ class SnowCounter(object):
 
 
 class ContinuousMiner(object):
+    __slots__ = ['shortform', '_internal_trie',
+                 '_longforms', '_snow', 'stop_words']
     """Finds possible longforms corresponding to an abbreviation in a text corpus
 
     An online method. Updates likelihoods of terms as it consumes
@@ -144,7 +146,7 @@ class ContinuousMiner(object):
 
     Attributes
     ----------
-    _internal_trie: dict
+    _internal_trie: :py:class:`deft.mine.ContinuousMiner.TrieNode`
         Stores trie datastructure that algorithm is based upon
 
     _longforms: dict
@@ -157,14 +159,13 @@ class ContinuousMiner(object):
     """
     def __init__(self, shortform, stop_words=_stop):
         self.shortform = shortform
-        self._internal_trie = {}
+        self._internal_trie = self.TrieNode()
         self._longforms = {}
         self._snow = SnowCounter()
         self.stop_words = stop_words
 
-    class LikelihoodTracker(object):
-        """ Stores meta data associated with a candidate longform
-
+    class TrieNode(object):
+        """ Node
         Contains the current likelihood for the candidate longform as well
         as all information needed to calculate it. Allows for updating the
         likelihood in the face of new information.
@@ -209,18 +210,26 @@ class ContinuousMiner(object):
             Bioinformatics. 2006. Oxford University Press.
 
             for more information
+
+        children: dict of :py:class:`deft.mine.ContinuousMiner.TrieNode`
+            dictionary of child nodes
         """
-        def __init__(self, longform):
+        __slots__ = ['longform', 'count', 'sum_ft', 'sum_ft2', 'LH',
+                     '__length_penalty', 'children']
+        """DocString
+        """
+        def __init__(self, longform=()):
             self.longform = longform
-            self.count = 1
-            self.sum_ft = 0
-            self.sum_ft2 = 0
-            self.LH = np.log(len(longform))
+            if longform:
+                self.count = 1
+                self.sum_ft = self.sum_ft2 = 0
+                self.LH = self.__length_penalty = np.log(len(longform))
+            self.children = {}
 
         def increment_count(self):
             """Update count and likelihood when observing a longform again"""
             self.count += 1
-            self.LH += np.log(len(self.longform))
+            self.LH += self.__length_penalty
 
         def update_likelihood(self, count):
             """Update likelihood when observing a child of associated longform
@@ -233,9 +242,9 @@ class ContinuousMiner(object):
             count: int
                 Current co-occurence frequency of child longform with shortform
             """
+            self.LH += self.sum_ft/self.sum_ft2 if self.sum_ft2 else 0
             self.sum_ft += 1
             self.sum_ft2 += 2*count - 1
-            self.LH += (self.sum_ft - 1)/(self.sum_ft2 - count - 1)
             self.LH -= self.sum_ft/self.sum_ft2
 
     def consume(self, texts):
@@ -317,46 +326,37 @@ class ContinuousMiner(object):
         """
         # start at top of trie
         current = self._internal_trie
-        previous = None
         for token in tokens:
-            if token not in current:
+            if token not in current.children:
                 # candidate longform is observed for the first time
                 # add a new entry for it in the trie
-                if previous is not None:
-                    longform = previous[0]['longform'] + (token, )
-                else:
-                    # previously unobserved candidate longform has only one
-                    # token and thus has no observed parent
-                    longform = (token, )
-                # initialize new node
-                new = [self.LikelihoodTracker(longform), {}]
+                longform = current.longform + (token, )
+                new = self.TrieNode(longform)
                 # Add newly observed longform to the dictionary of candidates
-                self._longforms[new[0].longform[::-1]] = new[0].LH
+                self._longforms[new.longform[::-1]] = new.LH
                 # set newly observed longform to be child of current node in
                 # trie
-                current[token] = new
-                # update current node to the newly formed node and set previous
-                # node
-                previous, current = current, new
+                current.children[token] = new
+                # update current node to the newly formed node
+                current = new
             else:
                 # candidate longform has been observed before
                 # update count for candidate longform and associated LH value
-                current[token][0].increment_count()
+                current.children[token].increment_count()
                 # Update entry for candidate longform in the candidates
                 # dictionary
-                self._longforms[current[token][0].longform[::-1]] = \
-                    current[token][0].LH
-                if previous is not None:
+                self._longforms[current.children[token].longform[::-1]] = \
+                    current.children[token].LH
+                if current.longform:
                     # we are not at the top of the trie. observed candidate
                     # has a parent
 
                     # update likelihood of candidate's parent
-                    count = current[token][0].count
-                    previous[0].update_likelihood(count)
+                    count = current.children[token].count
+                    current.update_likelihood(count)
                     # Update candidates dictionary
-                    self._longforms[previous[0].longform[::-1]] = \
-                        previous[0].LH
-                previous, current = current, current[token][1]
+                    self._longforms[current.longform[::-1]] = current.LH
+                current = current.children[token]
 
     def _get_candidates(self, tokens):
         """Returns maximal candidate longform from a list of tokens.
