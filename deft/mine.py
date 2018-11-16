@@ -165,13 +165,16 @@ class ContinuousMiner(object):
         self.stop_words = stop_words
 
     class TrieNode(object):
-        """ Node
-        Contains the current likelihood for the candidate longform as well
-        as all information needed to calculate it. Allows for updating the
-        likelihood in the face of new information.
+        """ Node in Trie associated to a candidate longform
 
-        In the remainder, a candidate longform t is a child of a candidate
-        longform c if t can be obtained from c by prepending a single token.
+        The children of a node associated to a candidate longform c are all
+        observed candidates t that can be obtained by prepending a single token
+        to c.
+
+        Contains the current likelihood for the candidate longform as well
+        as all information needed to calculate it. The likelihood's are
+        updated as candidates are added to the Trie.
+
 
         Parameters
         ----------
