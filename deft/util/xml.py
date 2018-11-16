@@ -4,7 +4,7 @@ from lxml import etree
 logger.disabled = True
 
 
-def extract_text_pubmed(xml):
+def _get_plaintext_pubmed(xml):
     tree = etree.fromstring(xml)
     # remove references
     for xref in tree.xpath('//xref'):
@@ -16,14 +16,14 @@ def extract_text_pubmed(xml):
     return paragraphs
 
 
-def extract_text_general(xml):
+def to_plaintext(xml):
     try:
         result = extract_text(xml)
     except Exception:
         result = None
     if not result:
         try:
-            result = extract_text_pubmed(xml)
+            result = _get_plaintext_pubmed(xml)
         except Exception:
             result = xml
     return result
