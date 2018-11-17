@@ -2,6 +2,7 @@ import math
 from nltk.tokenize import word_tokenize
 from deft.mine import ContinuousMiner
 from deft.mine import SnowCounter
+from unittest import skip
 
 
 example_text1 = ('The Integrated Network and Dynamical Reasoning Assembler'
@@ -19,14 +20,11 @@ example_text2 = ('Integrated Network and Dynamical Reasoning Assembler'
                  ' (INDRA) generates executable models of pathway dynamics'
                  ' from natural language.')
 
-example_text3 = ('This article examines two aspects of the debt'
-                 ' restructuring in Indonesia: the first deals with the'
-                 ' Jakarta Initiative which established the Indonesian'
-                 ' Debt Restructuring Agency (INDRA), and the second concerns'
-                 ' amendments to the Bankruptcy Code.')
+example_text3 = ('The Indonesian Debt Restructuring Agency (INDRA) was'
+                 ' established by the Jakarta Initiative in 1998.')
 
 example_text4 = ('An Indonesian Debt Restructuring Agency (INDRA) was'
-                 ' established in to provide foreign-exchange cover for'
+                 ' established to provide foreign-exchange cover for'
                  ' Indonesian corporations with foreign currency denominated'
                  ' debt.')
 
@@ -58,6 +56,7 @@ def test_get_candiates():
                                             'assembler']
 
 
+@skip
 def test_top():
     mine = ContinuousMiner('INDRA')
     candidate = ['the', 'integrated', 'network', 'and',
@@ -65,11 +64,17 @@ def test_top():
     mine._add(candidate)
     assert mine.top()[0][0] == ('the integrated network and dynamical'
                                 ' reasoning assembler')
-    assert mine.top()[0][1] == math.log(7)
+    assert mine.top()[0][1] == math.log(7) - 1
     assert mine.top()[5][0] == 'reasoning assembler'
-    assert mine.top()[5][1] == math.log(2)
+    assert mine.top()[5][1] == math.log(2) - 1
 
 
+@skip
 def test_consume():
     mine = ContinuousMiner('INDRA')
     mine.consume([example_text1, example_text2, example_text3, example_text4])
+    assert mine.top()[0][0] == ('integrated network and dynamical'
+                                ' reasoning assembler')
+    assert mine.top()[0][1] == 2*math.log(6)
+    assert mine.top()[1][1] == 1
+    

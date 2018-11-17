@@ -100,7 +100,7 @@ class ContinuousMiner(object):
             dictionary of child nodes
         """
         __slots__ = ['longform', 'count', 'sum_ft', 'sum_ft2', 'LH',
-                     '__length_penalty', 'children']
+                     '__length_incentive', 'children']
         """DocString
         """
         def __init__(self, longform=()):
@@ -108,13 +108,17 @@ class ContinuousMiner(object):
             if longform:
                 self.count = 1
                 self.sum_ft = self.sum_ft2 = 0
-                self.LH = self.__length_penalty = math.log(len(longform))
+                self.LH = self.__length_incentive = math.log(len(longform))
             self.children = {}
+
+        def is_root(self):
+            """True if node is at the root of the trie"""
+            return not self.longform
 
         def increment_count(self):
             """Update count and likelihood when observing a longform again"""
             self.count += 1
-            self.LH += self.__length_penalty
+            self.LH += self.__length_incentive
 
         def update_likelihood(self, count):
             """Update likelihood when observing a child of associated longform
@@ -229,6 +233,10 @@ class ContinuousMiner(object):
                 # set newly observed longform to be child of current node in
                 # trie
                 current.children[token] = new
+                # update likelihood to account for new child, unless current
+                # node is the root
+                if not current.is_root():
+                    current.update_likelihood(1)
                 # update current node to the newly formed node
                 current = new
             else:
@@ -239,7 +247,7 @@ class ContinuousMiner(object):
                 # dictionary
                 self._longforms[current.children[token].longform[::-1]] = \
                     current.children[token].LH
-                if current.longform:
+                if not current.is_root():
                     # we are not at the top of the trie. observed candidate
                     # has a parent
 
@@ -290,7 +298,6 @@ class ContinuousMiner(object):
                 # but not including the first stop word
                 i = len(candidate)-1
                 while i >= 0 and candidate[i] not in self.exclude:
-                    print(candidate[i])
                     i -= 1
                 candidate = candidate[i+1:]
                 return candidate
