@@ -1,2 +1,2 @@
-# Deft
-Utility for disambiguating abbreviations in biological texts
+# Deft Disambiguator (DD)
+Utility for disambiguating acronyms and abbreviations in biological texts
