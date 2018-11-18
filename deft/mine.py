@@ -19,7 +19,7 @@ class ContinuousMiner(object):
     shortform: str
         Search for candidate longforms associated to this shortform
 
-    stop_words: Optional[set of str]
+    exclude: Optional[set of str]
         Terms that are to be excluded from candidate longforms.
         Default: None
 
@@ -47,6 +47,8 @@ class ContinuousMiner(object):
         self.exclude = exclude
 
     class TrieNode(object):
+        __slots__ = ['longform', 'count', 'sum_ft', 'sum_ft2', 'LH',
+                     '_length_incentive', 'parent', 'children']
         """ Node in Trie associated to a candidate longform
 
         The children of a node associated to a candidate longform c are all
@@ -87,7 +89,7 @@ class ContinuousMiner(object):
             longform.
         LH: float
             Likelihood of the associated candidate longform. It is given by
-            count*log(len(longform)) - sum_ft/sum_ft**2
+            count*log2(len(longform) + 1) - sum_ft/sum_ft**2
             See
 
             [Okazaki06] Naoaki Okazaki and Sophia Ananiadou. "Building an
@@ -96,29 +98,29 @@ class ContinuousMiner(object):
 
             for more information
 
+        parent: :py:class:`deft.mine.TrieNode`
+            link to node's parent
+
         children: dict of :py:class:`deft.mine.ContinuousMiner.TrieNode`
             dictionary of child nodes
         """
-        __slots__ = ['longform', 'count', 'sum_ft', 'sum_ft2', 'LH',
-                     '__length_incentive', 'children']
-        """DocString
-        """
-        def __init__(self, longform=()):
+        def __init__(self, longform=(), parent=None):
             self.longform = longform
             if longform:
                 self.count = 1
                 self.sum_ft = self.sum_ft2 = 0
-                self.LH = self.__length_incentive = math.log(len(longform))
+                self.LH = self._length_incentive = math.log2(len(longform) + 1)
+            self.parent = parent
             self.children = {}
 
         def is_root(self):
             """True if node is at the root of the trie"""
-            return not self.longform
+            return self.parent is None
 
         def increment_count(self):
             """Update count and likelihood when observing a longform again"""
             self.count += 1
-            self.LH += self.__length_incentive
+            self.LH += self._length_incentive
 
         def update_likelihood(self, count):
             """Update likelihood when observing a child of associated longform
@@ -207,6 +209,21 @@ class ContinuousMiner(object):
                       for longform, LH in candidates]
         return candidates
 
+    def extract():
+        """Extract longforms from the mine
+
+        The extracted longforms are found by taking the first local maximum
+        along each path from root to leaf. This is done with a breadth-first
+        tree traversal. If a node is found with a score lower than it's parent,
+        the parent is considered a valid longform and extracted.
+
+        Returns
+        -------
+        longforms: list of tuple
+        list of longforms along with their scores
+        """
+        pass
+
     def _add(self, tokens):
         """Add a list of tokens to the internal trie and update likelihoods.
 
@@ -227,16 +244,16 @@ class ContinuousMiner(object):
                 # candidate longform is observed for the first time
                 # add a new entry for it in the trie
                 longform = current.longform + (token, )
-                new = self.TrieNode(longform)
-                # Add newly observed longform to the dictionary of candidates
-                self._longforms[new.longform[::-1]] = new.LH
-                # set newly observed longform to be child of current node in
-                # trie
-                current.children[token] = new
-                # update likelihood to account for new child, unless current
-                # node is the root
+                new = self.TrieNode(longform, parent=current)
+                # update likelihood of current node to account for the new
+                # child unless current node is the root
                 if not current.is_root():
                     current.update_likelihood(1)
+                    self._longforms[current.longform[::-1]] = current.LH
+                # Add newly observed longform to the dictionary of candidates
+                self._longforms[new.longform[::-1]] = new.LH
+                # set newly observed longform to be the child of current node
+                current.children[token] = new
                 # update current node to the newly formed node
                 current = new
             else:

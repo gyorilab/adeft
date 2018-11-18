@@ -56,17 +56,19 @@ def test_get_candiates():
                                             'assembler']
 
 
-@skip
-def test_top():
+def test_add():
     mine = ContinuousMiner('INDRA')
     candidate = ['the', 'integrated', 'network', 'and',
                  'dynamical', 'reasoning', 'assembler']
     mine._add(candidate)
-    assert mine.top()[0][0] == ('the integrated network and dynamical'
-                                ' reasoning assembler')
-    assert mine.top()[0][1] == math.log(7) - 1
-    assert mine.top()[5][0] == 'reasoning assembler'
-    assert mine.top()[5][1] == math.log(2) - 1
+    stemmed = ['assembl', 'reason', 'dynam', 'and',
+               'network', 'integr', 'the']
+    current = mine._internal_trie
+    for index, token in enumerate(stemmed):
+        assert token in current.children
+        penalty = 0 if index == len(stemmed) - 1 else 1
+        assert current.children[token].LH == math.log2(index+2) - penalty
+        current = current.children[token]
 
 
 @skip
@@ -77,4 +79,3 @@ def test_consume():
                                 ' reasoning assembler')
     assert mine.top()[0][1] == 2*math.log(6)
     assert mine.top()[1][1] == 1
-    
