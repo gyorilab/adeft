@@ -30,6 +30,11 @@ example_text4 = ('An Indonesian Debt Restructuring Agency (INDRA) was'
 
 
 def test_snow_counter():
+    """Test stemmer
+
+    Stemmer should be able to keep track of the
+    most frequent word mapped to a particular stem.
+    """
     snow = SnowCounter()
     words = ['verb', 'verbs', 'verbing', 'verbed', 'noun', 'nouns', 'nouning',
              'nouned', 'verb', 'verb', 'verb', 'verbed', 'noun', 'nouns',
@@ -49,6 +54,8 @@ def test_snow_counter():
 
 
 def test_get_candiates():
+    """Test extraction of maximal longform candidate from text
+    """
     mine = ContinuousMiner('INDRA')
     tokens = word_tokenize(example_text1)
     assert mine._get_candidates(tokens) == ['the', 'integrated', 'network',
@@ -57,17 +64,38 @@ def test_get_candiates():
 
 
 def test_add():
+    """Test the addition of candidates to the trie
+
+    First add one maximal candidate. All nested parent candidates will be
+    added as well. Check that the candidates are contained in the trie and
+    that likelihood calculations are correct. Then add the parent of the
+    original maximal candidate and check that likelihood has been updated
+    correctly.
+    """
     mine = ContinuousMiner('INDRA')
     candidate = ['the', 'integrated', 'network', 'and',
                  'dynamical', 'reasoning', 'assembler']
     mine._add(candidate)
     stemmed = ['assembl', 'reason', 'dynam', 'and',
                'network', 'integr', 'the']
+    counts = [1]*7
+    penalty = [1]*6 + [0]
+    length = range(1, 8)
     current = mine._internal_trie
-    for index, token in enumerate(stemmed):
+    for penalty, length, token in zip(penalty, length, stemmed):
         assert token in current.children
-        penalty = 0 if index == len(stemmed) - 1 else 1
-        assert current.children[token].LH == math.log2(index+2) - penalty
+        LH = math.log2(length+1) - penalty
+        assert current.children[token].LH == LH
+        current = current.children[token]
+    mine._add(candidate[1:])
+    counts = [2]*6 + [1]
+    penalty = [2]*5 + [1, 0]
+    length = range(1, 8)
+    current = mine._internal_trie
+    for count, penalty, length, token in zip(counts, penalty, length, stemmed):
+        assert token in current.children
+        LH = math.log2(length+1)*count - penalty
+        assert current.children[token].LH == LH
         current = current.children[token]
 
 

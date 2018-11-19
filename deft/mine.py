@@ -89,7 +89,7 @@ class ContinuousMiner(object):
             longform.
         LH: float
             Likelihood of the associated candidate longform. It is given by
-            count*log2(len(longform) + 1) - sum_ft/sum_ft**2
+            count*log2(len(longform) + 1) - sum_ft**2/sum_ft
             See
 
             [Okazaki06] Naoaki Okazaki and Sophia Ananiadou. "Building an
@@ -133,10 +133,10 @@ class ContinuousMiner(object):
             count: int
                 Current co-occurence frequency of child longform with shortform
             """
-            self.LH += self.sum_ft/self.sum_ft2 if self.sum_ft2 else 0
+            self.LH += self.sum_ft2/self.sum_ft if self.sum_ft else 0
             self.sum_ft += 1
             self.sum_ft2 += 2*count - 1
-            self.LH -= self.sum_ft/self.sum_ft2
+            self.LH -= self.sum_ft2/self.sum_ft
 
     def consume(self, texts):
         """Consume a corpus of texts and use them to train the miner
