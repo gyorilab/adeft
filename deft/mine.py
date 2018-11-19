@@ -112,19 +112,6 @@ class ContinuousMiner(object):
             self.parent = parent
             self.children = {}
 
-        def __hash__(self):
-            return hash(self.longform, self.count,
-                        self.sum_ft, self.sum_ft2)
-
-        def __eq__(self, other):
-            if not isinstance(other, type(self)):
-                return NotImplemented
-            cond1 = self.longform == other.longform
-            cond2 = self.count == other.count
-            cond3 = self.sum_ft == other.sum_ft
-            cond4 = self.sum_ft2 == other.sum_ft2
-            return cond1 and cond2 and cond3 and cond4
-
         def is_root(self):
             """True if node is at the root of the trie"""
             return self.parent is None
@@ -205,7 +192,9 @@ class ContinuousMiner(object):
         ------
         candidates: list of tuple
             List of tuples, each containing a candidate string and its
-            likelihood score, sorted in descending order by likelihood score.
+            likelihood score. Sorted first in descending order by
+        likelihood score, then by length from shortest to longest, and finally
+        by lexicographic order.
         """
         if not self._longforms:
             return []
@@ -214,7 +203,8 @@ class ContinuousMiner(object):
                             (-x[1], len(x[0]), x[0]))
         if limit is not None and limit < len(candidates):
             candidates = candidates[0:limit]
-
+        # Map stems back to the most frequent word that had been mapped to them
+        # and convert longforms in tuple format into readable strings.
         candidates = [(' '.join(self._snow.most_frequent(token)
                                 for token in longform),
                        score)
@@ -222,44 +212,74 @@ class ContinuousMiner(object):
         return candidates
 
     def get_longforms(self, cutoff=1):
-        """Extract longforms from the mine
+        """Return a list of longforms extracted from the mine with their scores
 
         The extracted longforms are found by taking the first local maximum
-        along each path from root to leaf. This is done with a breadth-first
-        tree traversal. If a node is found with a score lower than it's parent,
-        the parent is considered a valid longform and extracted.
+        along each path from root to leaf. This works because the score
+        function first increases and then decreases (not necessarily strictly).
+        This is done with a breadth-first tree traversal. In an initial
+        forward pass, the tree is traversed until every node with a greater
+        than equal score to its parent and a greater score than all of its
+        children is found. These nodes are placed in a list.
+
+        In a second backward pass, for each node in the list, its parent link
+        is followed for as long as the parent has an equal score. In this way,
+        we find longforms of maximal score and minimal length.
+
+        Parameters
+        ----------
+        cutoff: Optional[int]
+            Return only longforms with a score greater than the cutoff.
+            Default: 1
 
         Returns
         -------
         longforms: list of tuple
-        list of longforms along with their scores
+        list of longforms along with their scores. It is sorted first in
+        descending order by score, then by the length of the longform from
+        shortest to longest, and finally by lexicographic order.
         """
+        # Forward pass
         leaves = []
         # The root contains no longform. Initialize queue with all of its
         # children
         queue = deque(self._internal_trie.children.values())
         while queue:
             node = queue.popleft()
-            count = 0
+            # count the number of worthy children with greater than or equal
+            # score to their parent.
+            worthy = 0
             for child in node.children.values():
-                # only place a node in the queue if its score is greater than
-                # or equal to the score of the current node
+                # only place a node in the queue if it is worthy
                 if child.score >= node.score:
                     queue.append(child)
-                    count += 1
-            if count == 0:
+                    worthy += 1
+            # If there are no worthy children, add the node to list of leaves.
+            if worthy == 0:
                 leaves.append(node)
+        # Backward pass
+        # to contain tuple of longforms and their scores
         longforms = set([])
+        # loop through all leaves found in the forward pass
         for leaf in leaves:
             current = leaf
+            # Follow the parent links until the root is reached or until the
+            # parent has a lower score than its child
             while (not current.parent.is_root() and
                    current.score == current.parent.score):
                 current = current.parent
+            # Add the found longform and its score to the set. The set allows
+            # us to ignore that there will be duplicates
             longforms.add((current.longform, current.score))
+        # Map stems to the most frequent word that had been mapped to them.
+        # Convert longforms as tuples in reverse order into reader strings
+        # mapping stems back to the most frequent token that had been mapped
         longforms = [(' '.join(self._snow.most_frequent(token)
                                for token in longform[::-1]), score)
                      for longform, score in longforms if score > cutoff]
-        return sorted(longforms, key=lambda x: (-x[1], len(x[0]), x[0]))
+        # Sort in preferred order
+        longforms = sorted(longforms, key=lambda x: (-x[1], len(x[0]), x[0]))
+        return longforms
 
     def _add(self, tokens):
         """Add a list of tokens to the internal trie and update likelihoods.
