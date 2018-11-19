@@ -1,9 +1,7 @@
-import math
 import string
 from collections import deque
 from nltk.tokenize import word_tokenize, sent_tokenize
 from deft.nlp.stem import SnowCounter
-from deft import resources
 
 
 class ContinuousMiner(object):
@@ -48,8 +46,8 @@ class ContinuousMiner(object):
         self.exclude = exclude
 
     class TrieNode(object):
-        __slots__ = ['longform', 'count', 'sum_ft', 'sum_ft2', 'LH',
-                     '_length_incentive', 'parent', 'children']
+        __slots__ = ['longform', 'count', 'sum_ft', 'sum_ft2', 'score',
+                     'parent', 'children']
         """ Node in Trie associated to a candidate longform
 
         The children of a node associated to a candidate longform c are all
@@ -88,9 +86,9 @@ class ContinuousMiner(object):
             Sum of the squares of the co-occurence freqencies of all previously
             observed candidate longforms that are children of the associated
             longform.
-        LH: float
-            Likelihood of the associated candidate longform. It is given by
-            count*log2(len(longform) + 1) - sum_ft**2/sum_ft
+        score: float
+            Likelihood score of the associated candidate longform.
+            It is given by count - sum_ft**2/sum_ft
             See
 
             [Okazaki06] Naoaki Okazaki and Sophia Ananiadou. "Building an
@@ -110,9 +108,22 @@ class ContinuousMiner(object):
             if longform:
                 self.count = 1
                 self.sum_ft = self.sum_ft2 = 0
-                self.LH = self._length_incentive = math.log2(len(longform) + 1)
+                self.score = 1
             self.parent = parent
             self.children = {}
+
+        def __hash__(self):
+            return hash(self.longform, self.count,
+                        self.sum_ft, self.sum_ft2)
+
+        def __eq__(self, other):
+            if not isinstance(other, type(self)):
+                return NotImplemented
+            cond1 = self.longform == other.longform
+            cond2 = self.count == other.count
+            cond3 = self.sum_ft == other.sum_ft
+            cond4 = self.sum_ft2 == other.sum_ft2
+            return cond1 and cond2 and cond3 and cond4
 
         def is_root(self):
             """True if node is at the root of the trie"""
@@ -121,7 +132,7 @@ class ContinuousMiner(object):
         def increment_count(self):
             """Update count and likelihood when observing a longform again"""
             self.count += 1
-            self.LH += self._length_incentive
+            self.score += 1
 
         def update_likelihood(self, count):
             """Update likelihood when observing a child of associated longform
@@ -134,10 +145,10 @@ class ContinuousMiner(object):
             count: int
                 Current co-occurence frequency of child longform with shortform
             """
-            self.LH += self.sum_ft2/self.sum_ft if self.sum_ft else 0
+            self.score += self.sum_ft2/self.sum_ft if self.sum_ft else 0
             self.sum_ft += 1
             self.sum_ft2 += 2*count - 1
-            self.LH -= self.sum_ft2/self.sum_ft
+            self.score -= self.sum_ft2/self.sum_ft
 
     def consume(self, texts):
         """Consume a corpus of texts and use them to train the miner
@@ -199,18 +210,18 @@ class ContinuousMiner(object):
         if not self._longforms:
             return []
 
-        candidates = sorted(self._longforms.items(), key=lambda x: x[1],
-                            reverse=True)
+        candidates = sorted(self._longforms.items(), key=lambda x:
+                            (-x[1], len(x[0]), x[0]))
         if limit is not None and limit < len(candidates):
             candidates = candidates[0:limit]
 
         candidates = [(' '.join(self._snow.most_frequent(token)
                                 for token in longform),
-                       LH)
-                      for longform, LH in candidates]
+                       score)
+                      for longform, score in candidates]
         return candidates
 
-    def get_longforms(self):
+    def get_longforms(self, cutoff=1):
         """Extract longforms from the mine
 
         The extracted longforms are found by taking the first local maximum
@@ -223,21 +234,32 @@ class ContinuousMiner(object):
         longforms: list of tuple
         list of longforms along with their scores
         """
-        longforms = []
-        queue = deque([self._internal_trie])
+        leaves = []
+        # The root contains no longform. Initialize queue with all of its
+        # children
+        queue = deque(self._internal_trie.children.values())
         while queue:
             node = queue.popleft()
             count = 0
             for child in node.children.values():
-                if child.parent.is_root() or child.LH >= child.parent.LH:
+                # only place a node in the queue if its score is greater than
+                # or equal to the score of the current node
+                if child.score >= node.score:
                     queue.append(child)
                     count += 1
             if count == 0:
-                longforms.append((node.longform, node.LH))
+                leaves.append(node)
+        longforms = set([])
+        for leaf in leaves:
+            current = leaf
+            while (not current.parent.is_root() and
+                   current.score == current.parent.score):
+                current = current.parent
+            longforms.add((current.longform, current.score))
         longforms = [(' '.join(self._snow.most_frequent(token)
-                               for token in longform[::-1]), LH)
-                     for longform, LH in longforms]
-        return sorted(longforms, key=lambda x: x[1], reverse=True)
+                               for token in longform[::-1]), score)
+                     for longform, score in longforms if score > cutoff]
+        return sorted(longforms, key=lambda x: (-x[1], len(x[0]), x[0]))
 
     def _add(self, tokens):
         """Add a list of tokens to the internal trie and update likelihoods.
@@ -264,9 +286,9 @@ class ContinuousMiner(object):
                 # child unless current node is the root
                 if not current.is_root():
                     current.update_likelihood(1)
-                    self._longforms[current.longform[::-1]] = current.LH
+                    self._longforms[current.longform[::-1]] = current.score
                 # Add newly observed longform to the dictionary of candidates
-                self._longforms[new.longform[::-1]] = new.LH
+                self._longforms[new.longform[::-1]] = new.score
                 # set newly observed longform to be the child of current node
                 current.children[token] = new
                 # update current node to the newly formed node
@@ -278,7 +300,7 @@ class ContinuousMiner(object):
                 # Update entry for candidate longform in the candidates
                 # dictionary
                 self._longforms[current.children[token].longform[::-1]] = \
-                    current.children[token].LH
+                    current.children[token].score
                 if not current.is_root():
                     # we are not at the top of the trie. observed candidate
                     # has a parent
@@ -287,7 +309,7 @@ class ContinuousMiner(object):
                     count = current.children[token].count
                     current.update_likelihood(count)
                     # Update candidates dictionary
-                    self._longforms[current.longform[::-1]] = current.LH
+                    self._longforms[current.longform[::-1]] = current.score
                 current = current.children[token]
 
     def _get_candidates(self, tokens):
@@ -319,11 +341,7 @@ class ContinuousMiner(object):
                 # punctuation
                 candidate = [token for token in tokens[:index]
                              if token not in string.punctuation]
-                # If a token consists of a sole unicode greek letter, replace
-                # it with the letter spelled out in Roman characters
-                for i, token in enumerate(candidate):
-                    if token in resources.greek_alphabet:
-                        candidate[i] = resources.greek_alphabet[token]
+
                 # convert tokens to lower case
                 candidate = [token.lower() for token in candidate]
                 # Keep only the tokens preceding the left parenthese up until

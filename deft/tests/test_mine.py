@@ -1,4 +1,3 @@
-import math
 from nltk.tokenize import word_tokenize
 from deft.mine import ContinuousMiner
 from deft.mine import SnowCounter
@@ -79,22 +78,20 @@ def test_add():
                'network', 'integr', 'the']
     counts = [1]*7
     penalty = [1]*6 + [0]
-    length = range(1, 8)
     current = mine._internal_trie
-    for penalty, length, token in zip(penalty, length, stemmed):
+    for penalty, token in zip(penalty, stemmed):
         assert token in current.children
-        LH = math.log2(length+1) - penalty
-        assert current.children[token].LH == LH
+        score = 1 - penalty
+        assert current.children[token].score == score
         current = current.children[token]
     mine._add(candidate[1:])
     counts = [2]*6 + [1]
     penalty = [2]*5 + [1, 0]
-    length = range(1, 8)
     current = mine._internal_trie
-    for count, penalty, length, token in zip(counts, penalty, length, stemmed):
+    for count, penalty, token in zip(counts, penalty, stemmed):
         assert token in current.children
-        LH = math.log2(length+1)*count - penalty
-        assert current.children[token].LH == LH
+        score = count - penalty
+        assert current.children[token].score == score
         current = current.children[token]
 
 
@@ -103,13 +100,10 @@ def test_consume():
     """
     mine = ContinuousMiner('INDRA')
     mine.consume([example_text1, example_text2, example_text3, example_text4])
-    assert mine.top()[0][0] == ('integrated network and dynamical'
-                                ' reasoning assembler')
-    assert mine.top()[1][0] == 'indonesian debt restructuring agency'
-    assert mine.top()[0][1] == 2*math.log2(7) - 1
-    assert mine.top()[1][1] == 2*math.log2(5) - 1
-    assert mine.top()[9][0] == 'reasoning assembler'
-    assert mine.top()[9][1] == 2*math.log2(3) - 2
+    assert mine.top()[0] == ('indonesian debt restructuring agency', 1.0)
+    assert mine.top()[3] == ('integrated network and dynamical'
+                             ' reasoning assembler', 1.0)
+    assert mine.top()[7] == ('reasoning assembler', 0.0)
 
 
 def test_get_longforms():
@@ -117,9 +111,8 @@ def test_get_longforms():
     """
     mine = ContinuousMiner('INDRA')
     mine.consume([example_text1, example_text2, example_text3, example_text4])
-    longforms = mine.get_longforms()
-    assert longforms[0][0] == ('integrated network and dynamical'
-                               ' reasoning assembler')
-    assert longforms[1][0] == 'indonesian debt restructuring agency'
-    assert longforms[0][1] == 2*math.log2(7) - 1
-    assert longforms[1][1] == 2*math.log2(5) - 1
+    longforms = mine.get_longforms(0.5)
+    assert(len(longforms) == 2)
+    assert longforms[0] == ('indonesian debt restructuring agency', 1.0)
+    assert longforms[1] == ('integrated network and dynamical'
+                            ' reasoning assembler', 1.0)
