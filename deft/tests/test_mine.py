@@ -99,6 +99,8 @@ def test_add():
 
 
 def test_consume():
+    """Test processing of corpuses
+    """
     mine = ContinuousMiner('INDRA')
     mine.consume([example_text1, example_text2, example_text3, example_text4])
     assert mine.top()[0][0] == ('integrated network and dynamical'
@@ -108,3 +110,16 @@ def test_consume():
     assert mine.top()[1][1] == 2*math.log2(5) - 1
     assert mine.top()[9][0] == 'reasoning assembler'
     assert mine.top()[9][1] == 2*math.log2(3) - 2
+
+
+def test_get_longforms():
+    """Test breadth first search algorithm to extract longforms
+    """
+    mine = ContinuousMiner('INDRA')
+    mine.consume([example_text1, example_text2, example_text3, example_text4])
+    longforms = mine.get_longforms()
+    assert longforms[0][0] == ('integrated network and dynamical'
+                               ' reasoning assembler')
+    assert longforms[1][0] == 'indonesian debt restructuring agency'
+    assert longforms[0][1] == 2*math.log2(7) - 1
+    assert longforms[1][1] == 2*math.log2(5) - 1
