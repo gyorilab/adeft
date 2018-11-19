@@ -2,7 +2,6 @@ import math
 from nltk.tokenize import word_tokenize
 from deft.mine import ContinuousMiner
 from deft.mine import SnowCounter
-from unittest import skip
 
 
 example_text1 = ('The Integrated Network and Dynamical Reasoning Assembler'

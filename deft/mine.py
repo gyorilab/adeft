@@ -1,5 +1,6 @@
 import math
 import string
+from collections import deque
 from nltk.tokenize import word_tokenize, sent_tokenize
 from deft.nlp.stem import SnowCounter
 from deft import resources
@@ -209,7 +210,7 @@ class ContinuousMiner(object):
                       for longform, LH in candidates]
         return candidates
 
-    def extract():
+    def get_longforms(self):
         """Extract longforms from the mine
 
         The extracted longforms are found by taking the first local maximum
@@ -222,7 +223,21 @@ class ContinuousMiner(object):
         longforms: list of tuple
         list of longforms along with their scores
         """
-        pass
+        longforms = []
+        queue = deque([self._internal_trie])
+        while queue:
+            node = queue.popleft()
+            count = 0
+            for child in node.children.values():
+                if child.parent.is_root() or child.LH >= child.parent.LH:
+                    queue.append(child)
+                    count += 1
+            if count == 0:
+                longforms.append((node.longform, node.LH))
+        longforms = [(' '.join(self._snow.most_frequent(token)
+                               for token in longform[::-1]), LH)
+                     for longform, LH in longforms]
+        return sorted(longforms, key=lambda x: x[1], reverse=True)
 
     def _add(self, tokens):
         """Add a list of tokens to the internal trie and update likelihoods.
