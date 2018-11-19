@@ -99,11 +99,13 @@ def test_add():
         current = current.children[token]
 
 
-@skip
 def test_consume():
     mine = ContinuousMiner('INDRA')
     mine.consume([example_text1, example_text2, example_text3, example_text4])
     assert mine.top()[0][0] == ('integrated network and dynamical'
                                 ' reasoning assembler')
-    assert mine.top()[0][1] == 2*math.log(6)
-    assert mine.top()[1][1] == 1
+    assert mine.top()[1][0] == 'indonesian debt restructuring agency'
+    assert mine.top()[0][1] == 2*math.log2(7) - 1
+    assert mine.top()[1][1] == 2*math.log2(5) - 1
+    assert mine.top()[9][0] == 'reasoning assembler'
+    assert mine.top()[9][1] == 2*math.log2(3) - 2
