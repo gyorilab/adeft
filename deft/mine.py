@@ -135,7 +135,6 @@ class ContinuousMiner(object):
         self._snow = SnowCounter()
         self.processor = Processor(shortform, exclude)
 
-    
     def consume(self, texts):
         """Consume a corpus of texts and use them to train the miner
 
