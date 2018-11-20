@@ -1,12 +1,11 @@
-import string
 from collections import deque
-from nltk.tokenize import word_tokenize, sent_tokenize
+from deft.extraction import Processor
 from deft.nlp.stem import SnowCounter
 
 
 class ContinuousMiner(object):
     __slots__ = ['shortform', '_internal_trie',
-                 '_longforms', '_snow', 'exclude']
+                 '_longforms', '_snow', 'processor']
     """Finds possible longforms corresponding to an abbreviation in a text corpus
 
     An online method. Updates likelihoods of terms as it consumes
@@ -41,9 +40,7 @@ class ContinuousMiner(object):
         self._internal_trie = self.TrieNode()
         self._longforms = {}
         self._snow = SnowCounter()
-        if not exclude:
-            exclude = set([])
-        self.exclude = exclude
+        self.processor = Processor(shortform, exclude)
 
     class TrieNode(object):
         __slots__ = ['longform', 'count', 'sum_ft', 'sum_ft2', 'score',
@@ -163,22 +160,10 @@ class ContinuousMiner(object):
             A list of texts
         """
         # split each text into a list of sentences
-        split = [sent_tokenize(text) for text in texts]
-
-        # extract sentences defining shortform through standard pattern
-        sentences = [sentence for text in split for sentence in text
-                     if f'({self.shortform})' in sentence]
-
-        # tokenize these sentences into lists of words
-        tokens = [word_tokenize(sentence) for sentence in sentences]
-
-        # extract maximal candidate longforms from each such sentence
-        candidates = [self._get_candidates(sentence)
-                      for sentence in tokens]
-
-        # add each candidate to the internal trie
-        for candidate in candidates:
-            self._add(candidate)
+        for text in texts:
+            candidates = self.processor.extract(text)
+            for candidate in candidates:
+                self._add(candidate)
 
     def top(self, limit=None):
         """Return top scoring candidates from the mine.
@@ -331,43 +316,3 @@ class ContinuousMiner(object):
                     # Update candidates dictionary
                     self._longforms[current.longform[::-1]] = current.score
                 current = current.children[token]
-
-    def _get_candidates(self, tokens):
-        """Returns maximal candidate longform from a list of tokens.
-
-        Parameters
-        ----------
-        tokens: list of str
-            A list of tokens which that been taken from a sentence containing
-            the shortform in parentheses
-
-        Returns
-        -------
-        candidate: list of str
-            Sublist of input list containing tokens between start of sentence
-            and first occurence of the shortform in parentheses, or between
-            a stop word and the first occurence of the shortform in parentheses
-            if there is a set of stop words to exclude from longforms.
-        """
-        # Loop through tokens. The nltk word tokenizer used will split off
-        # the parentheses surrounding the shortform into separate tokens.
-        for index in range(len(tokens) - 3):
-            if tokens[index] == '(' and tokens[index+1] == self.shortform and \
-               tokens[index+2] == ')':
-                # The shortform has been found in parentheses
-
-                # Capture all tokens in the sentence up until but excluding
-                # the left parenthese containing the shortform, excluding
-                # punctuation
-                candidate = [token for token in tokens[:index]
-                             if token not in string.punctuation]
-
-                # convert tokens to lower case
-                candidate = [token.lower() for token in candidate]
-                # Keep only the tokens preceding the left parenthese up until
-                # but not including the first stop word
-                i = len(candidate)-1
-                while i >= 0 and candidate[i] not in self.exclude:
-                    i -= 1
-                candidate = candidate[i+1:]
-                return candidate
