@@ -137,12 +137,7 @@ class ContinuousMiner(object):
     def consume(self, texts):
         """Consume a corpus of texts and use them to train the miner
 
-        Each text is tokenized into sentences. Sentences are identified that
-        contain the pattern f'({self.shortform}). These sentences are then
-        tokenized into lists of words and punctuation is removed from these
-        lists. The remaining words are then stemmed and converted to lower
-        case. A maximal candidate longform is found for each of these
-        sentences. Every suffix is then considered as a candidate longform and
+        Every suffix is then considered as a candidate longform and
         added to the internal trie, which updates the likelihoods for each of
         the candidates.
 
