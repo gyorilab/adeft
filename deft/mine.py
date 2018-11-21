@@ -3,6 +3,99 @@ from deft.extraction import Processor
 from deft.nlp.stem import SnowCounter
 
 
+class TrieNode(object):
+    __slots__ = ['longform', 'count', 'sum_ft', 'sum_ft2', 'score',
+                 'parent', 'children']
+    """ Node in Trie associated to a candidate longform
+
+    The children of a node associated to a candidate longform c are all
+    observed candidates t that can be obtained by prepending a single token
+    to c.
+
+    Contains the current likelihood for the candidate longform as well
+    as all information needed to calculate it. The likelihood's are
+    updated as candidates are added to the Trie.
+
+
+    Parameters
+    ----------
+    longform: list of str
+        List of tokens within a candidate longform in reverse order.
+        For the candidate longform "in the endoplasmic reticulum" the
+        list will take the form ["reticulum", "endoplasmic", "the", "in"],
+        ignoring that the tokens should actually be stemmed.
+
+    Attributes
+    ----------
+
+    longform: list of str
+        Explained above
+
+    count: int
+        Current co-occurence frequency of candidate longform with shortform
+
+    sum_ft: int
+        Sum of the co-occurence frequencies of all previously observed
+        candidate longforms that are children of the associated candidate
+        longform (longforms that can be obtained by prepending
+        one token to the associated candidate longform).
+
+    sum_ft2: int
+        Sum of the squares of the co-occurence freqencies of all previously
+        observed candidate longforms that are children of the associated
+        longform.
+    score: float
+        Likelihood score of the associated candidate longform.
+        It is given by count - sum_ft**2/sum_ft
+        See
+
+        [Okazaki06] Naoaki Okazaki and Sophia Ananiadou. "Building an
+        abbreviation dicationary using a term recognition approach".
+        Bioinformatics. 2006. Oxford University Press.
+
+        for more information
+
+    parent: :py:class:`deft.mine.TrieNode`
+        link to node's parent
+
+    children: dict of :py:class:`deft.mine.ContinuousMiner.TrieNode`
+        dictionary of child nodes
+    """
+    def __init__(self, longform=(), parent=None):
+        self.longform = longform
+        if longform:
+            self.count = 1
+            self.sum_ft = self.sum_ft2 = 0
+            self.score = 1
+        self.parent = parent
+        self.children = {}
+
+    def is_root(self):
+        """True if node is at the root of the trie"""
+        return self.parent is None
+
+    def increment_count(self):
+        """Update count and likelihood when observing a longform again"""
+        self.count += 1
+        self.score += 1
+
+    def update_likelihood(self, count):
+        """Update likelihood when observing a child of associated longform
+
+        Update when observing a candidate longform which can be obtained
+        by prepending one token to the associated longform.
+
+        Parameters
+        ----------
+        count: int
+            Current co-occurence frequency of child longform with shortform
+        """
+        self.score += self.sum_ft2/self.sum_ft if self.sum_ft else 0
+        self.sum_ft += 1
+        self.sum_ft2 += 2*count - 1
+        self.score -= self.sum_ft2/self.sum_ft
+
+
 class ContinuousMiner(object):
     __slots__ = ['shortform', '_internal_trie',
                  '_longforms', '_snow', 'processor']
@@ -23,7 +116,7 @@ class ContinuousMiner(object):
 
     Attributes
     ----------
-    _internal_trie: :py:class:`deft.mine.ContinuousMiner.TrieNode`
+    _internal_trie: :py:class:`deft.mine.TrieNode`
         Stores trie datastructure that algorithm is based upon
 
     _longforms: dict
@@ -37,102 +130,10 @@ class ContinuousMiner(object):
     """
     def __init__(self, shortform, exclude=None):
         self.shortform = shortform
-        self._internal_trie = self.TrieNode()
+        self._internal_trie = TrieNode()
         self._longforms = {}
         self._snow = SnowCounter()
         self.processor = Processor(shortform, exclude)
-
-    class TrieNode(object):
-        __slots__ = ['longform', 'count', 'sum_ft', 'sum_ft2', 'score',
-                     'parent', 'children']
-        """ Node in Trie associated to a candidate longform
-
-        The children of a node associated to a candidate longform c are all
-        observed candidates t that can be obtained by prepending a single token
-        to c.
-
-        Contains the current likelihood for the candidate longform as well
-        as all information needed to calculate it. The likelihood's are
-        updated as candidates are added to the Trie.
-
-
-        Parameters
-        ----------
-        longform: list of str
-            List of tokens within a candidate longform in reverse order.
-            For the candidate longform "in the endoplasmic reticulum" the
-            list will take the form ["reticulum", "endoplasmic", "the", "in"],
-            ignoring that the tokens should actually be stemmed.
-
-        Attributes
-        ----------
-
-        longform: list of str
-            Explained above
-
-        count: int
-            Current co-occurence frequency of candidate longform with shortform
-
-        sum_ft: int
-            Sum of the co-occurence frequencies of all previously observed
-            candidate longforms that are children of the associated candidate
-            longform (longforms that can be obtained by prepending
-            one token to the associated candidate longform).
-
-        sum_ft2: int
-            Sum of the squares of the co-occurence freqencies of all previously
-            observed candidate longforms that are children of the associated
-            longform.
-        score: float
-            Likelihood score of the associated candidate longform.
-            It is given by count - sum_ft**2/sum_ft
-            See
-
-            [Okazaki06] Naoaki Okazaki and Sophia Ananiadou. "Building an
-            abbreviation dicationary using a term recognition approach".
-            Bioinformatics. 2006. Oxford University Press.
-
-            for more information
-
-        parent: :py:class:`deft.mine.TrieNode`
-            link to node's parent
-
-        children: dict of :py:class:`deft.mine.ContinuousMiner.TrieNode`
-            dictionary of child nodes
-        """
-        def __init__(self, longform=(), parent=None):
-            self.longform = longform
-            if longform:
-                self.count = 1
-                self.sum_ft = self.sum_ft2 = 0
-                self.score = 1
-            self.parent = parent
-            self.children = {}
-
-        def is_root(self):
-            """True if node is at the root of the trie"""
-            return self.parent is None
-
-        def increment_count(self):
-            """Update count and likelihood when observing a longform again"""
-            self.count += 1
-            self.score += 1
-
-        def update_likelihood(self, count):
-            """Update likelihood when observing a child of associated longform
-
-            Update when observing a candidate longform which can be obtained
-            by prepending one token to the associated longform.
-
-            Parameters
-            ----------
-            count: int
-                Current co-occurence frequency of child longform with shortform
-            """
-            self.score += self.sum_ft2/self.sum_ft if self.sum_ft else 0
-            self.sum_ft += 1
-            self.sum_ft2 += 2*count - 1
-            self.score -= self.sum_ft2/self.sum_ft
 
     def consume(self, texts):
         """Consume a corpus of texts and use them to train the miner
@@ -191,7 +192,7 @@ class ContinuousMiner(object):
                       for longform, score in candidates]
         return candidates
 
-    def get_longforms(self, cutoff=1):
+    def get_longforms(self, cutoff=1, readable=False):
         """Return a list of longforms extracted from the mine with their scores
 
         The extracted longforms are found by taking the first local maximum
@@ -254,9 +255,16 @@ class ContinuousMiner(object):
         # Map stems to the most frequent word that had been mapped to them.
         # Convert longforms as tuples in reverse order into reader strings
         # mapping stems back to the most frequent token that had been mapped
-        longforms = [(' '.join(self._snow.most_frequent(token)
-                               for token in longform[::-1]), score)
-                     for longform, score in longforms if score > cutoff]
+        longforms = [(longform, score) for longform, score in longforms
+                     if score > cutoff]
+        if readable:
+            # Map stems to the most frequent word that had been mapped to them.
+            # Convert longforms as tuples in reverse order into reader strings
+            # mapping stems back to the most frequent token that had been
+            # mapped
+            longforms = [(self._make_readable(longform), score)
+                         for longform, score in longforms]
+
         # Sort in preferred order
         longforms = sorted(longforms, key=lambda x: (-x[1], len(x[0]), x[0]))
         return longforms
@@ -281,7 +289,7 @@ class ContinuousMiner(object):
                 # candidate longform is observed for the first time
                 # add a new entry for it in the trie
                 longform = current.longform + (token, )
-                new = self.TrieNode(longform, parent=current)
+                new = TrieNode(longform, parent=current)
                 # update likelihood of current node to account for the new
                 # child unless current node is the root
                 if not current.is_root():
@@ -311,3 +319,9 @@ class ContinuousMiner(object):
                     # Update candidates dictionary
                     self._longforms[current.longform[::-1]] = current.score
                 current = current.children[token]
+
+    def _make_readable(self, tokens):
+        """Convert longform from internal representation to a human readable one
+        """
+        return ' '.join(self._snow.most_frequent(token)
+                        for token in tokens[::-1])
