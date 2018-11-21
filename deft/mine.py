@@ -192,7 +192,7 @@ class ContinuousMiner(object):
                       for longform, score in candidates]
         return candidates
 
-    def get_longforms(self, cutoff=1):
+    def get_longforms(self, cutoff=1, readable=False):
         """Return a list of longforms extracted from the mine with their scores
 
         The extracted longforms are found by taking the first local maximum
@@ -255,9 +255,16 @@ class ContinuousMiner(object):
         # Map stems to the most frequent word that had been mapped to them.
         # Convert longforms as tuples in reverse order into reader strings
         # mapping stems back to the most frequent token that had been mapped
-        longforms = [(' '.join(self._snow.most_frequent(token)
-                               for token in longform[::-1]), score)
-                     for longform, score in longforms if score > cutoff]
+        longforms = [(longform, score) for longform, score in longforms
+                     if score > cutoff]
+        if readable:
+            # Map stems to the most frequent word that had been mapped to them.
+            # Convert longforms as tuples in reverse order into reader strings
+            # mapping stems back to the most frequent token that had been
+            # mapped
+            longforms = [(self._make_readable(longform), score)
+                         for longform, score in longforms]
+
         # Sort in preferred order
         longforms = sorted(longforms, key=lambda x: (-x[1], len(x[0]), x[0]))
         return longforms
@@ -312,3 +319,9 @@ class ContinuousMiner(object):
                     # Update candidates dictionary
                     self._longforms[current.longform[::-1]] = current.score
                 current = current.children[token]
+
+    def _make_readable(self, tokens):
+        """Convert longform from internal representation to a human readable one
+        """
+        return ' '.join(self._snow.most_frequent(token)
+                        for token in tokens[::-1])

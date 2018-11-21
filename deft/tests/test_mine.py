@@ -113,7 +113,7 @@ def test_get_longforms():
     """
     mine = ContinuousMiner('INDRA')
     mine.consume([example_text1, example_text2, example_text3, example_text4])
-    longforms = mine.get_longforms(0.5)
+    longforms = mine.get_longforms(cutoff=0.5, readable=True)
     assert(len(longforms) == 2)
     assert longforms[0] == ('indonesian debt restructuring agency', 1.0)
     assert longforms[1] == ('integrated network and dynamical'

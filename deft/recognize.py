@@ -1,12 +1,15 @@
 from deft.extraction import Processor
+from nltk.stem.snowball import EnglishStemmer
 import logging
 
 
 logger = logging.getLogger('recognizer')
 
+_snow = EnglishStemmer()
 
-class __TrieNode(object):
-    __slots__ = ['concept', 'children']
+
+class _TrieNode(object):
+    __slots__ = ['grounding', 'children']
     """Barebones TrieNode struct for use in recognizer
 
     Attributes
@@ -18,12 +21,13 @@ class __TrieNode(object):
     children: dict
         dict mapping tokens to child nodes
     """
-    def __init__(self, concept=None):
-        self.concept = concept
+    def __init__(self, grounding=None):
+        self.grounding = grounding
         self.children = {}
 
 
 class Recognizer(object):
+    __slots__ = ['shortform', 'grounding_map', '_trie', '_processor']
     """Class for recognizing concepts based on matching the standard pattern
 
     Searches text for the pattern "<longform> (<shortform>)" for longforms that
@@ -35,7 +39,7 @@ class Recognizer(object):
     shortform: str
         shortform to be recognized
 
-    concept_map: dict of tuple: str
+    grounding_map: dict of tuple: str
         Keyed on tuples containing the stemmed tokens of longforms extracted by
         the miner. Tokens must be in reverse order for easy insertion into the
         the trie. Maps these keys to agent IDs consisting of a namespace and an
@@ -54,12 +58,11 @@ class Recognizer(object):
         to a shortform. The trie will search for longforms in the concept map
         based on maximal candidates.
     """
-    __slots__ = ['shortform', 'concept_map', '_trie', '_processor']
 
-    def __init__(self, shortform, concept_map, exclude=None):
+    def __init__(self, shortform, grounding_map, exclude=None):
         self.shortform = shortform
-        self.concept_map = concept_map
-        self._trie = self._init_trie(concept_map)
+        self.grounding_map = grounding_map
+        self._trie = self._init_trie(grounding_map)
         self._processor = Processor(shortform, exclude)
 
     def recognize(self, text):
@@ -81,24 +84,27 @@ class Recognizer(object):
         # Extract maximal longform candidates from the text
         candidates = self._processor.extract(text)
         # Search the trie for longforms appearing in each maximal candidate
-        concepts = set([self._search(candidate[::-1])
-                        for candidate in candidates])
+        # As in the miner, tokens are stemmed and put in reverse order
+        groundings = set([self._search(tuple(_snow.stem(token)
+                                             for token in candidate[::-1]))
+                          for candidate in candidates])
         # There should only be one concept matching the pattern. If not make
         # a note of it in the logger
-        if len(concepts) > 1:
-            logger.info(f'Multiple occurences of standard pattern with'
-                        ' shortform {self.shortform} in text\n'
+        if len(groundings) > 1:
+            logger.info(f'The standard pattern with shortform {self.shortform}'
+                        'occurs in text multiple times with different'
+                        ' groundings.\n'
                         '{text}')
         # Returns a concept if one is found matching the pattern, else None
         # Picks one at random if multiple concepts are found
-        return concepts.pop() if concepts else None
+        return groundings.pop() if groundings else None
 
-    def _init_trie(self, concept_map):
+    def _init_trie(self, grounding_map):
         """Initialize search trie from concept_map
 
         Parameters
         ---------
-        concept_map: dict of tuple: str
+        grounding_map: dict of tuple: str
             Keyed on tuples containing the stemmed tokens of longforms
             extracted by the miner. Maps these keys to agent IDs consisting
             of a namespace and an ID separated by a colon, such as "HGNC:6871".
@@ -108,15 +114,15 @@ class Recognizer(object):
         root: :py:class:`deft.recogizer.__TrieNode`
             Root of search trie used to recognize longforms
         """
-        root = __TrieNode()
-        for longform, concept in self.concept_map.items():
+        root = _TrieNode()
+        for longform, grounding in self.grounding_map.items():
             current = root
             for index, token in enumerate(longform):
                 if token not in current.children:
                     if index == len(longform) - 1:
-                        new = __TrieNode(concept)
+                        new = _TrieNode(grounding)
                     else:
-                        new = __TrieNode()
+                        new = _TrieNode()
                     current.children[token] = new
                     current = new
                 else:
@@ -144,8 +150,8 @@ class Recognizer(object):
         for token in tokens:
             if token not in current.children:
                 break
-            if current.children[token].concept is not None:
-                return current.children[token].concept
+            if current.children[token].grounding is not None:
+                return current.children[token].grounding
             else:
                 current = current.children[token]
         else:
