@@ -1,7 +1,4 @@
-from nltk.tokenize import word_tokenize
 from deft.mine import ContinuousMiner
-from deft.mine import SnowCounter
-from unittest import skip
 
 
 example_text1 = ('The Integrated Network and Dynamical Reasoning Assembler'
@@ -26,41 +23,6 @@ example_text4 = ('An Indonesian Debt Restructuring Agency (INDRA) was'
                  ' established to provide foreign-exchange cover for'
                  ' Indonesian corporations with foreign currency denominated'
                  ' debt.')
-
-
-def test_snow_counter():
-    """Test stemmer
-
-    Stemmer should be able to keep track of the
-    most frequent word mapped to a particular stem.
-    """
-    snow = SnowCounter()
-    words = ['verb', 'verbs', 'verbing', 'verbed', 'noun', 'nouns', 'nouning',
-             'nouned', 'verb', 'verb', 'verb', 'verbed', 'noun', 'nouns',
-             'nouns', 'nouning', 'nouning']
-    for word in words:
-        snow.stem(word)
-    assert set(snow.counts['verb'].items()) == set([('verb', 4),
-                                                    ('verbed', 2),
-                                                    ('verbing', 1),
-                                                    ('verbs', 1)])
-    assert set(snow.counts['noun'].items()) == set([('noun', 2),
-                                                    ('nouned', 1),
-                                                    ('nouning', 3),
-                                                    ('nouns', 3)])
-    assert snow.most_frequent('verb') == 'verb'
-    assert snow.most_frequent('noun') == 'nouning'
-
-
-@skip
-def test_get_candidates():
-    """Test extraction of maximal longform candidate from text
-    """
-    mine = ContinuousMiner('INDRA')
-    tokens = word_tokenize(example_text1)
-    assert mine._get_candidates(tokens) == ['the', 'integrated', 'network',
-                                            'and', 'dynamical', 'reasoning',
-                                            'assembler']
 
 
 def test_add():
