@@ -1,5 +1,6 @@
 import string
-from nltk.tokenize import sent_tokenize, word_tokenize
+from nltk.tokenize import sent_tokenize
+from deft.nlp.tokenize import word_tokenize
 
 
 class Processor(object):
