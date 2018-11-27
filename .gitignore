@@ -109,6 +109,9 @@ venv.bak/
 # data directory
 /data
 
+# models. word embeddings and pretrained machine learning models
+/models
+
 # Emacs stuff
 *~
 \#*\#
