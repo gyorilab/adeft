@@ -9,7 +9,7 @@ _snow = EnglishStemmer()
 
 
 class _TrieNode(object):
-    __slots__ = ['grounding', 'children']
+    __slots__ = ['longform', 'children']
     """Barebones TrieNode struct for use in recognizer
 
     Attributes
@@ -21,13 +21,13 @@ class _TrieNode(object):
     children: dict
         dict mapping tokens to child nodes
     """
-    def __init__(self, grounding=None):
-        self.grounding = grounding
+    def __init__(self, longform=None):
+        self.longform = longform
         self.children = {}
 
 
 class Recognizer(object):
-    __slots__ = ['shortform', 'grounding_map', '_trie', '_processor']
+    __slots__ = ['shortform', 'longforms', '_trie', '_processor']
     """Class for recognizing concepts based on matching the standard pattern
 
     Searches text for the pattern "<longform> (<shortform>)" for longforms that
@@ -39,11 +39,10 @@ class Recognizer(object):
     shortform: str
         shortform to be recognized
 
-    grounding_map: dict of tuple: str
+    longforms: dict of tuple: str
         Keyed on tuples containing the stemmed tokens of longforms extracted by
         the miner. Tokens must be in reverse order for easy insertion into the
-        the trie. Maps these keys to agent IDs consisting of a namespace and an
-        ID separated by a colon, such as "HGNC:6871".
+        the trie. Maps these keys to representative readable strings.".
 
     Attributes
     ----------
@@ -55,14 +54,14 @@ class Recognizer(object):
 
     _processor: :py:class:`deft.extraction:Processor`
         Processor capable of recognizing maximal longform candidates associated
-        to a shortform. The trie will search for longforms in the concept map
-        based on maximal candidates.
+        to a shortform. The trie will search for longforms nested within the
+        maximal candidates.
     """
 
-    def __init__(self, shortform, grounding_map, exclude=None):
+    def __init__(self, shortform, longforms, exclude=None):
         self.shortform = shortform
-        self.grounding_map = grounding_map
-        self._trie = self._init_trie(grounding_map)
+        self.longforms = longforms
+        self._trie = self._init_trie(longforms)
         self._processor = Processor(shortform, exclude)
 
     def recognize(self, text):
@@ -76,38 +75,38 @@ class Recognizer(object):
         Returns
         -------
         str|None
-            Agent ID corresponding to shortform appearing in text if the
-            pattern <longform> (<shortform>) appears in the text and the
-            longform appears in the concept map. None if the pattern does not
-            appear or if there is no corresponding entry in the concept map.
+            Longform corresponding to shortform appearing in text if the
+            pattern <longform> (<shortform>) appears and the
+            longform appears input map of longforms. None if the pattern does
+            not appear or if there is no corresponding entry in the map.
         """
         # Extract maximal longform candidates from the text
         candidates = self._processor.extract(text)
         # Search the trie for longforms appearing in each maximal candidate
         # As in the miner, tokens are stemmed and put in reverse order
-        groundings = set([self._search(tuple(_snow.stem(token)
-                                             for token in candidate[::-1]))
-                          for candidate in candidates])
+        longforms = set([self._search(tuple(_snow.stem(token)
+                                            for token in candidate[::-1]))
+                         for candidate in candidates])
         # There should only be one concept matching the pattern. If not make
         # a note of it in the logger
-        if len(groundings) > 1:
+        if len(longforms) > 1:
             logger.info(f'The standard pattern with shortform {self.shortform}'
                         'occurs in text multiple times with different'
                         ' groundings.\n'
                         '{text}')
         # Returns a concept if one is found matching the pattern, else None
         # Picks one at random if multiple concepts are found
-        return groundings.pop() if groundings else None
+        return longforms.pop() if longforms else None
 
-    def _init_trie(self, grounding_map):
+    def _init_trie(self, longforms):
         """Initialize search trie from concept_map
 
         Parameters
         ---------
-        grounding_map: dict of tuple: str
+        longforms: dict of tuple: str
             Keyed on tuples containing the stemmed tokens of longforms
-            extracted by the miner. Maps these keys to agent IDs consisting
-            of a namespace and an ID separated by a colon, such as "HGNC:6871".
+            extracted by the miner. Maps these keys to readable longform
+            texts.
 
         Returns
         -------
@@ -115,12 +114,12 @@ class Recognizer(object):
             Root of search trie used to recognize longforms
         """
         root = _TrieNode()
-        for longform, grounding in self.grounding_map.items():
+        for key, longform in self.longforms.items():
             current = root
-            for index, token in enumerate(longform):
+            for index, token in enumerate(key):
                 if token not in current.children:
-                    if index == len(longform) - 1:
-                        new = _TrieNode(grounding)
+                    if index == len(key) - 1:
+                        new = _TrieNode(longform)
                     else:
                         new = _TrieNode()
                     current.children[token] = new
@@ -150,8 +149,8 @@ class Recognizer(object):
         for token in tokens:
             if token not in current.children:
                 break
-            if current.children[token].grounding is not None:
-                return current.children[token].grounding
+            if current.children[token].longform is not None:
+                return current.children[token].longform
             else:
                 current = current.children[token]
         else:
