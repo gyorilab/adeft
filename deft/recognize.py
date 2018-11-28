@@ -1,4 +1,5 @@
 from deft.extraction import Processor
+from deft.nlp import word_tokenize
 from nltk.stem.snowball import EnglishStemmer
 import logging
 
@@ -30,27 +31,23 @@ class Recognizer(object):
     __slots__ = ['shortform', 'longforms', '_trie', '_processor']
     """Class for recognizing concepts based on matching the standard pattern
 
-    Searches text for the pattern "<longform> (<shortform>)" for longforms that
-    have been identified by the miner and added to a concept map. Uses concept
-    map to find a grounding for the shortform.
+    Searches text for the pattern "<longform> (<shortform>)" for a collection
+    of longforms supplied by the user.
 
     Parameters
     ----------
     shortform: str
         shortform to be recognized
 
-    longforms: dict of tuple: str
-        Keyed on tuples containing the stemmed tokens of longforms extracted by
-        the miner. Tokens must be in reverse order for easy insertion into the
-        the trie. Maps these keys to representative readable strings.".
+    longforms: iterable of str
+        Contains candidate longforms.
 
     Attributes
     ----------
     _trie: :py:class:`deft.recognizer.__TrieNode`
-        Trie used to search for longforms that appear in the concept map. Edges
-        correspond to stemmed tokens from longforms appearing in reverse order.
-        Terminal nodes correspond to longforms with the concept appearing in
-        the node data.
+        Trie used to search for longforms. Edges correspond to stemmed tokens
+        from longforms. They appear in reverse order to the bottom of the trie
+        with terminal nodes containing the associated longform in their data.
 
     _processor: :py:class:`deft.extraction:Processor`
         Processor capable of recognizing maximal longform candidates associated
@@ -99,14 +96,13 @@ class Recognizer(object):
         return longforms.pop() if longforms else None
 
     def _init_trie(self, longforms):
-        """Initialize search trie from concept_map
+        """Initialize search trie from iterable of longforms
 
         Parameters
         ---------
-        longforms: dict of tuple: str
-            Keyed on tuples containing the stemmed tokens of longforms
-            extracted by the miner. Maps these keys to readable longform
-            texts.
+        longforms: iterable of str
+            longforms to add to the trie. They will be tokenized and stemmed,
+            then their tokens will be added to the trie in reverse order.
 
         Returns
         -------
@@ -114,11 +110,13 @@ class Recognizer(object):
             Root of search trie used to recognize longforms
         """
         root = _TrieNode()
-        for key, longform in self.longforms.items():
+        for longform in self.longforms:
+            edges = tuple(_snow.stem(token)
+                          for token in word_tokenize(longform))[::-1]
             current = root
-            for index, token in enumerate(key):
+            for index, token in enumerate(edges):
                 if token not in current.children:
-                    if index == len(key) - 1:
+                    if index == len(edges) - 1:
                         new = _TrieNode(longform)
                     else:
                         new = _TrieNode()
@@ -129,7 +127,7 @@ class Recognizer(object):
         return root
 
     def _search(self, tokens):
-        """Returns concept associated to a longform from a maximal candidate
+        """Returns longform from maximal candidate preceding shortform
 
         Parameters
         ----------

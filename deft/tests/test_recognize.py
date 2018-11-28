@@ -1,10 +1,14 @@
 from deft.recognize import Recognizer
+from deft.nlp import word_tokenize
+from nltk.stem.snowball import EnglishStemmer
 
-longforms_map = {('reticulum', 'endoplasm'): 'endoplasmic reticulum',
-                 ('receptor', 'estrogen'): 'estrogen receptor',
-                 ('alpha', 'receptor', 'estrogen'): 'estrogen receptor alpha',
-                 ('reticular', 'endoplasm'): 'endoplasmic reticular',
-                 ('room', 'emerg'): 'emergency room'}
+_snow = EnglishStemmer()
+
+longforms = ['endoplasmic reticulum',
+             'estrogen receptor',
+             'estrogen receptor alpha',
+             'endoplasmic reticular',
+             'emergency room']
 
 
 example1 = ('The growth of estrogen receptor (ER)-positive breast cancer'
@@ -40,13 +44,15 @@ example5 = ('A number of studies showed that chemotherapeutic benefits'
 
 def test_init():
     """Test that the recognizers internal trie is initialized correctly"""
-    recognizer = Recognizer('ER', longforms_map)
+    recognizer = Recognizer('ER', longforms)
     trie = recognizer._trie
-    for key, longform in longforms_map.items():
+    for longform in longforms:
+        edges = tuple(_snow.stem(token)
+                      for token in word_tokenize(longform))[::-1]
         current = trie
-        for index, token in enumerate(key):
+        for index, token in enumerate(edges):
             assert token in current.children
-            if index < len(key) - 1:
+            if index < len(edges) - 1:
                 assert current.children[token].longform is None
             else:
                 assert current.children[token].longform == longform
@@ -55,7 +61,7 @@ def test_init():
 
 def test_search():
     """Test that searching for a longform in the trie works correctly"""
-    recognizer = Recognizer('ER', longforms_map)
+    recognizer = Recognizer('ER', longforms)
     example = (('room', 'emerg', 'non', 'of', 'type', 'some',
                 'reduc', 'program', 'hmo', 'mandatori', ',', 'women', 'for'),
                'emergency room')
@@ -64,7 +70,7 @@ def test_search():
 
 def test_recognizer():
     """Test the recognizer end to end"""
-    recognizer = Recognizer('ER', longforms_map)
+    recognizer = Recognizer('ER', longforms)
     for text, longform in [example1, example2, example3, example4, example5]:
         if recognizer.recognize(text) != longform:
             print(text, longform)

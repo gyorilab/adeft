@@ -1,6 +1,6 @@
-from collections import deque
 from deft.extraction import Processor
 from deft.nlp.stem import SnowCounter
+from collections import deque
 
 
 class TrieNode(object):
@@ -192,7 +192,7 @@ class ContinuousMiner(object):
                       for longform, score in candidates]
         return candidates
 
-    def get_longforms(self, cutoff=1, readable=False):
+    def get_longforms(self, cutoff=1):
         """Return a list of longforms extracted from the mine with their scores
 
         The extracted longforms are found by taking the first local maximum
@@ -257,13 +257,14 @@ class ContinuousMiner(object):
         # mapping stems back to the most frequent token that had been mapped
         longforms = [(longform, score) for longform, score in longforms
                      if score > cutoff]
-        if readable:
-            # Map stems to the most frequent word that had been mapped to them.
-            # Convert longforms as tuples in reverse order into reader strings
-            # mapping stems back to the most frequent token that had been
-            # mapped
-            longforms = [(self._make_readable(longform), score)
-                         for longform, score in longforms]
+
+        # Map stems to the most frequent word that had been mapped to them.
+        # Convert longforms as tuples in reverse order into reader strings
+        # mapping stems back to the most frequent token that had been
+        # mapped to them. tuple of stemmed tokens can be recovered by
+        # tokenizing, stemming, and reversing
+        longforms = [(self._make_readable(longform), score)
+                     for longform, score in longforms]
 
         # Sort in preferred order
         longforms = sorted(longforms, key=lambda x: (-x[1], len(x[0]), x[0]))
@@ -280,10 +281,8 @@ class ContinuousMiner(object):
         """
         # start at top of trie
         current = self._internal_trie
-        # apply snowball stemmer to each token
-        tokens = [self._snow.stem(token) for token in tokens]
-        # tokens must be inserted into the trie in reverse order
-        tokens = tokens[::-1]
+        # apply snowball stemmer to each token and put them in reverse order
+        tokens = tuple(self._snow.stem(token) for token in tokens)[::-1]
         for token in tokens:
             if token not in current.children:
                 # candidate longform is observed for the first time
