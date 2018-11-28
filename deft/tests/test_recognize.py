@@ -72,6 +72,4 @@ def test_recognizer():
     """Test the recognizer end to end"""
     recognizer = Recognizer('ER', longforms)
     for text, longform in [example1, example2, example3, example4, example5]:
-        if recognizer.recognize(text) != longform:
-            print(text, longform)
-        assert recognizer.recognize(text) == longform
+        assert recognizer.recognize(text) == set([longform])

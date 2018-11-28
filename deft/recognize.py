@@ -71,29 +71,18 @@ class Recognizer(object):
 
         Returns
         -------
-        str|None
-            Longform corresponding to shortform appearing in text if the
-            pattern <longform> (<shortform>) appears and the
-            longform appears input map of longforms. None if the pattern does
-            not appear or if there is no corresponding entry in the map.
+        longforms: set
+            Set of longforms that correspond to shortform in text for each
+            instance of the pattern <longform> (<shortform>).
         """
         # Extract maximal longform candidates from the text
         candidates = self._processor.extract(text)
         # Search the trie for longforms appearing in each maximal candidate
         # As in the miner, tokens are stemmed and put in reverse order
-        longforms = set([self._search(tuple(_snow.stem(token)
-                                            for token in candidate[::-1]))
-                         for candidate in candidates])
-        # There should only be one concept matching the pattern. If not make
-        # a note of it in the logger
-        if len(longforms) > 1:
-            logger.info(f'The standard pattern with shortform {self.shortform}'
-                        'occurs in text multiple times with different'
-                        ' groundings.\n'
-                        '{text}')
-        # Returns a concept if one is found matching the pattern, else None
-        # Picks one at random if multiple concepts are found
-        return longforms.pop() if longforms else None
+        longforms = [self._search(tuple(_snow.stem(token)
+                                        for token in candidate[::-1]))
+                     for candidate in candidates]
+        return set([longform for longform in longforms if longform])
 
     def _init_trie(self, longforms):
         """Initialize search trie from iterable of longforms
