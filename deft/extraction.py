@@ -27,9 +27,8 @@ class Processor(object):
 
         Parameters
         ----------
-        tokens: list of str
-            A list of tokens which that been taken from a sentence containing
-            the shortform in parentheses
+        sentence: str
+            A sentence containing the pattern <longform> (<shortform>)
 
         Returns
         -------
@@ -44,7 +43,7 @@ class Processor(object):
 
         # Loop through tokens. The nltk word tokenizer used will split off
         # the parentheses surrounding the shortform into separate tokens.
-        for index in range(len(tokens) - 3):
+        for index in range(len(tokens) - 2):
             if tokens[index] == '(' and tokens[index+1] == self.shortform \
                and tokens[index+2] == ')':
                 # The shortform has been found in parentheses
