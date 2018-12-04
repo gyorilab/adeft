@@ -4,7 +4,7 @@ from nltk.stem.snowball import EnglishStemmer
 import logging
 
 
-logger = logging.getLogger('recognizer')
+logger = logging.getLogger('recognize')
 
 _snow = EnglishStemmer()
 
