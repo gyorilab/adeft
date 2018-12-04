@@ -76,13 +76,13 @@ class Recognizer(object):
             instance of the pattern <longform> (<shortform>).
         """
         # Extract maximal longform candidates from the text
-        candidates = self._processor.extract(text)
+        candidates, text = self._processor.extract(text)
         # Search the trie for longforms appearing in each maximal candidate
         # As in the miner, tokens are stemmed and put in reverse order
         longforms = [self._search(tuple(_snow.stem(token)
                                         for token in candidate[::-1]))
                      for candidate in candidates]
-        return set([longform for longform in longforms if longform])
+        return set([longform for longform in longforms if longform]), text
 
     def _init_trie(self, longforms):
         """Initialize search trie from iterable of longforms

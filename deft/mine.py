@@ -157,7 +157,7 @@ class ContinuousMiner(object):
         """
         # split each text into a list of sentences
         for text in texts:
-            candidates = self.processor.extract(text)
+            candidates, _ = self.processor.extract(text)
             for candidate in candidates:
                 self._add(candidate)
 

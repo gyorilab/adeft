@@ -5,9 +5,6 @@ import numpy as np
 from sklearn.base import clone
 from sklearn.multiclass import _ConstantPredictor
 from sklearn.model_selection import cross_val_score
-from sklearn.utils import check_X_y
-from sklearn.multiclass import check_classification_targets
-from sklearn.utils.metaestimators import _safe_split
 from joblib import Parallel, delayed
 import logging
 
@@ -35,7 +32,7 @@ def _ovo_cross_val_scores(mean_array,
 
 
 class SenseClusterer(object):
-    def __init__(self, estimator, n_folds=5, n_jobs=1, scoring='neg_log_loss'):
+    def __init__(self, estimator, n_folds=2, n_jobs=1, scoring='roc_auc'):
         self.estimator = estimator
         self.n_folds = n_folds
         self.n_jobs = n_jobs
@@ -44,7 +41,6 @@ class SenseClusterer(object):
     def fit(self, X, y):
         y = np.array(y)
 
-        print('***')
         self.classes_ = np.unique(y)
         if len(self.classes_) == 1:
             raise ValueError("SenseClassifier cannot be fit when only one"
@@ -74,8 +70,15 @@ class SenseClusterer(object):
                                      for i in range(n_classes)
                                      for j in range(i+1, n_classes))
 
-        self.mean_grid = mean_array.copy()
-        self.std_grd = std_array.copy()
+        mean_grid = np.array(mean_array)
+        mean_grid = mean_grid + mean_grid.T
+        np.fill_diagonal(mean_grid, 1.0)
+        std_grid = np.array(std_array)
+        std_grid = std_grid + std_grid.T
+        np.fill_diagonal(mean_grid, 0.0)
+
+        self.mean_grid = mean_grid
+        self.std_grid = std_grid
 
         try:
             shutil.rmtree(mean_folder)

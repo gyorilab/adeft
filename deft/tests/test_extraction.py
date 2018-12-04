@@ -60,6 +60,7 @@ def test_extract():
                              example_text3, example_text4,
                              example_text5],
                             [result1, result2, result3, result4, result5]):
-        candidates = processor.extract(text)
+        candidates, text = processor.extract(text)
         assert len(candidates) == 1
         assert candidates[0] == result.split()
+        assert '(INDRA)' not in text

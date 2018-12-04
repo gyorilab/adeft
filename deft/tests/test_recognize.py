@@ -71,5 +71,7 @@ def test_search():
 def test_recognizer():
     """Test the recognizer end to end"""
     recognizer = Recognizer('ER', longforms)
-    for text, longform in [example1, example2, example3, example4, example5]:
-        assert recognizer.recognize(text) == set([longform])
+    for text, result in [example1, example2, example3, example4, example5]:
+        longform, filtered_text = recognizer.recognize(text)
+        assert longform.pop() == result
+        assert '(ER)' not in filtered_text

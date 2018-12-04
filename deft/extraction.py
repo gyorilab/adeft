@@ -15,12 +15,17 @@ class Processor(object):
         sentences = sent_tokenize(text)
 
         # extract sentences defining shortform using parenthetic pattern
-        defining_sentences = [sentence for sentence in sentences
-                              if f'({self.shortform})' in sentence]
+        defining_sentences = []
+        other_sentences = []
+        for sentence in sentences:
+            if f'({self.shortform})' in sentence:
+                defining_sentences.append(sentence)
+            else:
+                other_sentences.append(sentence)
 
         candidates = [self._get_candidate(sentence)
                       for sentence in defining_sentences]
-        return candidates
+        return candidates, ' '.join(other_sentences)
 
     def _get_candidate(self, sentence):
         """Returns maximal candidate longform from a list of tokens.
