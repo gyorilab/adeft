@@ -2,8 +2,6 @@ import os
 import tempfile
 import shutil
 import numpy as np
-from sklearn.base import clone
-from sklearn.multiclass import _ConstantPredictor
 from sklearn.model_selection import cross_val_score
 from joblib import Parallel, delayed
 import logging
@@ -12,8 +10,7 @@ logger = logging.getLogger('sense')
 
 
 def _ovo_cross_val_scores(mean_array,
-                          std_array,
-                          estimator, scoring, n_folds,
+                          estimator, n_folds,
                           X, y,
                           i, j, class_i, class_j):
     indices, y = zip(*[(index, label) for index, label in
@@ -25,44 +22,36 @@ def _ovo_cross_val_scores(mean_array,
     y_binary[y == class_i] = 0
     y_binary[y == class_j] = 1
 
-    scores = cross_val_score(estimator, X, y, scoring=scoring,
+    scores = cross_val_score(estimator, X, y, scoring='roc_auc',
                              cv=n_folds)
     mean_array[i, j] = np.mean(scores)
-    std_array[i, j] = np.std(scores)
 
 
-class SenseClusterer(object):
-    def __init__(self, estimator, n_folds=2, n_jobs=1, scoring='roc_auc'):
+class DocumentSimilarity(object):
+    def __init__(self, estimator, n_folds=2, n_jobs=1):
         self.estimator = estimator
         self.n_folds = n_folds
         self.n_jobs = n_jobs
-        self.scoring = scoring
 
     def fit(self, X, y):
         y = np.array(y)
 
         self.classes_ = np.unique(y)
         if len(self.classes_) == 1:
-            raise ValueError("SenseClassifier cannot be fit when only one"
+            raise ValueError("Classifier cannot be fit when only one"
                              "class is present.")
 
         n_classes = self.classes_.shape[0]
 
         mean_folder = tempfile.mkdtemp()
-        std_folder = tempfile.mkdtemp()
         mean_name = os.path.join(mean_folder, 'mean')
-        std_name = os.path.join(std_folder, 'std')
-
         mean_array = np.memmap(mean_name, dtype=np.float64,
                                shape=(n_classes, n_classes), mode='w+')
-        std_array = np.memmap(std_name, dtype=np.float64,
-                              shape=(n_classes, n_classes), mode='w+')
 
         Parallel(n_jobs=self.n_jobs)(delayed(_ovo_cross_val_scores)
                                      (mean_array,
-                                      std_array,
                                       self.estimator,
-                                      self.scoring, self.n_folds,
+                                      self.n_folds,
                                       X, y,
                                       i, j,
                                       self.classes_[i],
@@ -73,18 +62,11 @@ class SenseClusterer(object):
         mean_grid = np.array(mean_array)
         mean_grid = mean_grid + mean_grid.T
         np.fill_diagonal(mean_grid, 1.0)
-        std_grid = np.array(std_array)
-        std_grid = std_grid + std_grid.T
-        np.fill_diagonal(mean_grid, 0.0)
+        mean_grid = 2*mean_grid - 1.0
 
         self.mean_grid = mean_grid
-        self.std_grid = std_grid
 
         try:
             shutil.rmtree(mean_folder)
         except Exception:
             logger.info("Could not cleanup mean array automatically")
-        try:
-            shutil.rmtree(std_folder)
-        except Exception:
-            logger.info("Could not cleanup std array automatically")
