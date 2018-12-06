@@ -1,5 +1,6 @@
 import string
-from nltk.tokenize import sent_tokenize, word_tokenize
+from nltk.tokenize import sent_tokenize
+from deft.nlp.tokenize import word_tokenize
 
 
 class Processor(object):
@@ -14,21 +15,25 @@ class Processor(object):
         sentences = sent_tokenize(text)
 
         # extract sentences defining shortform using parenthetic pattern
-        defining_sentences = [sentence for sentence in sentences
-                              if f'({self.shortform})' in sentence]
+        defining_sentences = []
+        other_sentences = []
+        for sentence in sentences:
+            if f'({self.shortform})' in sentence:
+                defining_sentences.append(sentence)
+            else:
+                other_sentences.append(sentence)
 
         candidates = [self._get_candidate(sentence)
                       for sentence in defining_sentences]
-        return candidates
+        return candidates, ' '.join(other_sentences)
 
     def _get_candidate(self, sentence):
         """Returns maximal candidate longform from a list of tokens.
 
         Parameters
         ----------
-        tokens: list of str
-            A list of tokens which that been taken from a sentence containing
-            the shortform in parentheses
+        sentence: str
+            A sentence containing the pattern <longform> (<shortform>)
 
         Returns
         -------
@@ -43,7 +48,7 @@ class Processor(object):
 
         # Loop through tokens. The nltk word tokenizer used will split off
         # the parentheses surrounding the shortform into separate tokens.
-        for index in range(len(tokens) - 3):
+        for index in range(len(tokens) - 2):
             if tokens[index] == '(' and tokens[index+1] == self.shortform \
                and tokens[index+2] == ')':
                 # The shortform has been found in parentheses

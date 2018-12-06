@@ -30,6 +30,9 @@ example_text4 = ('An Indonesian Debt Restructuring Agency (INDRA) was'
                  ' debt.')
 result4 = 'an indonesian debt restructuring agency'
 
+example_text5 = 'Interior Natural Desert Reclamation and Afforestation (INDRA)'
+result5 = 'interior natural desert reclamation and afforestation'
+
 
 def test_get_candidates():
     """Test extraction of maximal longform candidate from sentence
@@ -54,8 +57,10 @@ def test_extract():
     """
     processor = Processor('INDRA')
     for text, result in zip([example_text1, example_text2,
-                             example_text3, example_text4],
-                            [result1, result2, result3, result4]):
-        candidates = processor.extract(text)
+                             example_text3, example_text4,
+                             example_text5],
+                            [result1, result2, result3, result4, result5]):
+        candidates, text = processor.extract(text)
         assert len(candidates) == 1
         assert candidates[0] == result.split()
+        assert '(INDRA)' not in text

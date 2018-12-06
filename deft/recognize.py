@@ -1,15 +1,16 @@
 from deft.extraction import Processor
+from deft.nlp import word_tokenize
 from nltk.stem.snowball import EnglishStemmer
 import logging
 
 
-logger = logging.getLogger('recognizer')
+logger = logging.getLogger('recognize')
 
 _snow = EnglishStemmer()
 
 
 class _TrieNode(object):
-    __slots__ = ['grounding', 'children']
+    __slots__ = ['longform', 'children']
     """Barebones TrieNode struct for use in recognizer
 
     Attributes
@@ -21,48 +22,43 @@ class _TrieNode(object):
     children: dict
         dict mapping tokens to child nodes
     """
-    def __init__(self, grounding=None):
-        self.grounding = grounding
+    def __init__(self, longform=None):
+        self.longform = longform
         self.children = {}
 
 
 class Recognizer(object):
-    __slots__ = ['shortform', 'grounding_map', '_trie', '_processor']
+    __slots__ = ['shortform', 'longforms', '_trie', '_processor']
     """Class for recognizing concepts based on matching the standard pattern
 
-    Searches text for the pattern "<longform> (<shortform>)" for longforms that
-    have been identified by the miner and added to a concept map. Uses concept
-    map to find a grounding for the shortform.
+    Searches text for the pattern "<longform> (<shortform>)" for a collection
+    of longforms supplied by the user.
 
     Parameters
     ----------
     shortform: str
         shortform to be recognized
 
-    grounding_map: dict of tuple: str
-        Keyed on tuples containing the stemmed tokens of longforms extracted by
-        the miner. Tokens must be in reverse order for easy insertion into the
-        the trie. Maps these keys to agent IDs consisting of a namespace and an
-        ID separated by a colon, such as "HGNC:6871".
+    longforms: iterable of str
+        Contains candidate longforms.
 
     Attributes
     ----------
     _trie: :py:class:`deft.recognizer.__TrieNode`
-        Trie used to search for longforms that appear in the concept map. Edges
-        correspond to stemmed tokens from longforms appearing in reverse order.
-        Terminal nodes correspond to longforms with the concept appearing in
-        the node data.
+        Trie used to search for longforms. Edges correspond to stemmed tokens
+        from longforms. They appear in reverse order to the bottom of the trie
+        with terminal nodes containing the associated longform in their data.
 
     _processor: :py:class:`deft.extraction:Processor`
         Processor capable of recognizing maximal longform candidates associated
-        to a shortform. The trie will search for longforms in the concept map
-        based on maximal candidates.
+        to a shortform. The trie will search for longforms nested within the
+        maximal candidates.
     """
 
-    def __init__(self, shortform, grounding_map, exclude=None):
+    def __init__(self, shortform, longforms, exclude=None):
         self.shortform = shortform
-        self.grounding_map = grounding_map
-        self._trie = self._init_trie(grounding_map)
+        self.longforms = longforms
+        self._trie = self._init_trie(longforms)
         self._processor = Processor(shortform, exclude)
 
     def recognize(self, text):
@@ -75,39 +71,27 @@ class Recognizer(object):
 
         Returns
         -------
-        str|None
-            Agent ID corresponding to shortform appearing in text if the
-            pattern <longform> (<shortform>) appears in the text and the
-            longform appears in the concept map. None if the pattern does not
-            appear or if there is no corresponding entry in the concept map.
+        longforms: set
+            Set of longforms that correspond to shortform in text for each
+            instance of the pattern <longform> (<shortform>).
         """
         # Extract maximal longform candidates from the text
-        candidates = self._processor.extract(text)
+        candidates, text = self._processor.extract(text)
         # Search the trie for longforms appearing in each maximal candidate
         # As in the miner, tokens are stemmed and put in reverse order
-        groundings = set([self._search(tuple(_snow.stem(token)
-                                             for token in candidate[::-1]))
-                          for candidate in candidates])
-        # There should only be one concept matching the pattern. If not make
-        # a note of it in the logger
-        if len(groundings) > 1:
-            logger.info(f'The standard pattern with shortform {self.shortform}'
-                        'occurs in text multiple times with different'
-                        ' groundings.\n'
-                        '{text}')
-        # Returns a concept if one is found matching the pattern, else None
-        # Picks one at random if multiple concepts are found
-        return groundings.pop() if groundings else None
+        longforms = [self._search(tuple(_snow.stem(token)
+                                        for token in candidate[::-1]))
+                     for candidate in candidates]
+        return set([longform for longform in longforms if longform]), text
 
-    def _init_trie(self, grounding_map):
-        """Initialize search trie from concept_map
+    def _init_trie(self, longforms):
+        """Initialize search trie from iterable of longforms
 
         Parameters
         ---------
-        grounding_map: dict of tuple: str
-            Keyed on tuples containing the stemmed tokens of longforms
-            extracted by the miner. Maps these keys to agent IDs consisting
-            of a namespace and an ID separated by a colon, such as "HGNC:6871".
+        longforms: iterable of str
+            longforms to add to the trie. They will be tokenized and stemmed,
+            then their tokens will be added to the trie in reverse order.
 
         Returns
         -------
@@ -115,12 +99,14 @@ class Recognizer(object):
             Root of search trie used to recognize longforms
         """
         root = _TrieNode()
-        for longform, grounding in self.grounding_map.items():
+        for longform in self.longforms:
+            edges = tuple(_snow.stem(token)
+                          for token in word_tokenize(longform))[::-1]
             current = root
-            for index, token in enumerate(longform):
+            for index, token in enumerate(edges):
                 if token not in current.children:
-                    if index == len(longform) - 1:
-                        new = _TrieNode(grounding)
+                    if index == len(edges) - 1:
+                        new = _TrieNode(longform)
                     else:
                         new = _TrieNode()
                     current.children[token] = new
@@ -130,7 +116,7 @@ class Recognizer(object):
         return root
 
     def _search(self, tokens):
-        """Returns concept associated to a longform from a maximal candidate
+        """Returns longform from maximal candidate preceding shortform
 
         Parameters
         ----------
@@ -150,8 +136,8 @@ class Recognizer(object):
         for token in tokens:
             if token not in current.children:
                 break
-            if current.children[token].grounding is not None:
-                return current.children[token].grounding
+            if current.children[token].longform is not None:
+                return current.children[token].longform
             else:
                 current = current.children[token]
         else:
