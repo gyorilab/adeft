@@ -11,6 +11,26 @@ class Processor(object):
         self.exclude = exclude
 
     def extract(self, text):
+        """Find maximal candidate longforms co-occuring with shortform in text
+
+        Parameters
+        ----------
+        text: str
+            A text document
+
+        Returns
+        -------
+        candidates: list of list
+            list of lists of tokens in maximal candidate longforms co-occuring
+            with the given shortform in the standard pattern
+
+        str:
+            Concatentation of all sentences in the original fulltext containing
+            the given shortform with the exception of the defining sentences
+            that contain the standard pattern. For use in training ML models.
+            This is included in the processor even though it is orthogonal to
+            save the cost of sentence splitting.
+        """
         # Split text into a list of sentences
         sentences = sent_tokenize(text)
 
@@ -25,7 +45,8 @@ class Processor(object):
 
         candidates = [self._get_candidate(sentence)
                       for sentence in defining_sentences]
-        return candidates, ' '.join(other_sentences)
+        return candidates, ' '.join(sent for sent in other_sentences
+                                    if self.shortform in sent)
 
     def _get_candidate(self, sentence):
         """Returns maximal candidate longform from a list of tokens.
