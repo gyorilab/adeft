@@ -1,10 +1,10 @@
 import os
-import tempfile
 import shutil
-import numpy as np
-from sklearn.model_selection import cross_val_score
-from joblib import Parallel, delayed
 import logging
+import tempfile
+import numpy as np
+from joblib import Parallel, delayed
+from sklearn.model_selection import cross_val_score
 
 logger = logging.getLogger('sense')
 

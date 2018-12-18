@@ -1,7 +1,8 @@
-from deft.extraction import Processor
-from deft.nlp import word_tokenize
-from nltk.stem.snowball import EnglishStemmer
 import logging
+from nltk.stem.snowball import EnglishStemmer
+
+from deft.nlp import word_tokenize
+from deft.extraction import Processor
 
 
 logger = logging.getLogger('recognize')

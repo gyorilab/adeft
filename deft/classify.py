@@ -217,5 +217,3 @@ def load_model(filepath):
                           ('logit', logit)])
     longform_model.estimator = estimator
     return longform_model
-
-
