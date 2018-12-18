@@ -2,15 +2,18 @@ import re
 import gzip
 import json
 import logging
+import warnings
 import numpy as np
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import f1_score, make_scorer
+from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import LogisticRegression
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from deft.util import is_jsonable
 
+warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
 logger = logging.getLogger('classify')
 
