@@ -1,6 +1,7 @@
+from collections import deque
+
 from deft.extraction import Processor
 from deft.nlp.stem import SnowCounter
-from collections import deque
 
 
 class TrieNode(object):
