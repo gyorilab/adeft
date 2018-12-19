@@ -5,8 +5,12 @@ import numpy as np
 from nose.plugins.attrib import attr
 from deft.classify import LongformClassifier, load_model
 
+# Get test directory so necessary datafiles can be found from any working
+# directory
+TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # Example data contains 1000 labeled texts with shortform IR
-with open('example_training_data.json', 'r') as f:
+with open(f'{TEST_DIR}/example_training_data.json', 'r') as f:
     data = json.load(f)
 
 # The classifier works slightly differently for multiclass than it does for
@@ -42,9 +46,9 @@ def test_serialize():
     """Test that models can correctly be saved to and loaded from gzipped json
     """
     train = data['train']
-    temp_filename = uuid.uuid4().hex
+    temp_filename = f'{TEST_DIR}/{uuid.uuid4().hex}'
 
-    classifier1 = load_model('example_model.gz')
+    classifier1 = load_model(f'{TEST_DIR}/example_model.gz')
     classifier1.dump_model(temp_filename)
 
     classifier2 = load_model(temp_filename)
