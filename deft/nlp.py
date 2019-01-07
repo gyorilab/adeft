@@ -13,15 +13,15 @@ class WatchfulStemmer(object):
 
     Attributes
     ----------
-    __snow: :py:class:`nltk.stem.snowball.EnglishStemmer
+    __snow : :py:class:`nltk.stem.snowball.EnglishStemmer
 
-    counts: defaultdict of defaultdict of int
+    counts : defaultdict of defaultdict of int
         Contains the count of the number of times a particular word has been
         mapped to from a particular stem by the wrapped stemmer. Of the form
         counts[stem:str][word:str] = count:int
     """
     def __init__(self):
-        self.__snow = EnglishStemmer()
+        self.__snowball = EnglishStemmer()
         self.counts = defaultdict(lambda: defaultdict(int))
 
     def stem(self, word):
@@ -31,15 +31,15 @@ class WatchfulStemmer(object):
 
         Parameters
         ----------
-        word: str
+        word : str
             text to stem
 
         Returns
         -------
-        stemmed: str
+        stemmed : str
             stemmed form of input word
         """
-        stemmed = self.__snow.stem(word)
+        stemmed = self.__snowball.stem(word)
         self.counts[stemmed][word] += 1
         return stemmed
 
@@ -48,13 +48,13 @@ class WatchfulStemmer(object):
 
         Parameters
         ----------
-        stemmed: str
+        stemmed : str
             Stem that has previously been output by the wrapped snowball
             stemmer.
 
         Returns
         -------
-        output: str|None
+        output : str|None
             Most frequent word that has been mapped to the input stem or None
             if the wrapped stemmer has never mapped the a word to the input
             stem. Break ties with lexicographic order
