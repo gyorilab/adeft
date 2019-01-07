@@ -25,7 +25,6 @@ def test_classify_multiclass():
     train = data['train']
     response = data['response']
     classifier.train(train, response, params=params)
-    print(classifier.best_score)
     assert classifier.best_score > 0.8
 
 
@@ -38,7 +37,6 @@ def test_classify_binary():
                 for label in data['response']]
     classifier = LongformClassifier('IR', ['HGNC:6091'])
     classifier.train(train, response, params=params)
-    print(classifier.best_score)
     assert classifier.best_score > 0.8
 
 
@@ -46,9 +44,9 @@ def test_serialize():
     """Test that models can correctly be saved to and loaded from gzipped json
     """
     train = data['train']
-    temp_filename = f'{TEST_DIR}/{uuid.uuid4().hex}'
+    temp_filename = '%s/%s' % (TEST_DIR, uuid.uuid4().hex)
 
-    classifier1 = load_model(f'{TEST_DIR}/example_model.gz')
+    classifier1 = load_model('%s/example_model.gz' % TEST_DIR)
     classifier1.dump_model(temp_filename)
 
     classifier2 = load_model(temp_filename)

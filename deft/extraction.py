@@ -38,7 +38,7 @@ class Processor(object):
         defining_sentences = []
         other_sentences = []
         for sentence in sentences:
-            if f'({self.shortform})' in sentence:
+            if '(%s)' % self.shortform in sentence:
                 defining_sentences.append(sentence)
             else:
                 other_sentences.append(sentence)

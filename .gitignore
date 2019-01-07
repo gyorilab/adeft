@@ -103,14 +103,6 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-# scratchwork directory
-/scratch
-
-# data directory
-/data
-
-# models. word embeddings and pretrained machine learning models
-/models
 
 # Emacs stuff
 *~
@@ -160,3 +152,14 @@ flycheck_*.el
 
 # network security
 /network-security.data
+
+
+# scratchwork directory
+/scratch
+
+# data directory
+/data
+
+# models: pretrained machine learning model
+# other information needed for models
+/models

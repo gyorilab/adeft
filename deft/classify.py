@@ -124,8 +124,9 @@ class LongformClassifier(object):
         grid_search = GridSearchCV(logit_pipeline, params,
                                    cv=cv, n_jobs=n_jobs, scoring=f1_scorer)
         grid_search.fit(texts, y)
-        logger.info(f'Best f1 score of {grid_search.best_score_} found for'
-                    f' parameter values:\n{grid_search.best_params_}')
+        logger.info('Best f1 score of %s found for' % grid_search.best_score_
+                    + ' parameter values:\n%s' % grid_search.best_params_)
+
         self.estimator = grid_search.best_estimator_
         self.best_score = grid_search.best_score_
 

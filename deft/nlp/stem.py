@@ -63,5 +63,5 @@ class SnowCounter(object):
             candidates = [word[0] for word in words if word[1] == words[0][1]]
             output = min(candidates)
         else:
-            raise ValueError(f'stem {stemmed} has not been observed')
+            raise ValueError('stem %s has not been observed' % stemmed)
         return output
