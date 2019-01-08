@@ -1,4 +1,4 @@
-from deft.mine import ContinuousMiner
+from deft.discover import LongformFinder
 
 
 example_text1 = ('The Integrated Network and Dynamical Reasoning Assembler'
@@ -34,24 +34,24 @@ def test_add():
     original maximal candidate and check that likelihood has been updated
     correctly.
     """
-    mine = ContinuousMiner('INDRA')
+    lff = LongformFinder('INDRA')
     candidate = ['the', 'integrated', 'network', 'and',
                  'dynamical', 'reasoning', 'assembler']
-    mine._add(candidate)
+    lff._add(candidate)
     stemmed = ['assembl', 'reason', 'dynam', 'and',
                'network', 'integr', 'the']
     counts = [1]*7
     penalty = [1]*6 + [0]
-    current = mine._internal_trie
+    current = lff._internal_trie
     for penalty, token in zip(penalty, stemmed):
         assert token in current.children
         score = 1 - penalty
         assert current.children[token].score == score
         current = current.children[token]
-    mine._add(candidate[1:])
+    lff._add(candidate[1:])
     counts = [2]*6 + [1]
     penalty = [2]*5 + [1, 0]
-    current = mine._internal_trie
+    current = lff._internal_trie
     for count, penalty, token in zip(counts, penalty, stemmed):
         assert token in current.children
         score = count - penalty
@@ -59,23 +59,25 @@ def test_add():
         current = current.children[token]
 
 
-def test_consume():
+def test_process_texts():
     """Test processing of corpuses
     """
-    mine = ContinuousMiner('INDRA')
-    mine.consume([example_text1, example_text2, example_text3, example_text4])
-    assert mine.top()[0] == ('indonesian debt restructuring agency', 1.0)
-    assert mine.top()[3] == ('integrated network and dynamical'
-                             ' reasoning assembler', 1.0)
-    assert mine.top()[7] == ('reasoning assembler', 0.0)
+    lff = LongformFinder('INDRA')
+    lff.process_texts([example_text1, example_text2,
+                       example_text3, example_text4])
+    assert lff.top()[0] == ('indonesian debt restructuring agency', 1.0)
+    assert lff.top()[3] == ('integrated network and dynamical'
+                            ' reasoning assembler', 1.0)
+    assert lff.top()[7] == ('reasoning assembler', 0.0)
 
 
 def test_get_longforms():
     """Test breadth first search algorithm to extract longforms
     """
-    mine = ContinuousMiner('INDRA')
-    mine.consume([example_text1, example_text2, example_text3, example_text4])
-    longforms = mine.get_longforms(cutoff=0.5)
+    lff = LongformFinder('INDRA')
+    lff.process_texts([example_text1, example_text2,
+                       example_text3, example_text4])
+    longforms = lff.get_longforms(cutoff=0.5)
     assert(len(longforms) == 2)
     assert longforms[0] == ('indonesian debt restructuring agency', 1.0)
     assert longforms[1] == ('integrated network and dynamical'

@@ -2,25 +2,25 @@ import logging
 from nltk.stem.snowball import EnglishStemmer
 
 from deft.nlp import word_tokenize
-from deft.extraction import Processor
+from deft.util import contains_shortform, get_max_candidate_longform
 
 
 logger = logging.getLogger('recognize')
 
-_snow = EnglishStemmer()
+_stemmer = EnglishStemmer()
 
 
 class _TrieNode(object):
     __slots__ = ['longform', 'children']
-    """Barebones TrieNode struct for use in recognizer
+    """TrieNode struct for use in recognizer
 
     Attributes
     ----------
-    concept: str|None
+    concept : str|None
         concept has a str value containing an agent ID at terminal nodes of
         the recognizer trie, otherwise it has a None value.
 
-    children: dict
+    children : dict
         dict mapping tokens to child nodes
     """
     def __init__(self, longform=None):
@@ -28,62 +28,59 @@ class _TrieNode(object):
         self.children = {}
 
 
-class Recognizer(object):
-    __slots__ = ['shortform', 'longforms', '_trie', '_processor']
-    """Class for recognizing concepts based on matching the standard pattern
+class LongformRecognizer(object):
+    __slots__ = ['shortform', 'exclude', 'longforms', '_trie']
+    """Class for recognizing longforms by matching the standard pattern
 
     Searches text for the pattern "<longform> (<shortform>)" for a collection
     of longforms supplied by the user.
 
     Parameters
     ----------
-    shortform: str
+    shortform : str
         shortform to be recognized
 
-    longforms: iterable of str
+    longforms : iterable of str
         Contains candidate longforms.
 
     Attributes
     ----------
-    _trie: :py:class:`deft.recognizer.__TrieNode`
+    _trie : :py:class:`deft.recognizer.__TrieNode`
         Trie used to search for longforms. Edges correspond to stemmed tokens
         from longforms. They appear in reverse order to the bottom of the trie
         with terminal nodes containing the associated longform in their data.
-
-    _processor: :py:class:`deft.extraction:Processor`
-        Processor capable of recognizing maximal longform candidates associated
-        to a shortform. The trie will search for longforms nested within the
-        maximal candidates.
     """
 
     def __init__(self, shortform, longforms, exclude=None):
         self.shortform = shortform
         self.longforms = longforms
         self._trie = self._init_trie(longforms)
-        self._processor = Processor(shortform, exclude)
+        if exclude is None:
+            self.exclude = set([])
+        else:
+            self.exclude = exclude
 
-    def recognize(self, text):
-        """Find the concept associated to a shortform in text by pattern matching
+    def recognize(self, sentence):
+        """Find longform in sentence by matching the standard pattern
 
         Parameters
         ----------
-        text: str
-            Plaintext for which a dismabiguation of a shortform is sought
+        sentence : str
+            Sentence where we seek to disambiguate shortform
 
         Returns
         -------
-        longforms: set
-            Set of longforms that correspond to shortform in text for each
-            instance of the pattern <longform> (<shortform>).
+        longform : str|None
+            longform corresponding to shortform in sentence if the standard
+            pattern is matched. Returns None if the pattern is not matched
         """
-        # Extract maximal longform candidates from the text
-        candidates, text = self._processor.extract(text)
-        # Search the trie for longforms appearing in each maximal candidate
-        # As in the miner, tokens are stemmed and put in reverse order
-        longforms = [self._search(tuple(_snow.stem(token)
-                                        for token in candidate[::-1]))
-                     for candidate in candidates]
-        return set([longform for longform in longforms if longform]), text
+        # check if sentence contains shortform
+        if contains_shortform(sentence, self.shortform):
+            # if it does, extract candidate
+            candidate = get_max_candidate_longform(sentence, self.shortform)
+            longform = self._search(tuple(_stemmer.stem(token)
+                                          for token in candidate[::-1]))
+            return longform
 
     def _init_trie(self, longforms):
         """Initialize search trie from iterable of longforms
@@ -101,7 +98,7 @@ class Recognizer(object):
         """
         root = _TrieNode()
         for longform in self.longforms:
-            edges = tuple(_snow.stem(token)
+            edges = tuple(_stemmer.stem(token)
                           for token in word_tokenize(longform))[::-1]
             current = root
             for index, token in enumerate(edges):

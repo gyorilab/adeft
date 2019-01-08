@@ -1,10 +1,15 @@
 from collections import deque
+import logging
 
-from deft.extraction import Processor
-from deft.nlp.stem import SnowCounter
+from nltk.tokenize import sent_tokenize
+
+from deft.nlp import WatchfulStemmer
+from deft.util import contains_shortform, get_max_candidate_longform
+
+logger = logging.getLogger('discover')
 
 
-class TrieNode(object):
+class _TrieNode(object):
     __slots__ = ['longform', 'count', 'sum_ft', 'sum_ft2', 'score',
                  'parent', 'children']
     """ Node in Trie associated to a candidate longform
@@ -20,7 +25,7 @@ class TrieNode(object):
 
     Parameters
     ----------
-    longform: list of str
+    longform : list of str
         List of tokens within a candidate longform in reverse order.
         For the candidate longform "in the endoplasmic reticulum" the
         list will take the form ["reticulum", "endoplasmic", "the", "in"],
@@ -29,23 +34,23 @@ class TrieNode(object):
     Attributes
     ----------
 
-    longform: list of str
+    longform : list of str
         Explained above
 
-    count: int
+    count : int
         Current co-occurence frequency of candidate longform with shortform
 
-    sum_ft: int
+    sum_ft : int
         Sum of the co-occurence frequencies of all previously observed
         candidate longforms that are children of the associated candidate
         longform (longforms that can be obtained by prepending
         one token to the associated candidate longform).
 
-    sum_ft2: int
+    sum_ft2 : int
         Sum of the squares of the co-occurence freqencies of all previously
         observed candidate longforms that are children of the associated
         longform.
-    score: float
+    score : float
         Likelihood score of the associated candidate longform.
         It is given by count - sum_ft**2/sum_ft
         See
@@ -56,10 +61,10 @@ class TrieNode(object):
 
         for more information
 
-    parent: :py:class:`deft.mine.TrieNode`
+    parent : :py:class:`deft.discover._TrieNode`
         link to node's parent
 
-    children: dict of :py:class:`deft.mine.ContinuousMiner.TrieNode`
+    children : dict of :py:class:`deft.discover._TrieNode`
         dictionary of child nodes
     """
     def __init__(self, longform=(), parent=None):
@@ -88,7 +93,7 @@ class TrieNode(object):
 
         Parameters
         ----------
-        count: int
+        count : int
             Current co-occurence frequency of child longform with shortform
         """
         self.score += self.sum_ft2/self.sum_ft if self.sum_ft else 0
@@ -97,73 +102,79 @@ class TrieNode(object):
         self.score -= self.sum_ft2/self.sum_ft
 
 
-class ContinuousMiner(object):
-    __slots__ = ['shortform', '_internal_trie',
-                 '_longforms', '_snow', 'processor']
+class LongformFinder(object):
+    __slots__ = ['shortform', 'exclude', '_internal_trie',
+                 '_longforms', '_stemmer']
     """Finds possible longforms corresponding to an abbreviation in a text corpus
 
-    An online method. Updates likelihoods of terms as it consumes
-    additional texts. Based on a trie datastructure. Likelihoods for longforms
-    are updated at the time of insertions into the trie.
+    Makes use of the acromine algorithm developed by Okazaki and Ananiadou
+
+    [Okazaki06] Naoaki Okazaki and Sophia Ananiadou. "Building an
+    abbreviation dicationary using a term recognition approach".
+    Bioinformatics. 2006. Oxford University Press.
 
     Parameters
     ----------
-    shortform: str
+    shortform : str
         Search for candidate longforms associated to this shortform
 
-    exclude: Optional[set of str]
+    exclude : Optional[set of str]
         Terms that are to be excluded from candidate longforms.
         Default: None
 
     Attributes
     ----------
-    _internal_trie: :py:class:`deft.mine.TrieNode`
-        Stores trie datastructure that algorithm is based upon
+    _internal_trie : :py:class:`deft.discover._TrieNode`
+        Stores trie data-structure used to implement the algorithm
 
-    _longforms: dict
+    _longforms : dict
         Dictionary mapping candidate longforms to their likelihoods as
         produced by the acromine algorithm
 
-    _snow: :py:class:`deft.nlp.stem.SnowCounter`
+    _stemmer : :py:class:`deft.nlp.stem.SnowCounter`
         English stemmer that keeps track of counts of the number of times a
         given word has been mapped to a given stem. Wraps the class
         EnglishStemmer from nltk.stem.snowball
     """
     def __init__(self, shortform, exclude=None):
         self.shortform = shortform
-        self._internal_trie = TrieNode()
+        self._internal_trie = _TrieNode()
         self._longforms = {}
-        self._snow = SnowCounter()
-        self.processor = Processor(shortform, exclude)
+        self._stemmer = WatchfulStemmer()
+        if exclude is None:
+            self.exclude = set([])
+        else:
+            self.exclude = exclude
 
-    def consume(self, texts):
-        """Consume a corpus of texts and use them to train the miner
+    def process_texts(self, texts):
+        """Update longform candidate scores based on a corpus of texts
 
-        Every suffix is then considered as a candidate longform and
-        added to the internal trie, which updates the likelihoods for each of
-        the candidates.
-
-        If there are no excluded stop words, for the sentence "The growth of
-        estrogen receptor (ER)-positive breast cancer cells is inhibited by
-        all-trans-retinoic acid (RA)." The maximal candidate longform would be
-        "the growth of estrogen receptor". It and the candidates
-        "growth of estrogen receptor", "of estrogen receptor",
-        "estrogen receptor", "receptor" would then be added to the internal
-        trie.
+        An online method. Updates likelihoods of terms as it consumes
+        additional texts. Care should be taken to not consume the same text
+        multiple times.
 
         Parameters
         ----------
-        texts: list of str
+        texts : list of str
             A list of texts
         """
-        # split each text into a list of sentences
         for text in texts:
-            candidates, _ = self.processor.extract(text)
-            for candidate in candidates:
-                self._add(candidate)
+            # split each text into a list of sentences
+            sentences = sent_tokenize(text)
+
+            for sentence in sentences:
+                if contains_shortform(sentence, self.shortform):
+                    candidate = get_max_candidate_longform(sentence,
+                                                           self.shortform)
+                    if candidate is not None:
+                        self._add(candidate)
+                    else:
+                        logger.info('No candidates found for sentence "%s"'
+                                    ' containing the shortform %s'
+                                    % sentence, self.shortform)
 
     def top(self, limit=None):
-        """Return top scoring candidates from the mine.
+        """Return top scoring candidates.
 
         Parameters
         ----------
@@ -187,14 +198,14 @@ class ContinuousMiner(object):
             candidates = candidates[0:limit]
         # Map stems back to the most frequent word that had been mapped to them
         # and convert longforms in tuple format into readable strings.
-        candidates = [(' '.join(self._snow.most_frequent(token)
+        candidates = [(' '.join(self._stemmer.most_frequent(token)
                                 for token in longform),
                        score)
                       for longform, score in candidates]
         return candidates
 
     def get_longforms(self, cutoff=1):
-        """Return a list of longforms extracted from the mine with their scores
+        """Return a list of extracted longforms with their scores
 
         The extracted longforms are found by taking the first local maximum
         along each path from root to leaf. This works because the score
@@ -283,13 +294,13 @@ class ContinuousMiner(object):
         # start at top of trie
         current = self._internal_trie
         # apply snowball stemmer to each token and put them in reverse order
-        tokens = tuple(self._snow.stem(token) for token in tokens)[::-1]
+        tokens = tuple(self._stemmer.stem(token) for token in tokens)[::-1]
         for token in tokens:
             if token not in current.children:
                 # candidate longform is observed for the first time
                 # add a new entry for it in the trie
                 longform = current.longform + (token, )
-                new = TrieNode(longform, parent=current)
+                new = _TrieNode(longform, parent=current)
                 # update likelihood of current node to account for the new
                 # child unless current node is the root
                 if not current.is_root():
@@ -323,5 +334,5 @@ class ContinuousMiner(object):
     def _make_readable(self, tokens):
         """Convert longform from internal representation to a human readable one
         """
-        return ' '.join(self._snow.most_frequent(token)
+        return ' '.join(self._stemmer.most_frequent(token)
                         for token in tokens[::-1])
