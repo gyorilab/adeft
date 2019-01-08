@@ -1,4 +1,4 @@
-# Default set of stop words to exclude from candidate longforms
+# Stop words to exclude from candidate longforms
 stopwords = set(['a', 'an', 'the', 'and', 'or', 'of', 'with', 'at', 'from',
                  'into', 'to', 'for', 'on', 'by', 'be', 'being', 'been', 'am',
                  'is', 'are', 'was', 'were', 'in', 'that', 'as'])

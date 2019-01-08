@@ -3,8 +3,6 @@ from nltk.stem.snowball import EnglishStemmer
 from deft.nlp import word_tokenize
 from deft.recognize import LongformRecognizer
 
-
-
 _stemmer = EnglishStemmer()
 
 longforms = ['endoplasmic reticulum',

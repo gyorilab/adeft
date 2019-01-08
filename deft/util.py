@@ -66,7 +66,10 @@ def get_max_candidate_longform(sentence, shortform, exclude=None):
             while i >= 0 and candidate[i] not in exclude:
                 i -= 1
             candidate = candidate[i+1:]
-            return candidate
+            if candidate:
+                return candidate
+            else:
+                return None
 
 
 def is_plausible(shortform, longform):
