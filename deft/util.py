@@ -4,7 +4,7 @@ import string
 from nltk import ngrams
 from multiset import Multiset
 
-from deft.nlp.tokenize import word_tokenize
+from deft.nlp import word_tokenize
 
 
 def contains_shortform(sentence, shortform):

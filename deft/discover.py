@@ -6,7 +6,7 @@ from nltk.tokenize import sent_tokenize
 from deft.nlp import WatchfulStemmer
 from deft.util import contains_shortform, get_max_candidate_longform
 
-logger = logging.get_logger('discover')
+logger = logging.getLogger('discover')
 
 
 class _TrieNode(object):
@@ -103,8 +103,8 @@ class _TrieNode(object):
 
 
 class LongformFinder(object):
-    __slots__ = ['shortform', '_internal_trie',
-                 '_longforms', '_stemmer', 'exclude']
+    __slots__ = ['shortform', 'exclude', '_internal_trie',
+                 '_longforms', '_stemmer']
     """Finds possible longforms corresponding to an abbreviation in a text corpus
 
     Makes use of the acromine algorithm developed by Okazaki and Ananiadou
@@ -146,7 +146,7 @@ class LongformFinder(object):
         else:
             self.exclude = exclude
 
-    def update(self, texts):
+    def process_texts(self, texts):
         """Update longform candidate scores based on a corpus of texts
 
         An online method. Updates likelihoods of terms as it consumes
