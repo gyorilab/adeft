@@ -74,8 +74,9 @@ class LongformRecognizer(object):
             longform corresponding to shortform in sentence if the standard
             pattern is matched. Returns None if the pattern is not matched
         """
-        # check if sentence contains shortform
-        if contains_shortform(sentence, self.shortform):
+        if not contains_shortform(sentence, self.shortform):
+            return
+        else:
             # if it does, extract candidate
             candidate = get_max_candidate_longform(sentence, self.shortform)
             longform = self._search(tuple(_stemmer.stem(token)
@@ -87,13 +88,13 @@ class LongformRecognizer(object):
 
         Parameters
         ---------
-        longforms: iterable of str
+        longforms : iterable of str
             longforms to add to the trie. They will be tokenized and stemmed,
             then their tokens will be added to the trie in reverse order.
 
         Returns
         -------
-        root: :py:class:`deft.recogizer.__TrieNode`
+        root : :py:class:`deft.recogize._TrieNode`
             Root of search trie used to recognize longforms
         """
         root = _TrieNode()
@@ -118,7 +119,7 @@ class LongformRecognizer(object):
 
         Parameters
         ----------
-        tokens: tuple of str
+        tokens : tuple of str
             contains tokens that precede the occurence of the pattern
             "<longform> (<shortform>)" up until the start of the containing
             sentence or an excluded word is reached. Tokens must appear in
