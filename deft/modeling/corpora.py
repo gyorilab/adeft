@@ -8,7 +8,7 @@ class CorpusBuilder(object):
 
     Parameters
     ----------
-    longform_recognizer : :py:class:`deft.recognize.LongformRecognizer`
+    lfr : :py:class:`deft.recognize.LongformRecognizer`
         A recognizer that can find longforms by matching the standard pattern
 
     Attributes
@@ -21,7 +21,7 @@ class CorpusBuilder(object):
        List of pairs of the form (<text>, <label>) that can be used as training
        data for classification algorithms
     """
-    __slots__ = ['longform_recognizer', 'shortform', 'corpus']
+    __slots__ = ['lfr', 'shortform', 'corpus']
 
     def __init__(self, longform_recognizer):
         self.lfr = longform_recognizer
@@ -61,20 +61,18 @@ class CorpusBuilder(object):
             return None
         else:
             sentences = sent_tokenize(text)
-
-            defining_sentences = []
-            other_sentences = []
+            training_sentences = []
             labels = []
             for sentence in sentences:
                 if contains_shortform(sentence, self.shortform):
                     longform = self.lfr.recognize(sentence)
                     if longform:
-                        defining_sentences.append(sentence)
+                        sentence = sentence.replace(' (%s)' % self.shortform,
+                                                    '')
                         labels.append(longform)
-                else:
-                    other_sentences.append(sentence)
+                training_sentences.append(sentence)
         if not labels:
             return None
         else:
-            training_text = ' '.join(other_sentences)
+            training_text = ' '.join(training_sentences)
             return [(training_text, label) for label in labels]
