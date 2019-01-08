@@ -38,8 +38,7 @@ class CorpusBuilder(object):
         """Returns training data and label corresponding to text if found
 
         The training text corresponding to an input text is obtained by
-        stripping out all sentences that containing a longform defined with
-        the standard pattern that can be recognized. It is possible that
+        stripping out all occurences of (<shortform>). It is possible that
         longforms are matched with the standard pattern. In this case, multiple
         datapoints are returned each with different labels but the same
         training text.
@@ -59,20 +58,10 @@ class CorpusBuilder(object):
         """
         if not contains_shortform(text, self.shortform):
             return None
-        else:
-            sentences = sent_tokenize(text)
-            training_sentences = []
-            labels = []
-            for sentence in sentences:
-                if contains_shortform(sentence, self.shortform):
-                    longform = self.lfr.recognize(sentence)
-                    if longform:
-                        sentence = sentence.replace(' (%s)' % self.shortform,
-                                                    '')
-                        labels.append(longform)
-                training_sentences.append(sentence)
-        if not labels:
+        longforms = self.lfr.recognize(text)
+        if not longforms:
             return None
-        else:
-            training_text = ' '.join(training_sentences)
-            return [(training_text, label) for label in labels]
+        training_text = text.replace('(%s)' % self.shortform, '')
+        training_text = ' '.join(training_text.split())
+        corpus = [(training_text, longform) for longform in longforms]
+        return corpus

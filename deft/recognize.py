@@ -1,4 +1,6 @@
 import logging
+
+from nltk.tokenize import sent_tokenize
 from nltk.stem.snowball import EnglishStemmer
 
 from deft.nlp import word_tokenize
@@ -60,8 +62,8 @@ class LongformRecognizer(object):
         else:
             self.exclude = exclude
 
-    def recognize(self, sentence):
-        """Find longform in sentence by matching the standard pattern
+    def recognize(self, text):
+        """Find longforms in text by matching the standard pattern
 
         Parameters
         ----------
@@ -70,18 +72,25 @@ class LongformRecognizer(object):
 
         Returns
         -------
-        longform : str|None
+        longform : set of str
             longform corresponding to shortform in sentence if the standard
             pattern is matched. Returns None if the pattern is not matched
         """
-        if not contains_shortform(sentence, self.shortform):
-            return
-        else:
-            # if it does, extract candidate
+        longforms = set([])
+        sentences = sent_tokenize(text)
+        for sentence in sentences:
+            # check if sentence contains standard pattern
+            if not contains_shortform(sentence, self.shortform):
+                continue
+            # if it contains standard pattern, extract max longform candidate
             candidate = get_max_candidate_longform(sentence, self.shortform)
+            # search for longform in trie
             longform = self._search(tuple(_stemmer.stem(token)
                                           for token in candidate[::-1]))
-            return longform
+            # if a longform is recognized, add it to output list
+            if longform:
+                longforms.add(longform)
+        return longforms
 
     def _init_trie(self, longforms):
         """Initialize search trie from iterable of longforms

@@ -71,4 +71,4 @@ def test_recognizer():
     lfr = LongformRecognizer('ER', longforms)
     for text, result in [example1, example2, example3, example4, example5]:
         longform = lfr.recognize(text)
-        assert longform == result
+        assert longform.pop() == result

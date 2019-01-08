@@ -27,7 +27,7 @@ result1 = ('The Integrated Network and Dynamical Reasoning Assembler'
            ' into various modeling formalisms including causal graphs'
            ' and dynamical models')
 
-labels1 = [longforms[0]]
+labels1 = set([longforms[0]])
 
 
 text2 = ('The Integrated Network and Dynamical Reasoning Assembler'
@@ -37,7 +37,7 @@ text2 = ('The Integrated Network and Dynamical Reasoning Assembler'
          ' dynamical models. The Indonesian Debt Restructuring Agency'
          ' (INDRA) shares the same acronym')
 
-labels2 = [longforms[0], longforms[1]]
+labels2 = set([longforms[0], longforms[1]])
 
 result2 = ('The Integrated Network and Dynamical Reasoning Assembler'
            ' is an automated model assembly system interfacing with'
@@ -51,11 +51,11 @@ text3 = ('In this sentence, (INDRA) appears but it is not preceded by a'
          ' recognized longform. Does it refer to the indonesian debt'
          ' restructuring agency (INDRA)?')
 
-result3 = ('In this sentence, (INDRA) appears but it is not preceded by a'
+result3 = ('In this sentence, appears but it is not preceded by a'
            ' recognized longform. Does it refer to the indonesian debt'
-           ' restructuring agency?')
+           ' restructuring agency ?')
 
-labels3 = [longforms[1]]
+labels3 = set([longforms[1]])
 
 text4 = 'We cannot determine what INDRA means from this sentence.'
 
@@ -68,9 +68,11 @@ def test__process_text():
                                  (text2, result2, labels2),
                                  (text3, result3, labels3)]:
         datapoints = cb._process_text(text)
+        print(result)
+        for datapoint in datapoints:
+            print(datapoint[0])
         assert len(datapoints) == len(labels)
-        for datapoint, label in zip(datapoints, labels):
-            assert datapoint[0] == result
-            assert datapoint[1] == label
+        assert all([datapoint[0] == result for datapoint in datapoints])
+        assert all([datapoint[1] in labels for datapoint in datapoints])
 
     assert cb._process_text(text4) is None
