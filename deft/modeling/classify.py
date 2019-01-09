@@ -132,7 +132,10 @@ class LongformClassifier(object):
 
     def predict_proba(self, texts):
         """Predict class probabilities for a list-like of texts"""
-        return self.estimator.predict_proba(texts)
+        labels = self.estimator.classes_
+        preds = self.estimator.predict_proba(texts)
+        return [{labels[i]: prob for i, prob in enumerate(probs)}
+                for probs in preds]
 
     def predict(self, texts):
         """Predict class labels for a list-like of texts"""
