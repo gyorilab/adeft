@@ -3,7 +3,7 @@ import uuid
 import json
 import numpy as np
 from nose.plugins.attrib import attr
-from deft.classify import LongformClassifier, load_model
+from deft.modeling.classify import LongformClassifier, load_model
 
 # Get test directory so necessary datafiles can be found from any working
 # directory

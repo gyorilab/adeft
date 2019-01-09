@@ -1,5 +1,3 @@
-from nltk.tokenize import sent_tokenize
-
 from deft.util import contains_shortform
 
 
