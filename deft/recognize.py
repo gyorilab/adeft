@@ -31,7 +31,8 @@ class _TrieNode(object):
 
 
 class LongformRecognizer(object):
-    __slots__ = ['shortform', 'exclude', 'longforms', '_trie']
+    __slots__ = ['shortform', 'exclude', 'longforms', '_trie',
+                 'build_corpus']
     """Class for recognizing longforms by matching the standard pattern
 
     Searches text for the pattern "<longform> (<shortform>)" for a collection
@@ -45,6 +46,16 @@ class LongformRecognizer(object):
     longforms : iterable of str
         Contains candidate longforms.
 
+    exclude : Optional[set]
+        set of tokens to ignore when searching for longforms.
+        Default: None
+
+    build_corpus : Optional[bool]
+        If True, self.recognize will return a tuple of values, a set of the
+        recognized longforms and the input text with all sentences matching
+        the standard pattern with the given shortform. Typically, this should
+        only be set to be True in the CorpusBuilder
+
     Attributes
     ----------
     _trie : :py:class:`deft.recognizer.__TrieNode`
@@ -53,7 +64,7 @@ class LongformRecognizer(object):
         with terminal nodes containing the associated longform in their data.
     """
 
-    def __init__(self, shortform, longforms, exclude=None):
+    def __init__(self, shortform, longforms, exclude=None, build_corpus=False):
         self.shortform = shortform
         self.longforms = longforms
         self._trie = self._init_trie(longforms)
@@ -61,6 +72,7 @@ class LongformRecognizer(object):
             self.exclude = set([])
         else:
             self.exclude = exclude
+        self.build_corpus = build_corpus
 
     def recognize(self, text):
         """Find longforms in text by matching the standard pattern
@@ -77,20 +89,33 @@ class LongformRecognizer(object):
             pattern is matched. Returns None if the pattern is not matched
         """
         longforms = set([])
+        training_sentences = []
         sentences = sent_tokenize(text)
         for sentence in sentences:
             # check if sentence contains standard pattern
             if not contains_shortform(sentence, self.shortform):
+                training_sentences.append(sentence)
                 continue
             # if it contains standard pattern, extract max longform candidate
             candidate = get_max_candidate_longform(sentence, self.shortform)
+            # no candidate if standard pattern is at the start of the sentence
+            if candidate is None:
+                continue
             # search for longform in trie
             longform = self._search(tuple(_stemmer.stem(token)
                                           for token in candidate[::-1]))
             # if a longform is recognized, add it to output list
             if longform:
                 longforms.add(longform)
-        return longforms
+            else:
+                training_sentences.append(sentence)
+        # this is hideous. it's done because sentence splitting is costly
+        # so it's convenient to strip out defining sentences while recognition
+        # takes place
+        if self.build_corpus:
+            return longforms, ' '.join(training_sentences)
+        else:
+            return longforms
 
     def _init_trie(self, longforms):
         """Initialize search trie from iterable of longforms

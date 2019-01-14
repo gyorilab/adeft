@@ -1,4 +1,5 @@
 from deft.util import contains_shortform
+from deft.recognize import LongformRecognizer
 
 
 class CorpusBuilder(object):
@@ -19,18 +20,21 @@ class CorpusBuilder(object):
        List of pairs of the form (<text>, <label>) that can be used as training
        data for classification algorithms
     """
-    __slots__ = ['lfr', 'shortform', 'corpus']
-
-    def __init__(self, longform_recognizer):
-        self.lfr = longform_recognizer
-        self.shortform = longform_recognizer.shortform
+    def __init__(self, shortform, grounding_map):
+        self.shortform = shortform
+        self.grounding_map = grounding_map
+        self.lfr = LongformRecognizer(shortform, grounding_map.keys(),
+                                      build_corpus=True)
         self.corpus = set([])
 
-    def get_from_texts(self, texts):
+    def build_from_texts(self, texts):
         for text in texts:
             data_points = self._process_text(text)
             if data_points:
                 self.corpus.update(data_points)
+
+    def get_corpus(self):
+        return list(self.corpus)
 
     def _process_text(self, text):
         """Returns training data and label corresponding to text if found
@@ -48,7 +52,7 @@ class CorpusBuilder(object):
 
         Returns
         -------
-        list of tuple | None
+        datapoints : list of tuple | None
             Returns None if no label can be found by matching the standard
             pattern. Otherwise, returns a list of pairs containing the training
             text and a label for each label appearing in the input text
@@ -56,10 +60,9 @@ class CorpusBuilder(object):
         """
         if not contains_shortform(text, self.shortform):
             return None
-        longforms = self.lfr.recognize(text)
+        longforms, training_text = self.lfr.recognize(text)
         if not longforms:
             return None
-        training_text = text.replace('(%s)' % self.shortform, '')
-        training_text = ' '.join(training_text.split())
-        corpus = [(training_text, longform) for longform in longforms]
-        return corpus
+        datapoints = [(training_text, self.grounding_map[longform])
+                      for longform in longforms]
+        return datapoints
