@@ -11,7 +11,7 @@ logger = logging.getLogger('discover')
 
 class _TrieNode(object):
     __slots__ = ['longform', 'count', 'sum_ft', 'sum_ft2', 'score',
-                 'parent', 'children']
+                 'parent', 'children', 'best_ancestor_score', 'best_ancestor']
     """ Node in Trie associated to a candidate longform
 
     The children of a node associated to a candidate longform c are all
@@ -66,6 +66,12 @@ class _TrieNode(object):
 
     children : dict of :py:class:`deft.discover._TrieNode`
         dictionary of child nodes
+
+    best_ancestor_score : float
+        best score among all of nodes ancestors
+
+    best_ancestor : :py:class:`deft.discover._TrieNode`
+        ancestor of node with best score
     """
     def __init__(self, longform=(), parent=None):
         self.longform = longform
@@ -75,6 +81,8 @@ class _TrieNode(object):
             self.score = 1
         self.parent = parent
         self.children = {}
+        self.best_ancestor_score = -1.
+        self.best_ancestor = None
 
     def is_root(self):
         """True if node is at the root of the trie"""
@@ -207,17 +215,9 @@ class LongformFinder(object):
     def get_longforms(self, cutoff=1):
         """Return a list of extracted longforms with their scores
 
-        The extracted longforms are found by taking the first local maximum
-        along each path from root to leaf. This works because the score
-        function first increases and then decreases (not necessarily strictly).
-        This is done with a breadth-first tree traversal. In an initial
-        forward pass, the tree is traversed until every node with a greater
-        than equal score to its parent and a greater score than all of its
-        children is found. These nodes are placed in a list.
-
-        In a second backward pass, for each node in the list, its parent link
-        is followed for as long as the parent has an equal score. In this way,
-        we find longforms of maximal score and minimal length.
+        Makes use of a breadth first search to search for nodes with score
+        greater than or equal to the scores of all children and strictly less
+        than the scores of all ancestors. These are the optimal longforms
 
         Parameters
         ----------
@@ -233,38 +233,36 @@ class LongformFinder(object):
         shortest to longest, and finally by lexicographic order.
         """
         # Forward pass
-        leaves = []
+        longforms = set()
         # The root contains no longform. Initialize queue with all of its
         # children
         queue = deque(self._internal_trie.children.values())
         while queue:
             node = queue.popleft()
-            # count the number of worthy children with greater than or equal
-            # score to their parent.
+            # if a node has a better score than its best ancestor,
+            # it becomes its own best ancestor
+            if node.score > node.best_ancestor_score:
+                node.best_ancestor_score = node.score
+                node.best_ancestor = node
+            # otherwise set its best ancestor to its parents best ancestor
+            else:
+                node.best_ancestor_score = node.parent.best_ancestor_score
+                node.best_ancestor = node.parent.best_ancestor
+            # a nodes cannot exceed the count of its expected longform. if
+            # the count for a child is less or equal to the best ancestor
+            # score, the node is not added to the queue. track how many
+            # children are added to the queue
             worthy = 0
             for child in node.children.values():
-                # only place a node in the queue if it is worthy
-                if child.score >= node.score:
+                if child.count > node.best_ancestor_score:
                     queue.append(child)
                     worthy += 1
-            # If there are no worthy children, add the node to list of leaves.
+            # if no children are added, the becomes a leaf. the optimal
+            # longforms are given by the best ancestors of the leaves.
             if worthy == 0:
-                leaves.append(node)
-        # Backward pass
-        # to contain tuple of longforms and their scores
-        longforms = set([])
-        # loop through all leaves found in the forward pass
-        for leaf in leaves:
-            current = leaf
-            # Follow the parent links until the root is reached or until the
-            # parent has a lower score than its child
-            while (not current.parent.is_root() and
-                   current.score == current.parent.score):
-                current = current.parent
-            # Add the found longform and its score to the set. The set allows
-            # us to ignore that there will be duplicates
-            longforms.add((current.longform, current.score))
-        # Map stems to the most frequent word that had been mapped to them.
+                longforms.add((node.best_ancestor.longform,
+                               node.best_ancestor.score))
+
         # Convert longforms as tuples in reverse order into reader strings
         # mapping stems back to the most frequent token that had been mapped
         longforms = [(longform, score) for longform, score in longforms
