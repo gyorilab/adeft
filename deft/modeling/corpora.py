@@ -20,11 +20,10 @@ class CorpusBuilder(object):
        List of pairs of the form (<text>, <label>) that can be used as training
        data for classification algorithms
     """
-    __slots__ = ['lfr', 'shortform', 'corpus']
-
-    def __init__(self, shortform, longforms):
+    def __init__(self, shortform, grounding_map):
         self.shortform = shortform
-        self.lfr = LongformRecognizer(shortform, longforms,
+        self.grounding_map = grounding_map
+        self.lfr = LongformRecognizer(shortform, grounding_map.keys(),
                                       build_corpus=True)
         self.corpus = set([])
 
@@ -61,5 +60,6 @@ class CorpusBuilder(object):
         longforms, training_text = self.lfr.recognize(text)
         if not longforms:
             return None
-        datapoints = [(training_text, longform) for longform in longforms]
+        datapoints = [(training_text, self.grounding_map[longform])
+                      for longform in longforms]
         return datapoints
