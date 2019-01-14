@@ -239,17 +239,17 @@ class LongformFinder(object):
         queue = deque(self._internal_trie.children.values())
         while queue:
             node = queue.popleft()
-            # if a node has a better score than its best ancestor,
-            # it becomes its own best ancestor
-            if node.score > node.best_ancestor_score:
+            # if a node has a better score than its parent's best
+            # ancestor it becomes its own best ancestor
+            if node.score > node.parent.best_ancestor_score:
                 node.best_ancestor_score = node.score
                 node.best_ancestor = node
             # otherwise set its best ancestor to its parents best ancestor
             else:
                 node.best_ancestor_score = node.parent.best_ancestor_score
                 node.best_ancestor = node.parent.best_ancestor
-            # a nodes cannot exceed the count of its expected longform. if
-            # the count for a child is less or equal to the best ancestor
+            # a nodes score cannot exceed the count of its expected longform.
+            # if the count for a child is less or equal to the best ancestor
             # score, the node is not added to the queue. track how many
             # children are added to the queue
             worthy = 0
@@ -278,6 +278,10 @@ class LongformFinder(object):
 
         # Sort in preferred order
         longforms = sorted(longforms, key=lambda x: (-x[1], len(x[0]), x[0]))
+
+        # Reset best ancestor and best_ancestor score values for all children
+        # of the root. This is required for the algorithm to be able to run
+        # successfully in subsequent calls to this method
         return longforms
 
     def _add(self, tokens):
