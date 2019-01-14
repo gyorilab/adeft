@@ -98,6 +98,9 @@ class LongformRecognizer(object):
                 continue
             # if it contains standard pattern, extract max longform candidate
             candidate = get_max_candidate_longform(sentence, self.shortform)
+            # no candidate if standard pattern is at the start of the sentence
+            if candidate is None:
+                continue
             # search for longform in trie
             longform = self._search(tuple(_stemmer.stem(token)
                                           for token in candidate[::-1]))
