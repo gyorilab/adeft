@@ -33,6 +33,9 @@ class CorpusBuilder(object):
             if data_points:
                 self.corpus.update(data_points)
 
+    def get_corpus(self):
+        return list(self.corpus)
+
     def _process_text(self, text):
         """Returns training data and label corresponding to text if found
 
