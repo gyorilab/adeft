@@ -46,13 +46,9 @@ def test_get_candidates():
                                'and', 'afforestation'])]
 
     for sentence, result in test_cases:
-        print(get_max_candidate_longform(sentence, 'INDRA'))
-        print(result)
         assert get_max_candidate_longform(sentence, 'INDRA') == result
 
     # Case where pattern is at start of the sentence
-    print(get_max_candidate_longform('(INDRA) is an ambiguous acronym',
-                                     'INDRA'))
     assert get_max_candidate_longform('(INDRA) is an ambiguous acronym',
                                       'INDRA') is None
     # Case where pattern is not found

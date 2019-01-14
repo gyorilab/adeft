@@ -68,9 +68,6 @@ def test__process_text():
                                  (text2, result2, labels2),
                                  (text3, result3, labels3)]:
         datapoints = cb._process_text(text)
-        print(result)
-        for datapoint in datapoints:
-            print(datapoint[0])
         assert len(datapoints) == len(labels)
         assert all([datapoint[0] == result for datapoint in datapoints])
         assert all([datapoint[1] in labels for datapoint in datapoints])

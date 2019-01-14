@@ -57,7 +57,6 @@ def test_serialize():
     preds1, preds2, preds3 = (classifier1.predict_proba(train),
                               classifier2.predict_proba(train),
                               classifier3.predict_proba(train))
-
     assert np.array_equal(preds1, preds2)
     assert np.array_equal(preds2, preds3)
     os.remove(temp_filename)
