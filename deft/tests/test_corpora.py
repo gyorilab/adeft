@@ -1,4 +1,3 @@
-from deft.recognize import LongformRecognizer
 from deft.modeling.corpora import CorpusBuilder
 
 
@@ -14,18 +13,14 @@ text1 = ('The Integrated Network and Dynamical Reasoning Assembler'
          ' mechanistic and causal assertions, represents them in'
          ' standardized form (INDRA statements), and assembles them'
          ' into various modeling formalisms including causal graphs'
-         ' and dynamical models')
+         ' and dynamical models.')
 
-result1 = ('The Integrated Network and Dynamical Reasoning Assembler'
-           ' is an automated model assembly system interfacing with'
-           ' NLP systems and databases to collect knowledge, and'
-           ' through a process of assembly, produce causal graphs and'
-           ' dynamical models. INDRA draws on natural language'
+result1 = ('INDRA draws on natural language'
            ' processing systems and structured databases to collect'
            ' mechanistic and causal assertions, represents them in'
            ' standardized form (INDRA statements), and assembles them'
            ' into various modeling formalisms including causal graphs'
-           ' and dynamical models')
+           ' and dynamical models.')
 
 labels1 = set([longforms[0]])
 
@@ -35,34 +30,30 @@ text2 = ('The Integrated Network and Dynamical Reasoning Assembler'
          ' with NLP systems and databases to collect knowledge, and'
          ' through a process of assembly, produce causal graphs and'
          ' dynamical models. The Indonesian Debt Restructuring Agency'
-         ' (INDRA) shares the same acronym')
+         ' (INDRA) shares the same acronym. Without this sentence the'
+         ' entire text would be wiped away. This will be fixed'
+         ' when time permits.')
 
 labels2 = set([longforms[0], longforms[1]])
 
-result2 = ('The Integrated Network and Dynamical Reasoning Assembler'
-           ' is an automated model assembly system interfacing with'
-           ' NLP systems and databases to collect knowledge, and'
-           ' through a process of assembly, produce causal graphs and'
-           ' dynamical models. The Indonesian Debt Restructuring Agency'
-           ' shares the same acronym')
+result2 = ('Without this sentence the entire text would be wiped away.'
+           ' This will be fixed when time permits.')
 
 
 text3 = ('In this sentence, (INDRA) appears but it is not preceded by a'
          ' recognized longform. Does it refer to the indonesian debt'
-         ' restructuring agency (INDRA)?')
+         ' restructuring agency (INDRA)? It\'s hard to say.')
 
-result3 = ('In this sentence, appears but it is not preceded by a'
-           ' recognized longform. Does it refer to the indonesian debt'
-           ' restructuring agency ?')
 
+result3 = ('In this sentence, (INDRA) appears but it is not preceded'
+           ' by a recognized longform. It\'s hard to say.')
 labels3 = set([longforms[1]])
 
 text4 = 'We cannot determine what INDRA means from this sentence.'
 
 
 def test__process_text():
-    lfr = LongformRecognizer('INDRA', longforms)
-    cb = CorpusBuilder(lfr)
+    cb = CorpusBuilder('INDRA', longforms)
 
     for text, result, labels in [(text1, result1, labels1),
                                  (text2, result2, labels2),
