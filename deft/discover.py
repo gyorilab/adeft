@@ -171,7 +171,7 @@ class LongformFinder(object):
                     else:
                         logger.info('No candidates found for sentence "%s"'
                                     ' containing the shortform %s'
-                                    % sentence, self.shortform)
+                                    % (sentence, self.shortform))
 
     def top(self, limit=None):
         """Return top scoring candidates.
