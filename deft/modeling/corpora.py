@@ -27,7 +27,7 @@ class CorpusBuilder(object):
                                       build_corpus=True)
         self.corpus = set([])
 
-    def get_from_texts(self, texts):
+    def build_from_texts(self, texts):
         for text in texts:
             data_points = self._process_text(text)
             if data_points:
