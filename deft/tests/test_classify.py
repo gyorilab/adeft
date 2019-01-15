@@ -19,25 +19,25 @@ with open(f'{TEST_DIR}/example_training_data.json', 'r') as f:
 
 @attr('slow')
 def test_classify_multiclass():
-    params = {'C': [1.0, 10.0],
-              'max_features': [5000, 10000]}
+    params = {'C': [1.0],
+              'max_features': [1000]}
     classifier = LongformClassifier('IR', ['HGNC:6091'])
     train = data['train']
     response = data['response']
     classifier.train(train, response, params=params)
-    assert classifier.best_score > 0.8
+    assert classifier.best_score > 0.7
 
 
 @attr('slow')
 def test_classify_binary():
-    params = {'C': [10.0],
-              'max_features': [10000]}
+    params = {'C': [1.0],
+              'max_features': [1000]}
     train = data['train']
     response = [label if label == 'HGNC:6091' else 'other'
                 for label in data['response']]
     classifier = LongformClassifier('IR', ['HGNC:6091'])
     classifier.train(train, response, params=params)
-    assert classifier.best_score > 0.8
+    assert classifier.best_score > 0.7
 
 
 def test_serialize():
