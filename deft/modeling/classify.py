@@ -1,4 +1,3 @@
-import re
 import gzip
 import json
 import logging
@@ -10,8 +9,6 @@ from sklearn.metrics import f1_score, make_scorer
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import LogisticRegression
 from sklearn.feature_extraction.text import TfidfVectorizer
-
-from deft.util import is_jsonable
 
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
@@ -159,21 +156,14 @@ class LongformClassifier(object):
                        for term, frequency in tfidf.vocabulary_.items()}
         idf_ = tfidf.idf_.tolist()
         stop_words_ = list(tfidf.stop_words_)
-
-        params = self.estimator.get_params()
-        tfidf_params = {key[7:]: value for key, value in params.items()
-                        if re.match('^tfidf__', key) and is_jsonable(value)}
-        logit_params = {key[7:]: value for key, value in params.items()
-                        if re.match('^logit__', key) and is_jsonable(value)}
-
+        ngram_range = tfidf.ngram_range
         model_info = {'logit': {'classes_': classes_,
                                 'intercept_': intercept_,
                                 'coef_': coef_},
                       'tfidf': {'vocabulary_': vocabulary_,
                                 'idf_': idf_,
-                                'stop_words_': stop_words_},
-                      'tfidf_params': tfidf_params,
-                      'logit_params': logit_params,
+                                'stop_words_': stop_words_,
+                                'ngram_range': ngram_range},
                       'shortform': self.shortform,
                       'pos_labels': self.pos_labels}
         json_str = json.dumps(model_info)
@@ -204,13 +194,9 @@ def load_model(filepath):
 
     longform_model = LongformClassifier(shortform=shortform,
                                         pos_labels=pos_labels)
-
-    tfidf_params = model_info['tfidf_params']
-    tfidf_params['dtype'] = np.float64
-    logit_params = model_info['logit_params']
-
-    tfidf = TfidfVectorizer(**tfidf_params)
-    logit = LogisticRegression(**logit_params)
+    ngram_range = model_info['tfidf']['ngram_range']
+    tfidf = TfidfVectorizer(ngram_range=ngram_range)
+    logit = LogisticRegression()
 
     tfidf.vocabulary_ = model_info['tfidf']['vocabulary_']
     tfidf.idf_ = model_info['tfidf']['idf_']
