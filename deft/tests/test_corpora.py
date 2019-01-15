@@ -1,8 +1,9 @@
 from deft.modeling.corpora import CorpusBuilder
 
 
-longforms = ['integrated network and dynamical reasoning assembler',
-             'indonesian debt restructuring agency']
+longforms = {'integrated network and dynamical reasoning assembler':
+             'our indra',
+             'indonesian debt restructuring agency': 'other indra'}
 
 text1 = ('The Integrated Network and Dynamical Reasoning Assembler'
          ' (INDRA) is an automated model assembly system interfacing'
@@ -22,7 +23,7 @@ result1 = ('INDRA draws on natural language'
            ' into various modeling formalisms including causal graphs'
            ' and dynamical models.')
 
-labels1 = set([longforms[0]])
+labels1 = set(['our indra'])
 
 
 text2 = ('The Integrated Network and Dynamical Reasoning Assembler'
@@ -34,7 +35,7 @@ text2 = ('The Integrated Network and Dynamical Reasoning Assembler'
          ' entire text would be wiped away. This will be fixed'
          ' when time permits.')
 
-labels2 = set([longforms[0], longforms[1]])
+labels2 = set(['our indra', 'other indra'])
 
 result2 = ('Without this sentence the entire text would be wiped away.'
            ' This will be fixed when time permits.')
@@ -47,7 +48,7 @@ text3 = ('In this sentence, (INDRA) appears but it is not preceded by a'
 
 result3 = ('In this sentence, (INDRA) appears but it is not preceded'
            ' by a recognized longform. It\'s hard to say.')
-labels3 = set([longforms[1]])
+labels3 = set(['other indra'])
 
 text4 = 'We cannot determine what INDRA means from this sentence.'
 
