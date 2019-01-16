@@ -31,8 +31,6 @@ class _TrieNode(object):
 
 
 class LongformRecognizer(object):
-    __slots__ = ['shortform', 'exclude', 'longforms', '_trie',
-                 'build_corpus']
     """Class for recognizing longforms by matching the standard pattern
 
     Searches text for the pattern "<longform> (<shortform>)" for a collection
