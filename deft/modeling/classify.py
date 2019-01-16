@@ -5,7 +5,8 @@ import warnings
 import numpy as np
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import f1_score, make_scorer
+from sklearn.metrics import f1_score, precision_score, recall_score
+from sklearn.metrics import make_scorer
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import LogisticRegression
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -109,25 +110,44 @@ class LongformClassifier(object):
         if len(set(y)) > 2:
             f1_scorer = make_scorer(f1_score, labels=self.pos_labels,
                                     average='weighted')
+            precision_scorer = make_scorer(precision_score,
+                                           labels=self.pos_labels,
+                                           average='weighted')
+            recall_scorer = make_scorer(recall_score,
+                                        labels=self.pos_labels,
+                                        average='weighted')
         else:
             f1_scorer = make_scorer(f1_score, pos_label=self.pos_labels[0],
                                     average='binary')
+            precision_scorer = make_scorer(precision_score,
+                                           pos_label=self.pos_labels[0],
+                                           average='binary')
+            recall_scorer = make_scorer(recall_score,
+                                        pos_label=self.pos_labels[0],
+                                        average='binary')
+            f1_scorer = make_scorer(f1_score, pos_label=self.pos_labels[0],
+                                    average='binary')
+
+        scorer = {'f1': f1_scorer, 'pr': precision_scorer,
+                  'rc': recall_scorer}
 
         logger.info('Beginning grid search in parameter space:\n'
                     '(C=%s)\n'
                     '(max_features=%s)'
                     % (param_grid['logit__C'],
                        param_grid['tfidf__max_features']))
-        
+
         # Fit grid_search and set the estimator for the instance of the class
         grid_search = GridSearchCV(logit_pipeline, param_grid,
-                                   cv=cv, n_jobs=n_jobs, scoring=f1_scorer)
+                                   cv=cv, n_jobs=n_jobs, scoring=scorer,
+                                   refit='f1')
         grid_search.fit(texts, y)
         logger.info('Best f1 score of %s found for' % grid_search.best_score_
                     + ' parameter values:\n%s' % grid_search.best_params_)
 
         self.estimator = grid_search.best_estimator_
         self.best_score = grid_search.best_score_
+        self.grid_search = grid_search
 
     def predict_proba(self, texts):
         """Predict class probabilities for a list-like of texts"""
