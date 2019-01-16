@@ -37,6 +37,7 @@ class DeftDisambiguator(object):
                                                 grounding_map)
 
     def disambiguate(self, text):
+        groundings = set()
         if contains_shortform(text, self.shortform):
             groundings = self.lf_recognizer.recognize(text)
             if len(groundings) == 1:
