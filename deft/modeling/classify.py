@@ -3,13 +3,14 @@ import json
 import logging
 import warnings
 import numpy as np
+
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import f1_score, precision_score, recall_score
-from sklearn.metrics import make_scorer
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import LogisticRegression
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics import f1_score, precision_score, recall_score,\
+    make_scorer
 
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
