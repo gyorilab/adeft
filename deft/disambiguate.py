@@ -37,15 +37,14 @@ class DeftDisambiguator(object):
                                                 grounding_map)
 
     def disambiguate(self, text):
+        groundings = set()
         if contains_shortform(text, self.shortform):
-            longforms = self.lf_recognizer.recognize(text)
-            if len(longforms) == 1:
-                return longforms.pop()
-        else:
-            longforms = set()
+            groundings = self.lf_recognizer.recognize(text)
+            if len(groundings) == 1:
+                return groundings.pop()
         prediction = self.lf_classifier.predict_proba([text])[0]
-        if not longforms:
-            return max(prediction.keys(),
-                       key=lambda key: prediction[key])
-        else:
-            return max(prediction[label] for label in longforms)
+        if groundings:
+            prediction = {label: prob for label, prob in prediction.items()
+                          if label in groundings}
+        return max(prediction.keys(),
+                   key=lambda key: prediction[key])

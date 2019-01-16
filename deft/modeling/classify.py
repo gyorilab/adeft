@@ -3,12 +3,14 @@ import json
 import logging
 import warnings
 import numpy as np
+
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import f1_score, make_scorer
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import LogisticRegression
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics import f1_score, precision_score, recall_score,\
+    make_scorer
 
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
@@ -48,28 +50,28 @@ class LongformClassifier(object):
         self.shortform = shortform
         self.pos_labels = pos_labels
 
-    def train(self, texts, y, params=None, n_jobs=1, cv=5):
+    def cv(self, texts, y, param_grid=None, n_jobs=1, cv=5):
         """Performs grid search to select and fit a disambiguation model
 
         Parameters
         ----------
-        texts: iterable of str
+        texts : iterable of str
             Training data of texts
 
-        y: iterable of str
+        y : iterable of str
             true labels for the training texts
 
-        params: Optional[dict]
+        param_grid : Optional[dict]
           Grid search parameters. Can include the regularization parameter C
           for logistic regression as well as max_features and ngram_range
           for the TfidfVectorizer. If not specified, defaults to setting
           performing crossvalidation with only C = 1.0, max_features = 1000,
           and ngram_range = (1, 2).
 
-        n_jobs: Optional[int]
+        n_jobs : Optional[int]
             Number of jobs to use when performing grid_search
             Default: 1
-        cv: Optional[int]
+        cv : Optional[int]
             Number of folds to use in crossvalidation. Default: 5
 
         Example
@@ -78,7 +80,7 @@ class LongformClassifier(object):
         ...    'max_features': [3000, 6000, 9000],
         ...    'ngram_range': [(1, 1), (1, 2), (1, 3)]}
         >>> classifier = LongformClassifier('IR', ['insulin receptor'])
-        >>> classifier.train(texts, labels, params=params, n_jobs=4)
+        >>> classifier.train(texts, labels, param_grid=params, n_jobs=4)
         """
         # Initialize pipeline
         logit_pipeline = Pipeline([('tfidf',
@@ -93,14 +95,14 @@ class LongformClassifier(object):
         temp_params = {'logit__C': [1.0],
                        'tfidf__max_features': [1000]}
         # Modify default if user has specifed parameters for the grid search
-        if params is not None:
-            if 'C' in params:
-                temp_params['logit__C'] = params['C']
-            if 'max_features' in params:
-                temp_params['tfidf__max_features'] = params['max_features']
-            if 'ngram_range' in params:
-                temp_params['tfidf__ngram_range'] = params['ngram_range']
-        params = temp_params
+        if param_grid is not None:
+            if 'C' in param_grid:
+                temp_params['logit__C'] = param_grid['C']
+            if 'max_features' in param_grid:
+                temp_params['tfidf__max_features'] = param_grid['max_features']
+            if 'ngram_range' in param_grid:
+                temp_params['tfidf__ngram_range'] = param_grid['ngram_range']
+        param_grid = temp_params
 
         # Create scorer for use in grid search. Uses f1 score. The positive
         # labels are specified at the time of construction. Takes the average
@@ -109,23 +111,44 @@ class LongformClassifier(object):
         if len(set(y)) > 2:
             f1_scorer = make_scorer(f1_score, labels=self.pos_labels,
                                     average='weighted')
+            precision_scorer = make_scorer(precision_score,
+                                           labels=self.pos_labels,
+                                           average='weighted')
+            recall_scorer = make_scorer(recall_score,
+                                        labels=self.pos_labels,
+                                        average='weighted')
         else:
             f1_scorer = make_scorer(f1_score, pos_label=self.pos_labels[0],
                                     average='binary')
+            precision_scorer = make_scorer(precision_score,
+                                           pos_label=self.pos_labels[0],
+                                           average='binary')
+            recall_scorer = make_scorer(recall_score,
+                                        pos_label=self.pos_labels[0],
+                                        average='binary')
+            f1_scorer = make_scorer(f1_score, pos_label=self.pos_labels[0],
+                                    average='binary')
+
+        scorer = {'f1': f1_scorer, 'pr': precision_scorer,
+                  'rc': recall_scorer}
 
         logger.info('Beginning grid search in parameter space:\n'
-                    f"(C={params['logit__C']})\n"
-                    f"(max_features={params['tfidf__max_features']})")
+                    '(C=%s)\n'
+                    '(max_features=%s)'
+                    % (param_grid['logit__C'],
+                       param_grid['tfidf__max_features']))
 
         # Fit grid_search and set the estimator for the instance of the class
-        grid_search = GridSearchCV(logit_pipeline, params,
-                                   cv=cv, n_jobs=n_jobs, scoring=f1_scorer)
+        grid_search = GridSearchCV(logit_pipeline, param_grid,
+                                   cv=cv, n_jobs=n_jobs, scoring=scorer,
+                                   refit='f1', iid=False)
         grid_search.fit(texts, y)
         logger.info('Best f1 score of %s found for' % grid_search.best_score_
                     + ' parameter values:\n%s' % grid_search.best_params_)
 
         self.estimator = grid_search.best_estimator_
         self.best_score = grid_search.best_score_
+        self.grid_search = grid_search
 
     def predict_proba(self, texts):
         """Predict class probabilities for a list-like of texts"""
