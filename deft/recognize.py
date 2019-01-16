@@ -13,7 +13,7 @@ _stemmer = EnglishStemmer()
 
 
 class _TrieNode(object):
-    __slots__ = ['longform', 'children']
+    __slots__ = ['grounding', 'children']
     """TrieNode struct for use in recognizer
 
     Attributes
@@ -25,8 +25,8 @@ class _TrieNode(object):
     children : dict
         dict mapping tokens to child nodes
     """
-    def __init__(self, longform=None):
-        self.longform = longform
+    def __init__(self, grounding=None):
+        self.grounding = grounding
         self.children = {}
 
 
@@ -61,11 +61,11 @@ class LongformRecognizer(object):
         from longforms. They appear in reverse order to the bottom of the trie
         with terminal nodes containing the associated longform in their data.
     """
-
-    def __init__(self, shortform, longforms, exclude=None, build_corpus=False):
+    def __init__(self, shortform, grounding_map, exclude=None,
+                 build_corpus=False):
         self.shortform = shortform
-        self.longforms = longforms
-        self._trie = self._init_trie(longforms)
+        self.grounding_map = grounding_map
+        self._trie = self._init_trie()
         if exclude is None:
             self.exclude = set([])
         else:
@@ -86,7 +86,7 @@ class LongformRecognizer(object):
             longform corresponding to shortform in sentence if the standard
             pattern is matched. Returns None if the pattern is not matched
         """
-        longforms = set([])
+        groundings = set([])
         training_sentences = []
         sentences = sent_tokenize(text)
         for sentence in sentences:
@@ -100,22 +100,22 @@ class LongformRecognizer(object):
             if candidate is None:
                 continue
             # search for longform in trie
-            longform = self._search(tuple(_stemmer.stem(token)
-                                          for token in candidate[::-1]))
+            grounding = self._search(tuple(_stemmer.stem(token)
+                                           for token in candidate[::-1]))
             # if a longform is recognized, add it to output list
-            if longform:
-                longforms.add(longform)
+            if grounding:
+                groundings.add(grounding)
             else:
                 training_sentences.append(sentence)
         # this is hideous. it's done because sentence splitting is costly
         # so it's convenient to strip out defining sentences while recognition
         # takes place
         if self.build_corpus:
-            return longforms, ' '.join(training_sentences)
+            return groundings, ' '.join(training_sentences)
         else:
-            return longforms
+            return groundings
 
-    def _init_trie(self, longforms):
+    def _init_trie(self):
         """Initialize search trie from iterable of longforms
 
         Parameters
@@ -130,14 +130,14 @@ class LongformRecognizer(object):
             Root of search trie used to recognize longforms
         """
         root = _TrieNode()
-        for longform in self.longforms:
+        for longform, grounding in self.grounding_map.items():
             edges = tuple(_stemmer.stem(token)
                           for token in word_tokenize(longform))[::-1]
             current = root
             for index, token in enumerate(edges):
                 if token not in current.children:
                     if index == len(edges) - 1:
-                        new = _TrieNode(longform)
+                        new = _TrieNode(grounding)
                     else:
                         new = _TrieNode()
                     current.children[token] = new
@@ -167,8 +167,8 @@ class LongformRecognizer(object):
         for token in tokens:
             if token not in current.children:
                 break
-            if current.children[token].longform is not None:
-                return current.children[token].longform
+            if current.children[token].grounding is not None:
+                return current.children[token].grounding
             else:
                 current = current.children[token]
         else:
