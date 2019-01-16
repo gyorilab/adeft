@@ -23,7 +23,7 @@ class CorpusBuilder(object):
     def __init__(self, shortform, grounding_map):
         self.shortform = shortform
         self.grounding_map = grounding_map
-        self.lfr = LongformRecognizer(shortform, grounding_map.keys(),
+        self.lfr = LongformRecognizer(shortform, grounding_map,
                                       build_corpus=True)
         self.corpus = set([])
 
@@ -60,9 +60,9 @@ class CorpusBuilder(object):
         """
         if not contains_shortform(text, self.shortform):
             return None
-        longforms, training_text = self.lfr.recognize(text)
-        if not longforms:
+        groundings, training_text = self.lfr.recognize(text)
+        if not groundings:
             return None
-        datapoints = [(training_text, self.grounding_map[longform])
-                      for longform in longforms]
+        datapoints = [(training_text, grounding)
+                      for grounding in groundings]
         return datapoints
