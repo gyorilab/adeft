@@ -25,16 +25,14 @@ class CorpusBuilder(object):
         self.grounding_map = grounding_map
         self.lfr = LongformRecognizer(shortform, grounding_map,
                                       build_corpus=True)
-        self.corpus = set([])
 
     def build_from_texts(self, texts):
+        corpus = set()
         for text in texts:
             data_points = self._process_text(text)
             if data_points:
-                self.corpus.update(data_points)
-
-    def get_corpus(self):
-        return list(self.corpus)
+                corpus.update(data_points)
+        return corpus
 
     def _process_text(self, text):
         """Returns training data and label corresponding to text if found
