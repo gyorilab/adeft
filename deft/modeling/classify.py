@@ -50,6 +50,25 @@ class LongformClassifier(object):
         self.shortform = shortform
         self.pos_labels = pos_labels
 
+    def train(self, texts, y, params=None, n_jobs=1):
+        # Initialize pipeline
+        logit_pipeline = Pipeline([('tfidf',
+                                    TfidfVectorizer(ngram_range=(1, 2),
+                                                    stop_words='english')),
+                                   ('logit',
+                                    LogisticRegression(solver='saga',
+                                                       penalty='l1',
+                                                       multi_class='auto'))])
+        if params is None:
+            params = {}
+        params = self._get_params({'C': 1.0, 'ngram_range': (1, 2),
+                                   'max_features': 1000}, params)
+        logit_pipeline.set_params(**params)
+        logit_pipeline.fit(texts, y)
+        self.estimator = logit_pipeline
+        self.best_score = None
+        self.grid_search = None
+
     def cv(self, texts, y, param_grid=None, n_jobs=1, cv=5):
         """Performs grid search to select and fit a disambiguation model
 
@@ -196,6 +215,7 @@ class LongformClassifier(object):
                                         ('C', 'max_features',
                                          'ngram_range'))}
         return params
+
 
 def load_model(filepath):
     """Load previously serialized model
