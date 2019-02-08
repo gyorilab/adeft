@@ -50,6 +50,25 @@ class LongformClassifier(object):
         self.shortform = shortform
         self.pos_labels = pos_labels
 
+    def train(self, texts, y, params=None, n_jobs=1):
+        # Initialize pipeline
+        logit_pipeline = Pipeline([('tfidf',
+                                    TfidfVectorizer(ngram_range=(1, 2),
+                                                    stop_words='english')),
+                                   ('logit',
+                                    LogisticRegression(solver='saga',
+                                                       penalty='l1',
+                                                       multi_class='auto'))])
+        if params is None:
+            params = {}
+        params = self._get_params({'C': 1.0, 'ngram_range': (1, 2),
+                                   'max_features': 1000}, params)
+        logit_pipeline.set_params(**params)
+        logit_pipeline.fit(texts, y)
+        self.estimator = logit_pipeline
+        self.best_score = None
+        self.grid_search = None
+
     def cv(self, texts, y, param_grid=None, n_jobs=1, cv=5):
         """Performs grid search to select and fit a disambiguation model
 
@@ -90,19 +109,11 @@ class LongformClassifier(object):
                                     LogisticRegression(solver='saga',
                                                        penalty='l1',
                                                        multi_class='auto'))])
-
-        # Default parameter values
-        temp_params = {'logit__C': [1.0],
-                       'tfidf__max_features': [1000]}
-        # Modify default if user has specifed parameters for the grid search
-        if param_grid is not None:
-            if 'C' in param_grid:
-                temp_params['logit__C'] = param_grid['C']
-            if 'max_features' in param_grid:
-                temp_params['tfidf__max_features'] = param_grid['max_features']
-            if 'ngram_range' in param_grid:
-                temp_params['tfidf__ngram_range'] = param_grid['ngram_range']
-        param_grid = temp_params
+        if param_grid is None:
+            param_grid = {}
+        param_grid = self._get_params({'C': [1.0],
+                                       'ngram_range': [(1, 2)],
+                                       'max_features': [1000]}, param_grid)
 
         # Create scorer for use in grid search. Uses f1 score. The positive
         # labels are specified at the time of construction. Takes the average
@@ -193,6 +204,17 @@ class LongformClassifier(object):
         json_bytes = json_str.encode('utf-8')
         with gzip.GzipFile(filepath, 'w') as fout:
             fout.write(json_bytes)
+
+    def _get_params(self, default, user_params):
+        # Modify default if user has specifed parameters for the grid search
+        params = {key: default[param] if param not in user_params
+                  else user_params[param]
+                  for key, param in zip(('logit__C',
+                                         'tfidf__max_features',
+                                         'tfidf__ngram_range'),
+                                        ('C', 'max_features',
+                                         'ngram_range'))}
+        return params
 
 
 def load_model(filepath):
