@@ -194,6 +194,16 @@ class LongformClassifier(object):
         with gzip.GzipFile(filepath, 'w') as fout:
             fout.write(json_bytes)
 
+    def _get_params(self, default, user_params):
+        # Modify default if user has specifed parameters for the grid search
+        params = {key: default[param] if param not in user_params
+                  else user_params[param]
+                  for key, param in zip(('logit__C',
+                                         'tfidf__max_features',
+                                         'tfidf__ngram_range'),
+                                        ('C', 'max_features',
+                                         'ngram_range'))}
+        return params
 
 def load_model(filepath):
     """Load previously serialized model
