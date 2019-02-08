@@ -90,19 +90,11 @@ class LongformClassifier(object):
                                     LogisticRegression(solver='saga',
                                                        penalty='l1',
                                                        multi_class='auto'))])
-
-        # Default parameter values
-        temp_params = {'logit__C': [1.0],
-                       'tfidf__max_features': [1000]}
-        # Modify default if user has specifed parameters for the grid search
-        if param_grid is not None:
-            if 'C' in param_grid:
-                temp_params['logit__C'] = param_grid['C']
-            if 'max_features' in param_grid:
-                temp_params['tfidf__max_features'] = param_grid['max_features']
-            if 'ngram_range' in param_grid:
-                temp_params['tfidf__ngram_range'] = param_grid['ngram_range']
-        param_grid = temp_params
+        if param_grid is None:
+            param_grid = {}
+        param_grid = self._get_params({'C': [1.0],
+                                       'ngram_range': [(1, 2)],
+                                       'max_features': [1000]}, param_grid)
 
         # Create scorer for use in grid search. Uses f1 score. The positive
         # labels are specified at the time of construction. Takes the average
