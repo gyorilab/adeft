@@ -189,14 +189,12 @@ class LongformClassifier(object):
         vocabulary_ = {term: int(frequency)
                        for term, frequency in tfidf.vocabulary_.items()}
         idf_ = tfidf.idf_.tolist()
-        stop_words_ = list(tfidf.stop_words_)
         ngram_range = tfidf.ngram_range
         model_info = {'logit': {'classes_': classes_,
                                 'intercept_': intercept_,
                                 'coef_': coef_},
                       'tfidf': {'vocabulary_': vocabulary_,
                                 'idf_': idf_,
-                                'stop_words_': stop_words_,
                                 'ngram_range': ngram_range},
                       'shortform': self.shortform,
                       'pos_labels': self.pos_labels}
@@ -245,8 +243,7 @@ def load_model(filepath):
 
     tfidf.vocabulary_ = model_info['tfidf']['vocabulary_']
     tfidf.idf_ = model_info['tfidf']['idf_']
-    tfidf.stop_words_ = set(model_info['tfidf']['stop_words_'])
-
+    
     logit.classes_ = np.array(model_info['logit']['classes_'])
     logit.intercept_ = np.array(model_info['logit']['intercept_'])
     logit.coef_ = np.array(model_info['logit']['coef_'])
