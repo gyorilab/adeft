@@ -36,15 +36,35 @@ class DeftDisambiguator(object):
         self.lf_recognizer = LongformRecognizer(self.shortform,
                                                 grounding_map)
 
-    def disambiguate(self, text):
-        groundings = set()
-        if contains_shortform(text, self.shortform):
-            groundings = self.lf_recognizer.recognize(text)
-            if len(groundings) == 1:
-                return groundings.pop()
-        prediction = self.lf_classifier.predict_proba([text])[0]
-        if groundings:
-            prediction = {label: prob for label, prob in prediction.items()
-                          if label in groundings}
-        return max(prediction.keys(),
-                   key=lambda key: prediction[key])
+    def disambiguate(self, texts):
+        groundings = [self.lf_recognizer.recognize(text)
+                      for text in texts]
+        undetermined = [text for text, grounding in zip(texts, groundings)
+                        if len(grounding) != 1]
+        if undetermined:
+            preds = self.lf_classifier.predict_proba(undetermined)
+
+        result = [None]*len(texts)
+        pred_index = 0
+        for index, grounding in enumerate(groundings):
+            if len(grounding) == 1:
+                disamb = grounding.pop()
+                result[index] = (disamb, {disamb: 1.0})
+            elif groundings:
+                unnormed = {label: prob
+                            for label, prob in preds[pred_index].items()}
+                norm_factor = sum(preds[pred_index].values())
+                pred = {label: prob/norm_factor
+                        for label, prob in unnormed.items()}
+                disamb = max(pred.keys(),
+                             key=lambda key: pred[key])
+                result[index] = (disamb, pred)
+                pred_index += 1
+            else:
+                pred = {label: prob
+                        for label, prob in preds[pred_index].items()}
+                disamb = max(pred.keys(),
+                             key=lambda key: pred[key])
+                result[index] = (disamb, pred)
+                pred_index += 1
+        return result

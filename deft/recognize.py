@@ -86,7 +86,7 @@ class LongformRecognizer(object):
             longform corresponding to shortform in sentence if the standard
             pattern is matched. Returns None if the pattern is not matched
         """
-        groundings = set([])
+        groundings = set()
         training_sentences = []
         sentences = sent_tokenize(text)
         for sentence in sentences:
