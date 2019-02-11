@@ -50,7 +50,7 @@ class LongformClassifier(object):
         self.shortform = shortform
         self.pos_labels = pos_labels
 
-    def train(self, texts, y, params=None, n_jobs=1):
+    def train(self, texts, y, params=None):
         # Initialize pipeline
         logit_pipeline = Pipeline([('tfidf',
                                     TfidfVectorizer(ngram_range=(1, 2),
