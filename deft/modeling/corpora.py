@@ -1,4 +1,4 @@
-from deft.util import contains_shortform
+from deft.util import strip_defining_patterns
 from deft.recognize import LongformRecognizer
 
 
@@ -23,8 +23,7 @@ class CorpusBuilder(object):
     def __init__(self, shortform, grounding_map):
         self.shortform = shortform
         self.grounding_map = grounding_map
-        self.lfr = LongformRecognizer(shortform, grounding_map,
-                                      build_corpus=True)
+        self.lfr = LongformRecognizer(shortform, grounding_map)
 
     def build_from_texts(self, texts):
         corpus = set()
@@ -56,11 +55,10 @@ class CorpusBuilder(object):
             text and a label for each label appearing in the input text
             matching the standard pattern.
         """
-        if not contains_shortform(text, self.shortform):
-            return None
-        groundings, training_text = self.lfr.recognize(text)
+        groundings = self.lfr.recognize(text)
         if not groundings:
             return None
+        training_text = strip_defining_patterns(text, self.shortform)
         datapoints = [(training_text, grounding)
                       for grounding in groundings]
         return datapoints
