@@ -4,7 +4,7 @@ import logging
 from nltk.tokenize import sent_tokenize
 
 from deft.nlp import WatchfulStemmer
-from deft.util import contains_shortform, get_max_candidate_longform
+from deft.util import get_candidate_fragments
 
 logger = logging.getLogger('discover')
 
@@ -111,8 +111,6 @@ class _TrieNode(object):
 
 
 class LongformFinder(object):
-    __slots__ = ['shortform', 'exclude', '_internal_trie',
-                 '_longforms', '_stemmer']
     """Finds possible longforms corresponding to an abbreviation in a text corpus
 
     Makes use of the acromine algorithm developed by Okazaki and Ananiadou
@@ -144,11 +142,12 @@ class LongformFinder(object):
         given word has been mapped to a given stem. Wraps the class
         EnglishStemmer from nltk.stem.snowball
     """
-    def __init__(self, shortform, exclude=None):
+    def __init__(self, shortform, window=100, exclude=None):
         self.shortform = shortform
         self._internal_trie = _TrieNode()
         self._longforms = {}
         self._stemmer = WatchfulStemmer()
+        self.window = window
         if exclude is None:
             self.exclude = set([])
         else:
@@ -167,19 +166,15 @@ class LongformFinder(object):
             A list of texts
         """
         for text in texts:
-            # split each text into a list of sentences
-            sentences = sent_tokenize(text)
-
-            for sentence in sentences:
-                if contains_shortform(sentence, self.shortform):
-                    candidate = get_max_candidate_longform(sentence,
-                                                           self.shortform)
-                    if candidate is not None:
-                        self._add(candidate)
-                    else:
-                        logger.info('No candidates found for sentence "%s"'
-                                    ' containing the shortform %s'
-                                    % (sentence, self.shortform))
+            fragments = get_candidate_fragments(text, self.shortform,
+                                                self.window, self.exclude)
+            for fragment in fragments:
+                if fragment:
+                    self._add(fragment)
+                else:
+                    logger.info('No candidates found for sentence "%s"'
+                                ' containing the shortform %s'
+                                % (sentence, self.shortform))
 
     def top(self, limit=None):
         """Return top scoring candidates.

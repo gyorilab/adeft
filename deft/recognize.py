@@ -4,7 +4,7 @@ from nltk.tokenize import sent_tokenize
 from nltk.stem.snowball import EnglishStemmer
 
 from deft.nlp import word_tokenize
-from deft.util import contains_shortform, get_max_candidate_longform
+from deft.util import get_candidate_fragments
 
 
 logger = logging.getLogger('recognize')
@@ -61,17 +61,16 @@ class LongformRecognizer(object):
         from longforms. They appear in reverse order to the bottom of the trie
         with terminal nodes containing the associated longform in their data.
     """
-    def __init__(self, shortform, grounding_map, exclude=None,
-                 build_corpus=False):
+    def __init__(self, shortform, grounding_map, window=100, exclude=None):
         self.shortform = shortform
         self.grounding_map = grounding_map
         self._trie = self._init_trie()
+        self.window = window
         if exclude is None:
             self.exclude = set([])
         else:
             self.exclude = exclude
-        self.build_corpus = build_corpus
-
+        
     def recognize(self, text):
         """Find longforms in text by matching the standard pattern
 
@@ -87,33 +86,19 @@ class LongformRecognizer(object):
             pattern is matched. Returns None if the pattern is not matched
         """
         groundings = set()
-        training_sentences = []
-        sentences = sent_tokenize(text)
-        for sentence in sentences:
-            # check if sentence contains standard pattern
-            if not contains_shortform(sentence, self.shortform):
-                training_sentences.append(sentence)
-                continue
-            # if it contains standard pattern, extract max longform candidate
-            candidate = get_max_candidate_longform(sentence, self.shortform)
-            # no candidate if standard pattern is at the start of the sentence
-            if candidate is None:
+        fragments = get_candidate_fragments(text, self.shortform,
+                                            window=self.window,
+                                            exclude=self.exclude)
+        for fragment in fragments:
+            if not fragment:
                 continue
             # search for longform in trie
             grounding = self._search(tuple(_stemmer.stem(token)
-                                           for token in candidate[::-1]))
+                                           for token in fragment[::-1]))
             # if a longform is recognized, add it to output list
             if grounding:
                 groundings.add(grounding)
-            else:
-                training_sentences.append(sentence)
-        # this is hideous. it's done because sentence splitting is costly
-        # so it's convenient to strip out defining sentences while recognition
-        # takes place
-        if self.build_corpus:
-            return groundings, ' '.join(training_sentences)
-        else:
-            return groundings
+        return groundings
 
     def _init_trie(self):
         """Initialize search trie from iterable of longforms
