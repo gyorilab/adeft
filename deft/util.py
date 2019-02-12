@@ -16,10 +16,17 @@ def get_candidate_fragments(text, shortform, window=100, exclude=None):
         span = match.span()
         left = max(end_previous+1, span[0]-window)
         fragment = text[left:span[0]]
-        tokens = word_tokenize(fragment)
-        result.append([token for token in tokens
-                       if token not in string.punctuation
-                       and token not in exclude])
+        tokens = [token.lower() for token in word_tokenize(fragment)
+                  if token not in string.punctuation]
+        index = len(tokens)
+        while index > 0:
+            index -= 1
+            if tokens[index] in exclude:
+                tokens = tokens[index+1:]
+                break
+        if tokens:
+            result.append(tokens)
+        end_previous=span[1]
     return result
 
 
