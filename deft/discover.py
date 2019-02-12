@@ -111,8 +111,6 @@ class _TrieNode(object):
 
 
 class LongformFinder(object):
-    __slots__ = ['shortform', 'exclude', '_internal_trie',
-                 '_longforms', '_stemmer']
     """Finds possible longforms corresponding to an abbreviation in a text corpus
 
     Makes use of the acromine algorithm developed by Okazaki and Ananiadou
