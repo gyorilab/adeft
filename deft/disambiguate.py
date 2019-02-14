@@ -1,7 +1,10 @@
+import os
+import json
 import logging
 
-from deft.util import contains_shortform
+from deft.locations import MODELS_PATH
 from deft.recognize import LongformRecognizer
+from deft.modeling.classify import load_model
 
 logger = logging.getLogger('disambiguate')
 
@@ -68,3 +71,23 @@ class DeftDisambiguator(object):
                 result[index] = (disamb, pred)
                 pred_index += 1
         return result
+
+
+def load_disambiguator(shortform, models_path=MODELS_PATH):
+    """Returns deft disambiguator loaded from models directory
+
+    Parameters
+    ----------
+    shortform : str
+        Shortform to disambiguate
+    models_path : Optional[str]
+        Path to models directory. Defaults to deft pretrained models loaded
+        from s3. User has the option to specify a path to another directory
+        to use custom models
+    """
+    model = load_model(os.path.join(MODELS_PATH, shortform,
+                                    shortform.lower() + '_model.gz'))
+    with open(os.path.join(MODELS_PATH, shortform,
+                           shortform.lower() + '_grounding_map.json')) as f:
+        grounding_map = json.load(f)
+    return DeftDisambiguator(model, grounding_map)
