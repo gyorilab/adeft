@@ -87,14 +87,17 @@ class DeftDisambiguator(object):
                 # as the disambiguation. set the probability of this
                 # grounding to one
                 disamb = grounding.pop()
-                result[index] = (disamb, {disamb: 1.0})
-            elif groundings:
-                unnormed = {label: prob
-                            for label, prob in preds[pred_index].items()}
-                norm_factor = sum(preds[pred_index].values())
+                pred = {label: 0. for label in self.labels}
+                pred[disamb] = 1.0
+                result[index] = (disamb, self.names.get(disamb), pred)
+            elif grounding:
                 # if inconsistent defining patterns exist, disambiguate
                 # to the one with highest predicted probability. Set the
                 # probability of the multiple groundings to sum to one
+                unnormed = {label: preds[pred_index][label] if
+                            label in grounding else 0.
+                            for label in self.labels}
+                norm_factor = sum(unnormed.values())
                 pred = {label: prob/norm_factor
                         for label, prob in unnormed.items()}
                 disamb = max(pred.keys(),
