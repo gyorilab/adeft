@@ -42,11 +42,13 @@ class DeftDisambiguator(object):
     labels : set
         set of labels classifier is able to predict
     """
-    def __init__(self, longform_classifier, grounding_map):
+    def __init__(self, longform_classifier, grounding_map, names):
         self.lf_classifier = longform_classifier
         self.shortform = longform_classifier.shortform
         self.lf_recognizer = LongformRecognizer(self.shortform,
                                                 grounding_map)
+        self.names = names
+        self.labels = set(grounding_map.values())
 
     def disambiguate(self, texts):
         """Return disambiguations for a list of texts
@@ -97,7 +99,7 @@ class DeftDisambiguator(object):
                         for label, prob in unnormed.items()}
                 disamb = max(pred.keys(),
                              key=lambda key: pred[key])
-                result[index] = (disamb, pred)
+                result[index] = (disamb, self.names.get(disamb), pred)
                 pred_index += 1
             else:
                 # otherwise use the longform classifier directly
@@ -105,7 +107,7 @@ class DeftDisambiguator(object):
                         for label, prob in preds[pred_index].items()}
                 disamb = max(pred.keys(),
                              key=lambda key: pred[key])
-                result[index] = (disamb, pred)
+                result[index] = (disamb, self.names.get(disamb), pred)
                 pred_index += 1
         return result
 
@@ -127,4 +129,7 @@ def load_disambiguator(shortform, models_path=MODELS_PATH):
     with open(os.path.join(MODELS_PATH, shortform,
                            shortform.lower() + '_grounding_map.json')) as f:
         grounding_map = json.load(f)
-    return DeftDisambiguator(model, grounding_map)
+    with open(os.path.join(MODELS_PATH, shortform,
+                           shortform.lower() + '_names.json')) as f:
+        names = json.load(f)
+    return DeftDisambiguator(model, grounding_map, names)
