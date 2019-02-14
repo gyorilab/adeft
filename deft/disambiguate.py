@@ -22,16 +22,25 @@ class DeftDisambiguator(object):
 
     Parameters
     ----------
-    longform_recognizer : py:class:`deft.recognize.LongformRecognizer`
-       recognizes longforms based on the standard pattern
     longform_classifier :  py:class:`deft.modeling.classify.LongformClassifier`
        machine learning model for disambiguating shortforms based upon context
+
+    grounding_map : dict
+        Dictionary mapping longforms to their groundings
+
+    names : dict
+        dictionary mapping groundings to standardized names
 
     Attributes
     ----------
     shortform : str
-        shortform to disambiguate. This is also an attribute of both the
-        recognizer and classifier.
+        shortform to disambiguate
+
+    lf_recognizer : py:class:`deft.recognize.LongformRecognizer`
+        recognizer to disambiguate by searching for a defining pattern
+
+    labels : set
+        set of labels classifier is able to predict
     """
     def __init__(self, longform_classifier, grounding_map):
         self.lf_classifier = longform_classifier
@@ -40,23 +49,50 @@ class DeftDisambiguator(object):
                                                 grounding_map)
 
     def disambiguate(self, texts):
+        """Return disambiguations for a list of texts
+
+        Parameters
+        ----------
+        texts : list of str
+            fulltexts to disambiguate shortform
+
+        Returns
+        -------
+        result : list of tuple
+            Disambiguations for text. For each text the corresponding
+            disambiguation is a tuple of three elements. A grounding,
+            a standardized name for the grounding, and a dictionary
+            containing predicted probabilities for different groundings
+        """
+        # First disambiguate based on searching for defining patterns
         groundings = [self.lf_recognizer.recognize(text)
                       for text in texts]
+        # For texts without a defining pattern or with inconsistent
+        # defining patterns, use the longform classifier.
         undetermined = [text for text, grounding in zip(texts, groundings)
                         if len(grounding) != 1]
         if undetermined:
             preds = self.lf_classifier.predict_proba(undetermined)
 
         result = [None]*len(texts)
+        # each time we have to use a prediction from the longform classifier
+        # this is incremented so we can keep track of which prediction is to
+        # be used next
         pred_index = 0
         for index, grounding in enumerate(groundings):
             if len(grounding) == 1:
+                # if an unambiguous defining pattern exists, use this
+                # as the disambiguation. set the probability of this
+                # grounding to one
                 disamb = grounding.pop()
                 result[index] = (disamb, {disamb: 1.0})
             elif groundings:
                 unnormed = {label: prob
                             for label, prob in preds[pred_index].items()}
                 norm_factor = sum(preds[pred_index].values())
+                # if inconsistent defining patterns exist, disambiguate
+                # to the one with highest predicted probability. Set the
+                # probability of the multiple groundings to sum to one
                 pred = {label: prob/norm_factor
                         for label, prob in unnormed.items()}
                 disamb = max(pred.keys(),
@@ -64,6 +100,7 @@ class DeftDisambiguator(object):
                 result[index] = (disamb, pred)
                 pred_index += 1
             else:
+                # otherwise use the longform classifier directly
                 pred = {label: prob
                         for label, prob in preds[pred_index].items()}
                 disamb = max(pred.keys(),
