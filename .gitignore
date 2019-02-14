@@ -154,12 +154,6 @@ flycheck_*.el
 /network-security.data
 
 
-# scratchwork directory
-/scratch
-
-# data directory
-/data
-
 # models: pretrained machine learning model
-# other information needed for models
-/models
+# and other information needed for models
+/deft/models/*
