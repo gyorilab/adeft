@@ -29,8 +29,8 @@ class _TrieNode(object):
         self.children = {}
 
 
-class LongformRecognizer(object):
-    """Class for recognizing longforms by matching the standard pattern
+class DeftRecognizer(object):
+    """Class for recognizing longforms by searching for defining patterns (DP)
 
     Searches text for the pattern "<longform> (<shortform>)" for a collection
     of longforms supplied by the user.
