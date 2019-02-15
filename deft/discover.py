@@ -122,6 +122,12 @@ class DeftLongformMiner(object):
     shortform : str
         Search for candidate longforms associated to this shortform
 
+    window : optional[int]
+        Specifies range of characters before a defining pattern (DP)
+        to consider when finding longforms. If set to 30, candidate
+        longforms would be taken from the string
+        "ters before a defining pattern". Default: 100
+
     exclude : Optional[set of str]
         Terms that are to be excluded from candidate longforms.
         Default: None
