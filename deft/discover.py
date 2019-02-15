@@ -169,10 +169,6 @@ class DeftLongformMiner(object):
             for fragment in fragments:
                 if fragment:
                     self._add(fragment)
-                else:
-                    logger.info('No candidates found for sentence "%s"'
-                                ' containing the shortform %s'
-                                % (sentence, self.shortform))
 
     def top(self, limit=None):
         """Return top scoring candidates.
