@@ -1,8 +1,6 @@
 from collections import deque
 import logging
 
-from nltk.tokenize import sent_tokenize
-
 from deft.nlp import WatchfulStemmer
 from deft.util import get_candidate_fragments
 
