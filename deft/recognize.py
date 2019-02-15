@@ -33,25 +33,24 @@ class DeftRecognizer(object):
     """Class for recognizing longforms by searching for defining patterns (DP)
 
     Searches text for the pattern "<longform> (<shortform>)" for a collection
-    of longforms supplied by the user.
+    of grounded longforms supplied by the user.
 
     Parameters
     ----------
     shortform : str
         shortform to be recognized
 
-    longforms : iterable of str
-        Contains candidate longforms.
+    grounding_map : dict of str: str
+        Contains candidate longforms mapped to their groundings
 
+    window : Optional[int]
+        Specifies range of characters before a defining pattern (DP)
+        to consider when finding longforms. Should be set to the same value
+        that was used in the DeftLongformMiner that was used to find longforms.
+        Default: 100
     exclude : Optional[set]
         set of tokens to ignore when searching for longforms.
         Default: None
-
-    build_corpus : Optional[bool]
-        If True, self.recognize will return a tuple of values, a set of the
-        recognized longforms and the input text with all sentences matching
-        the standard pattern with the given shortform. Typically, this should
-        only be set to be True in the CorpusBuilder
 
     Attributes
     ----------
@@ -69,9 +68,9 @@ class DeftRecognizer(object):
             self.exclude = set([])
         else:
             self.exclude = exclude
-        
+
     def recognize(self, text):
-        """Find longforms in text by matching the standard pattern
+        """Find longforms in text by searching for defining patterns (DP)
 
         Parameters
         ----------
