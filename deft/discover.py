@@ -170,6 +170,8 @@ class DeftLongformMiner(object):
             A list of texts
         """
         for text in texts:
+            # lonform candidates taken from a window of text before each
+            # defining pattern
             fragments = get_candidate_fragments(text, self.shortform,
                                                 self.window, self.exclude)
             for fragment in fragments:
