@@ -108,7 +108,7 @@ class _TrieNode(object):
         self.score -= self.sum_ft2/self.sum_ft
 
 
-class LongformFinder(object):
+class DeftLongformMiner(object):
     """Finds possible longforms corresponding to an abbreviation in a text corpus
 
     Makes use of the acromine algorithm developed by Okazaki and Ananiadou
