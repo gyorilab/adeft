@@ -59,7 +59,7 @@ def get_candidate_fragments(text, shortform, window=100, exclude=None):
                 break
         if tokens:
             result.append(tokens)
-        end_previous=span[1]
+        end_previous = span[1]
     return result
 
 
@@ -72,7 +72,7 @@ def contains_shortform(sentence, shortform):
     """Count the occurences of a shortform in a sentence in standard pattern"""
     return sentence.count('(%s)' % shortform)
 
- 
+
 def is_jsonable(x):
     """Tests whether an object can be serialized to json"""
     try:
