@@ -1,6 +1,5 @@
 import logging
 
-from nltk.tokenize import sent_tokenize
 from nltk.stem.snowball import EnglishStemmer
 
 from deft.nlp import word_tokenize
