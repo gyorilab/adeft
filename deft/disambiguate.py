@@ -3,7 +3,7 @@ import json
 import logging
 
 from deft.locations import MODELS_PATH
-from deft.recognize import LongformRecognizer
+from deft.recognize import DeftRecognizer
 from deft.modeling.classify import load_model
 
 logger = logging.getLogger('disambiguate')
@@ -45,7 +45,7 @@ class DeftDisambiguator(object):
     def __init__(self, longform_classifier, grounding_map, names):
         self.lf_classifier = longform_classifier
         self.shortform = longform_classifier.shortform
-        self.lf_recognizer = LongformRecognizer(self.shortform,
+        self.lf_recognizer = DeftRecognizer(self.shortform,
                                                 grounding_map)
         self.names = names
         self.labels = set(grounding_map.values())
