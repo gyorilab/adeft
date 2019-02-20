@@ -53,3 +53,11 @@ def _get_s3_models():
     """Returns set of all models currently available on s3"""
     result = requests.get(S3_BUCKET_URL + '/s3_models.json')
     return result.json()
+
+
+if __name__ == '__main__':
+    """Download models from command line
+
+    This will allow models to be installed on Travis
+    """
+    download_models()
