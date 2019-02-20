@@ -1,1 +1,0 @@
-This folder is empty at install time. It is where deft models are installed.
