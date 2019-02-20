@@ -1,8 +1,6 @@
 from collections import deque
 import logging
 
-from nltk.tokenize import sent_tokenize
-
 from deft.nlp import WatchfulStemmer
 from deft.util import get_candidate_fragments
 
@@ -110,7 +108,7 @@ class _TrieNode(object):
         self.score -= self.sum_ft2/self.sum_ft
 
 
-class LongformFinder(object):
+class DeftLongformMiner(object):
     """Finds possible longforms corresponding to an abbreviation in a text corpus
 
     Makes use of the acromine algorithm developed by Okazaki and Ananiadou
@@ -123,6 +121,12 @@ class LongformFinder(object):
     ----------
     shortform : str
         Search for candidate longforms associated to this shortform
+
+    window : optional[int]
+        Specifies range of characters before a defining pattern (DP)
+        to consider when finding longforms. If set to 30, candidate
+        longforms would be taken from the string
+        "ters before a defining pattern". Default: 100
 
     exclude : Optional[set of str]
         Terms that are to be excluded from candidate longforms.
@@ -166,15 +170,13 @@ class LongformFinder(object):
             A list of texts
         """
         for text in texts:
+            # lonform candidates taken from a window of text before each
+            # defining pattern
             fragments = get_candidate_fragments(text, self.shortform,
                                                 self.window, self.exclude)
             for fragment in fragments:
                 if fragment:
                     self._add(fragment)
-                else:
-                    logger.info('No candidates found for sentence "%s"'
-                                ' containing the shortform %s'
-                                % (sentence, self.shortform))
 
     def top(self, limit=None):
         """Return top scoring candidates.

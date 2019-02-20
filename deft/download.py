@@ -29,7 +29,9 @@ def download_models(update=False):
         if not os.path.exists(os.path.join(MODELS_PATH, model)):
             os.makedirs(os.path.join(MODELS_PATH, model))
         for resource in (model.lower() + '_grounding_map.json',
+                         model.lower() + '_names.json',
                          model.lower() + '_model.gz'):
+
             resource_path = os.path.join(MODELS_PATH, model, resource)
             # if resource already exists, remove it since wget will not
             # overwrite existing files, choosing a new name instead

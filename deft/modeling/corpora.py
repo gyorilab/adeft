@@ -1,5 +1,5 @@
 from deft.util import strip_defining_patterns
-from deft.recognize import LongformRecognizer
+from deft.recognize import DeftRecognizer
 
 
 class CorpusBuilder(object):
@@ -7,7 +7,7 @@ class CorpusBuilder(object):
 
     Parameters
     ----------
-    lfr : :py:class:`deft.recognize.LongformRecognizer`
+    lfr : :py:class:`deft.recognize.DeftRecognizer`
         A recognizer that can find longforms by matching the standard pattern
 
     Attributes
@@ -23,7 +23,7 @@ class CorpusBuilder(object):
     def __init__(self, shortform, grounding_map):
         self.shortform = shortform
         self.grounding_map = grounding_map
-        self.lfr = LongformRecognizer(shortform, grounding_map)
+        self.lfr = DeftRecognizer(shortform, grounding_map)
 
     def build_from_texts(self, texts):
         corpus = set()
