@@ -20,7 +20,7 @@ def download_models(update=False):
         Default: True
     """
     s3_models = _get_s3_models()
-    downloaded_models = _get_downloaded_models()
+    downloaded_models = get_downloaded_models()
     for model in s3_models:
         # if update is False do not download model
         if not update and model in downloaded_models:
@@ -43,13 +43,13 @@ def download_models(update=False):
                           out=resource_path)
 
 
-def _get_downloaded_models():
+def get_downloaded_models():
     """Returns set of all models currently in models folder"""
-    return frozenset(model for model in os.listdir(MODELS_PATH)
-                     if os.path.isdir(os.path.join(MODELS_PATH, model)))
+    return [model for model in os.listdir(MODELS_PATH)
+            if os.path.isdir(os.path.join(MODELS_PATH, model))]
 
 
 def _get_s3_models():
     """Returns set of all models currently available on s3"""
     result = requests.get(S3_BUCKET_URL + '/s3_models.json')
-    return frozenset(result.json())
+    return result.json()
