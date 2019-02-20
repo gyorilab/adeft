@@ -2,7 +2,7 @@ from deft.util import strip_defining_patterns
 from deft.recognize import DeftRecognizer
 
 
-class CorpusBuilder(object):
+class DeftCorpusBuilder(object):
     """Class for generating corpora
 
     Parameters
