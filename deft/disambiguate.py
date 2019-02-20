@@ -22,7 +22,7 @@ class DeftDisambiguator(object):
 
     Parameters
     ----------
-    longform_classifier :  py:class:`deft.modeling.classify.LongformClassifier`
+    classifier :  py:class:`deft.modeling.classify.DeftClassifier`
        machine learning model for disambiguating shortforms based upon context
 
     grounding_map : dict
@@ -36,17 +36,17 @@ class DeftDisambiguator(object):
     shortform : str
         shortform to disambiguate
 
-    lf_recognizer : py:class:`deft.recognize.LongformRecognizer`
+    recognizer : py:class:`deft.recognize.DeftRecognizer`
         recognizer to disambiguate by searching for a defining pattern
 
     labels : set
         set of labels classifier is able to predict
     """
-    def __init__(self, longform_classifier, grounding_map, names):
-        self.lf_classifier = longform_classifier
-        self.shortform = longform_classifier.shortform
-        self.lf_recognizer = DeftRecognizer(self.shortform,
-                                                grounding_map)
+    def __init__(self, classifier, grounding_map, names):
+        self.classifier = classifier
+        self.shortform = classifier.shortform
+        self.recognizer = DeftRecognizer(self.shortform,
+                                         grounding_map)
         self.names = names
         self.labels = set(grounding_map.values())
 
@@ -67,14 +67,14 @@ class DeftDisambiguator(object):
             containing predicted probabilities for different groundings
         """
         # First disambiguate based on searching for defining patterns
-        groundings = [self.lf_recognizer.recognize(text)
+        groundings = [self.recognizer.recognize(text)
                       for text in texts]
         # For texts without a defining pattern or with inconsistent
         # defining patterns, use the longform classifier.
         undetermined = [text for text, grounding in zip(texts, groundings)
                         if len(grounding) != 1]
         if undetermined:
-            preds = self.lf_classifier.predict_proba(undetermined)
+            preds = self.classifier.predict_proba(undetermined)
 
         result = [None]*len(texts)
         # each time we have to use a prediction from the longform classifier

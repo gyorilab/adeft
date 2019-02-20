@@ -3,7 +3,7 @@ import uuid
 import json
 import numpy as np
 from nose.plugins.attrib import attr
-from deft.modeling.classify import LongformClassifier, load_model
+from deft.modeling.classify import DeftClassifier, load_model
 
 # Get test directory so necessary datafiles can be found from any working
 # directory
@@ -21,7 +21,7 @@ with open(f'{TEST_DIR}/example_training_data.json', 'r') as f:
 def test_cv_multiclass():
     params = {'C': [1.0],
               'max_features': [1000]}
-    classifier = LongformClassifier('IR', ['HGNC:6091'])
+    classifier = DeftClassifier('IR', ['HGNC:6091'])
     train = data['train']
     response = data['response']
     classifier.cv(train, response, param_grid=params)
@@ -35,7 +35,7 @@ def test_cv_binary():
     train = data['train']
     response = [label if label == 'HGNC:6091' else 'other'
                 for label in data['response']]
-    classifier = LongformClassifier('IR', ['HGNC:6091'])
+    classifier = DeftClassifier('IR', ['HGNC:6091'])
     classifier.cv(train, response, param_grid=params)
     assert classifier.best_score > 0.7
 

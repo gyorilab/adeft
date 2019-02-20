@@ -1,7 +1,7 @@
 from nltk.stem.snowball import EnglishStemmer
 
 from deft.nlp import word_tokenize
-from deft.recognize import LongformRecognizer
+from deft.recognize import DeftRecognizer
 
 _stemmer = EnglishStemmer()
 
@@ -42,8 +42,8 @@ example5 = ('A number of studies showed that chemotherapeutic benefits'
 
 def test_init():
     """Test that the recognizers internal trie is initialized correctly"""
-    lfr = LongformRecognizer('ER', grounding_map)
-    trie = lfr._trie
+    dr = DeftRecognizer('ER', grounding_map)
+    trie = dr._trie
     for longform, grounding in grounding_map.items():
         edges = tuple(_stemmer.stem(token)
                       for token in word_tokenize(longform))[::-1]
@@ -59,16 +59,16 @@ def test_init():
 
 def test_search():
     """Test that searching for a longform in the trie works correctly"""
-    lfr = LongformRecognizer('ER', grounding_map)
+    dr = DeftRecognizer('ER', grounding_map)
     example = (('room', 'emerg', 'non', 'of', 'type', 'some',
                 'reduc', 'program', 'hmo', 'mandatori', ',', 'women', 'for'),
                'ungrounded')
-    assert lfr._search(example[0]) == example[1]
+    assert dr._search(example[0]) == example[1]
 
 
 def test_recognizer():
     """Test the recognizer end to end"""
-    lfr = LongformRecognizer('ER', grounding_map)
+    dr = DeftRecognizer('ER', grounding_map)
     for text, result in [example1, example2, example3, example4, example5]:
-        longform = lfr.recognize(text)
+        longform = dr.recognize(text)
         assert longform.pop() == result

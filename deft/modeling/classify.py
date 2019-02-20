@@ -17,7 +17,7 @@ warnings.filterwarnings("ignore", category=ConvergenceWarning)
 logger = logging.getLogger('classify')
 
 
-class LongformClassifier(object):
+class DeftClassifier(object):
     """For training classifiers to disambiguate shortforms based on context
 
     Fits a logistic regression with tfidf vectorized features. Uses sklearns
@@ -213,7 +213,7 @@ def load_model(filepath):
 
     Returns
     -------
-    longform_model: py:class:`deft.deft.classify.LongformClassifier`
+    longform_model: py:class:`deft.deft.classify.DeftClassifier`
     """
     with gzip.GzipFile(filepath, 'r') as fin:
         json_bytes = fin.read()
@@ -223,8 +223,8 @@ def load_model(filepath):
     shortform = model_info['shortform']
     pos_labels = model_info['pos_labels']
 
-    longform_model = LongformClassifier(shortform=shortform,
-                                        pos_labels=pos_labels)
+    longform_model = DeftClassifier(shortform=shortform,
+                                    pos_labels=pos_labels)
     ngram_range = model_info['tfidf']['ngram_range']
     tfidf = TfidfVectorizer(ngram_range=ngram_range)
     logit = LogisticRegression()

@@ -1,4 +1,4 @@
-from deft.modeling.corpora import CorpusBuilder
+from deft.modeling.corpora import DeftCorpusBuilder
 
 
 longforms = {'integrated network and dynamical reasoning assembler':
@@ -65,14 +65,14 @@ text4 = 'We cannot determine what INDRA means from this sentence.'
 
 
 def test__process_text():
-    cb = CorpusBuilder('INDRA', longforms)
+    dcb = DeftCorpusBuilder('INDRA', longforms)
 
     for text, result, labels in [(text1, result1, labels1),
                                  (text2, result2, labels2),
                                  (text3, result3, labels3)]:
-        datapoints = cb._process_text(text)
+        datapoints = dcb._process_text(text)
         assert len(datapoints) == len(labels)
         assert all([datapoint[0] == result for datapoint in datapoints])
         assert all([datapoint[1] in labels for datapoint in datapoints])
 
-    assert cb._process_text(text4) is None
+    assert dcb._process_text(text4) is None
