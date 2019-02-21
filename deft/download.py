@@ -46,7 +46,8 @@ def download_models(update=False):
 def get_downloaded_models():
     """Returns set of all models currently in models folder"""
     return [model for model in os.listdir(MODELS_PATH)
-            if os.path.isdir(os.path.join(MODELS_PATH, model))]
+            if os.path.isdir(os.path.join(MODELS_PATH, model))
+            and model != '__pycache__']
 
 
 def _get_s3_models():
