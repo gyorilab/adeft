@@ -1,0 +1,13 @@
+Deft Classify
+-------------
+
+.. automodule:: deft.modeling.classify
+   :members:
+   :show-inheritance:
+
+Deft Corpora
+------------
+
+.. automodule:: deft.modeling.corpora
+    :members:
+    :show-inheritance:

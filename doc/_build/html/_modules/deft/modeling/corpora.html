@@ -1,0 +1,251 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>deft.modeling.corpora &mdash; deft  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> deft
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules/index.html">Deft modules reference</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">deft</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>deft.modeling.corpora</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for deft.modeling.corpora</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">deft.util</span> <span class="k">import</span> <span class="n">strip_defining_patterns</span>
+<span class="kn">from</span> <span class="nn">deft.recognize</span> <span class="k">import</span> <span class="n">DeftRecognizer</span>
+
+
+<div class="viewcode-block" id="DeftCorpusBuilder"><a class="viewcode-back" href="../../../modules/modules.html#deft.modeling.corpora.DeftCorpusBuilder">[docs]</a><span class="k">class</span> <span class="nc">DeftCorpusBuilder</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Class for generating corpora</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    lfr : :py:class:`deft.recognize.DeftRecognizer`</span>
+<span class="sd">        A recognizer that can find longforms by matching the standard pattern</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    shortform : str</span>
+<span class="sd">        build corpus for this shortform. this is taken from the objects</span>
+<span class="sd">        longform_recognizer and included as an attribute for convenience</span>
+
+<span class="sd">    corpus : list of tuple</span>
+<span class="sd">       List of pairs of the form (&lt;text&gt;, &lt;label&gt;) that can be used as training</span>
+<span class="sd">       data for classification algorithms</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shortform</span><span class="p">,</span> <span class="n">grounding_map</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shortform</span> <span class="o">=</span> <span class="n">shortform</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grounding_map</span> <span class="o">=</span> <span class="n">grounding_map</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lfr</span> <span class="o">=</span> <span class="n">DeftRecognizer</span><span class="p">(</span><span class="n">shortform</span><span class="p">,</span> <span class="n">grounding_map</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">build_from_texts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">texts</span><span class="p">):</span>
+        <span class="n">corpus</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">texts</span><span class="p">:</span>
+            <span class="n">data_points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_text</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">data_points</span><span class="p">:</span>
+                <span class="n">corpus</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">data_points</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">corpus</span>
+
+    <span class="k">def</span> <span class="nf">_process_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns training data and label corresponding to text if found</span>
+
+<span class="sd">        The training text corresponding to an input text is obtained by</span>
+<span class="sd">        stripping out all occurences of (&lt;shortform&gt;). It is possible that</span>
+<span class="sd">        longforms are matched with the standard pattern. In this case, multiple</span>
+<span class="sd">        datapoints are returned each with different labels but the same</span>
+<span class="sd">        training text.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        text : str</span>
+<span class="sd">            fulltext to build datapoint from if possible</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        datapoints : list of tuple | None</span>
+<span class="sd">            Returns None if no label can be found by matching the standard</span>
+<span class="sd">            pattern. Otherwise, returns a list of pairs containing the training</span>
+<span class="sd">            text and a label for each label appearing in the input text</span>
+<span class="sd">            matching the standard pattern.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">groundings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lfr</span><span class="o">.</span><span class="n">recognize</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">groundings</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">training_text</span> <span class="o">=</span> <span class="n">strip_defining_patterns</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">shortform</span><span class="p">)</span>
+        <span class="n">datapoints</span> <span class="o">=</span> <span class="p">[(</span><span class="n">training_text</span><span class="p">,</span> <span class="n">grounding</span><span class="p">)</span>
+                      <span class="k">for</span> <span class="n">grounding</span> <span class="ow">in</span> <span class="n">groundings</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">datapoints</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Albert Steppi
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

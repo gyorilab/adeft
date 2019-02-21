@@ -1,0 +1,13 @@
+Deft Discover
+-------------
+
+.. automodule:: deft.discover
+   :members:
+   :show-inheritance:
+
+Deft Recognize
+--------------
+
+.. automodule:: deft.recognize
+    :members:
+    :show-inheritance:

@@ -1,0 +1,417 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Deft Discover &mdash; deft  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Deft Util" href="utils.html" />
+    <link rel="prev" title="Deft Classify" href="modeling.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> deft
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Deft modules reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="disambiguate.html">Deft Download</a></li>
+<li class="toctree-l2"><a class="reference internal" href="disambiguate.html#module-deft.disambiguate">Deft Disambiguate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modeling.html">Deft Classify</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modeling.html#module-deft.modeling.corpora">Deft Corpora</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Deft Discover</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-deft.recognize">Deft Recognize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html">Deft Util</a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#module-deft.nlp">Deft NLP</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">deft</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Deft modules reference</a> &raquo;</li>
+        
+      <li>Deft Discover</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/modules/mine.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-deft.discover">
+<span id="deft-discover"></span><h1>Deft Discover<a class="headerlink" href="#module-deft.discover" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="deft.discover.DeftMiner">
+<em class="property">class </em><code class="descclassname">deft.discover.</code><code class="descname">DeftMiner</code><span class="sig-paren">(</span><em>shortform</em>, <em>window=100</em>, <em>exclude=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deft/discover.html#DeftMiner"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#deft.discover.DeftMiner" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Finds possible longforms corresponding to an abbreviation in a text corpus</p>
+<p>Makes use of the acromine algorithm developed by Okazaki and Ananiadou</p>
+<p>[Okazaki06] Naoaki Okazaki and Sophia Ananiadou. “Building an
+abbreviation dicationary using a term recognition approach”.
+Bioinformatics. 2006. Oxford University Press.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>shortform</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Search for candidate longforms associated to this shortform</li>
+<li><strong>window</strong> (<em>optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>]</em>) – Specifies range of characters before a defining pattern (DP)
+to consider when finding longforms. If set to 30, candidate
+longforms would be taken from the string
+“ters before a defining pattern”. Default: 100</li>
+<li><strong>exclude</strong> (<em>Optional</em><em>[</em><em>set of str</em><em>]</em>) – Terms that are to be excluded from candidate longforms.
+Default: None</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="deft.discover.DeftMiner._internal_trie">
+<code class="descname">_internal_trie</code><a class="headerlink" href="#deft.discover.DeftMiner._internal_trie" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stores trie data-structure used to implement the algorithm</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><code class="xref py py-class docutils literal notranslate"><span class="pre">deft.discover._TrieNode</span></code></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="deft.discover.DeftMiner._longforms">
+<code class="descname">_longforms</code><a class="headerlink" href="#deft.discover.DeftMiner._longforms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dictionary mapping candidate longforms to their likelihoods as
+produced by the acromine algorithm</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="deft.discover.DeftMiner._stemmer">
+<code class="descname">_stemmer</code><a class="headerlink" href="#deft.discover.DeftMiner._stemmer" title="Permalink to this definition">¶</a></dt>
+<dd><p>English stemmer that keeps track of counts of the number of times a
+given word has been mapped to a given stem. Wraps the class
+EnglishStemmer from nltk.stem.snowball</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><code class="xref py py-class docutils literal notranslate"><span class="pre">deft.nlp.stem.SnowCounter</span></code></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="deft.discover.DeftMiner.get_longforms">
+<code class="descname">get_longforms</code><span class="sig-paren">(</span><em>cutoff=1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deft/discover.html#DeftMiner.get_longforms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#deft.discover.DeftMiner.get_longforms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of extracted longforms with their scores</p>
+<p>Makes use of a breadth first search to search for nodes with score
+greater than or equal to the scores of all children and strictly less
+than the scores of all ancestors. These are the optimal longforms</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>cutoff</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>]</em>) – Return only longforms with a score greater than the cutoff.
+Default: 1</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><ul class="simple">
+<li><strong>longforms</strong> (<em>list of tuple</em>)</li>
+<li><em>list of longforms along with their scores. It is sorted first in</em></li>
+<li><em>descending order by score, then by the length of the longform from</em></li>
+<li><em>shortest to longest, and finally by lexicographic order.</em></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="deft.discover.DeftMiner.process_texts">
+<code class="descname">process_texts</code><span class="sig-paren">(</span><em>texts</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deft/discover.html#DeftMiner.process_texts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#deft.discover.DeftMiner.process_texts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update longform candidate scores based on a corpus of texts</p>
+<p>An online method. Updates likelihoods of terms as it consumes
+additional texts. Care should be taken to not consume the same text
+multiple times.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>texts</strong> (<em>list of str</em>) – A list of texts</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="deft.discover.DeftMiner.top">
+<code class="descname">top</code><span class="sig-paren">(</span><em>limit=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deft/discover.html#DeftMiner.top"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#deft.discover.DeftMiner.top" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return top scoring candidates.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>limit</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>]</em>) – Limit for the number of candidates to return. Default: None</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><ul class="simple">
+<li><strong>candidates</strong> (<em>list of tuple</em>) – List of tuples, each containing a candidate string and its
+likelihood score. Sorted first in descending order by</li>
+<li><em>likelihood score, then by length from shortest to longest, and finally</em></li>
+<li><em>by lexicographic order.</em></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-deft.recognize">
+<span id="deft-recognize"></span><h1>Deft Recognize<a class="headerlink" href="#module-deft.recognize" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="deft.recognize.DeftRecognizer">
+<em class="property">class </em><code class="descclassname">deft.recognize.</code><code class="descname">DeftRecognizer</code><span class="sig-paren">(</span><em>shortform</em>, <em>grounding_map</em>, <em>window=100</em>, <em>exclude=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deft/recognize.html#DeftRecognizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#deft.recognize.DeftRecognizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Class for recognizing longforms by searching for defining patterns (DP)</p>
+<p>Searches text for the pattern “&lt;longform&gt; (&lt;shortform&gt;)” for a collection
+of grounded longforms supplied by the user.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>shortform</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – shortform to be recognized</li>
+<li><strong>grounding_map</strong> (<em>dict of str: str</em>) – Contains candidate longforms mapped to their groundings</li>
+<li><strong>window</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>]</em>) – Specifies range of characters before a defining pattern (DP)
+to consider when finding longforms. Should be set to the same value
+that was used in the DeftLongformMiner that was used to find longforms.
+Default: 100</li>
+<li><strong>exclude</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#set" title="(in Python v3.7)"><em>set</em></a><em>]</em>) – set of tokens to ignore when searching for longforms.
+Default: None</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="deft.recognize.DeftRecognizer._trie">
+<code class="descname">_trie</code><a class="headerlink" href="#deft.recognize.DeftRecognizer._trie" title="Permalink to this definition">¶</a></dt>
+<dd><p>Trie used to search for longforms. Edges correspond to stemmed tokens
+from longforms. They appear in reverse order to the bottom of the trie
+with terminal nodes containing the associated longform in their data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><code class="xref py py-class docutils literal notranslate"><span class="pre">deft.recognizer.__TrieNode</span></code></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="deft.recognize.DeftRecognizer.recognize">
+<code class="descname">recognize</code><span class="sig-paren">(</span><em>text</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deft/recognize.html#DeftRecognizer.recognize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#deft.recognize.DeftRecognizer.recognize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find longforms in text by searching for defining patterns (DP)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>sentence</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Sentence where we seek to disambiguate shortform</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>longform</strong> – longform corresponding to shortform in sentence if the standard
+pattern is matched. Returns None if the pattern is not matched</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">set of str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="utils.html" class="btn btn-neutral float-right" title="Deft Util" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="modeling.html" class="btn btn-neutral float-left" title="Deft Classify" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Albert Steppi
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

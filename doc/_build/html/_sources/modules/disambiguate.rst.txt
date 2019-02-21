@@ -1,0 +1,13 @@
+Deft Download
+-------------
+
+.. automodule:: deft.download
+   :members:
+   :show-inheritance:
+
+Deft Disambiguate
+-----------------
+
+.. automodule:: deft.disambiguate
+    :members:
+    :show-inheritance:

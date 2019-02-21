@@ -1,0 +1,394 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Deft Classify &mdash; deft  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Deft Discover" href="mine.html" />
+    <link rel="prev" title="Deft Download" href="disambiguate.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> deft
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Deft modules reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="disambiguate.html">Deft Download</a></li>
+<li class="toctree-l2"><a class="reference internal" href="disambiguate.html#module-deft.disambiguate">Deft Disambiguate</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Deft Classify</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-deft.modeling.corpora">Deft Corpora</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mine.html">Deft Discover</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mine.html#module-deft.recognize">Deft Recognize</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">deft</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Deft modules reference</a> &raquo;</li>
+        
+      <li>Deft Classify</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/modules/modeling.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-deft.modeling.classify">
+<span id="deft-classify"></span><h1>Deft Classify<a class="headerlink" href="#module-deft.modeling.classify" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="deft.modeling.classify.DeftClassifier">
+<em class="property">class </em><code class="descclassname">deft.modeling.classify.</code><code class="descname">DeftClassifier</code><span class="sig-paren">(</span><em>shortform</em>, <em>pos_labels</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deft/modeling/classify.html#DeftClassifier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#deft.modeling.classify.DeftClassifier" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>For training classifiers to disambiguate shortforms based on context</p>
+<p>Fits a logistic regression with tfidf vectorized features. Uses sklearns
+LogisticRegression and TfidfVectorizer classes. Models can be serialized
+to gzipped json and loaded for later use. Capable of using a grid search to
+find optimal hyperparameter values.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>shortform</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Shortform to disambiguate</li>
+<li><strong>pos_labels</strong> (<em>list of str</em>) – Labels for positive classes. These are the longforms that it is
+important to ground correctly.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="deft.modeling.classify.DeftClassifier.estimator">
+<code class="descname">estimator</code><a class="headerlink" href="#deft.modeling.classify.DeftClassifier.estimator" title="Permalink to this definition">¶</a></dt>
+<dd><p>An sklearn pipeline that transforms text data with a TfidfVectorizer
+and fits a logistic regression.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">py:class:<a href="#id1"><span class="problematic" id="id2">`</span></a>sklearn.pipeline.Pipeline</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="deft.modeling.classify.DeftClassifier.f1_score">
+<code class="descname">f1_score</code><a class="headerlink" href="#deft.modeling.classify.DeftClassifier.f1_score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Crossvalidated f1 score of classifier on training data. The positive
+labels must be specified in constructor. For multiclass problems,
+takes the average of f1 scores for all positive labels weighted by the
+number of datapoints with each label.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="deft.modeling.classify.DeftClassifier.cv">
+<code class="descname">cv</code><span class="sig-paren">(</span><em>texts</em>, <em>y</em>, <em>param_grid</em>, <em>n_jobs=1</em>, <em>cv=5</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deft/modeling/classify.html#DeftClassifier.cv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#deft.modeling.classify.DeftClassifier.cv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs grid search to select and fit a disambiguation model</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>texts</strong> (<em>iterable of str</em>) – Training data of texts</li>
+<li><strong>y</strong> (<em>iterable of str</em>) – true labels for the training texts</li>
+<li><strong>param_grid</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a><em>]</em>) – Grid search parameters. Can include the regularization parameter C
+for logistic regression as well as max_features and ngram_range
+for the TfidfVectorizer. If not specified, defaults to setting
+performing crossvalidation with only C = 1.0, max_features = 1000,
+and ngram_range = (1, 2).</li>
+<li><strong>n_jobs</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>]</em>) – Number of jobs to use when performing grid_search
+Default: 1</li>
+<li><strong>cv</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>]</em>) – Number of folds to use in crossvalidation. Default: 5</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Example</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;C&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">],</span>
+<span class="gp">... </span>   <span class="s1">&#39;max_features&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">3000</span><span class="p">,</span> <span class="mi">6000</span><span class="p">,</span> <span class="mi">9000</span><span class="p">],</span>
+<span class="gp">... </span>   <span class="s1">&#39;ngram_range&#39;</span><span class="p">:</span> <span class="p">[(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)]}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">classifier</span> <span class="o">=</span> <span class="n">LongformClassifier</span><span class="p">(</span><span class="s1">&#39;IR&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;insulin receptor&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">classifier</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">texts</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">param_grid</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="deft.modeling.classify.DeftClassifier.dump_model">
+<code class="descname">dump_model</code><span class="sig-paren">(</span><em>filepath</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deft/modeling/classify.html#DeftClassifier.dump_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#deft.modeling.classify.DeftClassifier.dump_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Serialize model to gzipped json</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filepath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Path to output file</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="deft.modeling.classify.DeftClassifier.predict">
+<code class="descname">predict</code><span class="sig-paren">(</span><em>texts</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deft/modeling/classify.html#DeftClassifier.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#deft.modeling.classify.DeftClassifier.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict class labels for a list-like of texts</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="deft.modeling.classify.DeftClassifier.predict_proba">
+<code class="descname">predict_proba</code><span class="sig-paren">(</span><em>texts</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deft/modeling/classify.html#DeftClassifier.predict_proba"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#deft.modeling.classify.DeftClassifier.predict_proba" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict class probabilities for a list-like of texts</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="deft.modeling.classify.load_model">
+<code class="descclassname">deft.modeling.classify.</code><code class="descname">load_model</code><span class="sig-paren">(</span><em>filepath</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deft/modeling/classify.html#load_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#deft.modeling.classify.load_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load previously serialized model</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filepath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – path to model file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>longform_model</strong></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">py:class:<cite>deft.deft.classify.DeftClassifier</cite></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-deft.modeling.corpora">
+<span id="deft-corpora"></span><h1>Deft Corpora<a class="headerlink" href="#module-deft.modeling.corpora" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="deft.modeling.corpora.DeftCorpusBuilder">
+<em class="property">class </em><code class="descclassname">deft.modeling.corpora.</code><code class="descname">DeftCorpusBuilder</code><span class="sig-paren">(</span><em>shortform</em>, <em>grounding_map</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deft/modeling/corpora.html#DeftCorpusBuilder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#deft.modeling.corpora.DeftCorpusBuilder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Class for generating corpora</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>lfr</strong> (<a class="reference internal" href="util.html#deft.recognize.DeftRecognizer" title="deft.recognize.DeftRecognizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">deft.recognize.DeftRecognizer</span></code></a>) – A recognizer that can find longforms by matching the standard pattern</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="deft.modeling.corpora.DeftCorpusBuilder.shortform">
+<code class="descname">shortform</code><a class="headerlink" href="#deft.modeling.corpora.DeftCorpusBuilder.shortform" title="Permalink to this definition">¶</a></dt>
+<dd><p>build corpus for this shortform. this is taken from the objects
+longform_recognizer and included as an attribute for convenience</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="deft.modeling.corpora.DeftCorpusBuilder.corpus">
+<code class="descname">corpus</code><a class="headerlink" href="#deft.modeling.corpora.DeftCorpusBuilder.corpus" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of pairs of the form (&lt;text&gt;, &lt;label&gt;) that can be used as training
+data for classification algorithms</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">list of tuple</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="mine.html" class="btn btn-neutral float-right" title="Deft Discover" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="disambiguate.html" class="btn btn-neutral float-left" title="Deft Download" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Albert Steppi
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

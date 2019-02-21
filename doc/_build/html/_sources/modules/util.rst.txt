@@ -1,0 +1,13 @@
+Deft Util
+---------
+
+.. automodule:: deft.util
+   :members:
+   :show-inheritance:
+
+Deft NLP
+--------
+
+.. automodule:: deft.nlp
+    :members:
+    :show-inheritance:
