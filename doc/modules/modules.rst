@@ -1,5 +1,5 @@
 Deft Download
-==============
+-------------
 
 .. automodule:: deft.download
    :members:
