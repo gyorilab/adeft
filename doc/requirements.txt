@@ -2,6 +2,5 @@ sphinx
 sphinx_rtd_theme
 scikit-learn>=0.20.0
 nltk
-joblib
 wget
 requests

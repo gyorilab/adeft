@@ -23,7 +23,6 @@ setup(name='deft',
           'Programming Language :: Python :: 3.7'
       ],
       packages=find_packages(),
-      install_requires=['nltk', 'scikit-learn>=0.20.0', 'wget', 'requests',
-                        'joblib'],
+      install_requires=['nltk', 'scikit-learn>=0.20.0', 'wget', 'requests'],
       extras_require={'test': ['nose', 'coverage', 'python-coveralls']}
       )
