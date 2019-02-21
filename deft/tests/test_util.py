@@ -1,4 +1,3 @@
-from deft.resources import stopwords
 from deft.util import contains_shortform, get_candidate_fragments,\
     strip_defining_patterns
 
@@ -38,6 +37,10 @@ result5 = [['interior', 'natural', 'desert', 'reclamation', 'and',
             'reasoning', 'assembler'],
            ['neither', 'of', 'these', 'is', 'the', 'indonesian', 'debt',
             'restructuring', 'agency']]
+
+stopwords = set(['a', 'an', 'the', 'and', 'or', 'of', 'with', 'at', 'from',
+                 'into', 'to', 'for', 'on', 'by', 'be', 'being', 'been', 'am',
+                 'is', 'are', 'was', 'were', 'in', 'that', 'as'])
 
 
 def test_contains_shortform():
