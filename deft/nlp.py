@@ -1,6 +1,6 @@
+import re
 from collections import defaultdict
 
-from nltk.tokenize import regexp_tokenize
 from nltk.stem.snowball import EnglishStemmer
 
 
@@ -70,9 +70,23 @@ class WatchfulStemmer(object):
 
 
 def word_tokenize(text):
-    """Custom word-tokenizer based on regular expression pattern
+    """Simple word-tokenizer based on a regular expression pattern
 
     Everything that is not a block of alphanumeric characters is considered as
-    a separate token
+    a separate token.
+
+    Parameters
+    ----------
+    text : str
+        Text to tokenized
+
+    Returns
+    -------
+    tokens : list of tuple
+        Tokens in the input text along with their text coordinates. Each
+        tuple has a token as the first element and the tokens coordinates
+        as its second element.
     """
-    return regexp_tokenize(text, r'\w+|[^\s\w]')
+    pattern = re.compile(r'\w+|[^\s\w]')
+    matches = re.finditer(pattern, text)
+    return [(m.group(), (m.start(), m.end()-1)) for m in matches]

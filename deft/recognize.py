@@ -115,7 +115,7 @@ class DeftRecognizer(object):
         root = _TrieNode()
         for longform, grounding in self.grounding_map.items():
             edges = tuple(_stemmer.stem(token)
-                          for token in word_tokenize(longform))[::-1]
+                          for token, _ in word_tokenize(longform))[::-1]
             current = root
             for index, token in enumerate(edges):
                 if token not in current.children:

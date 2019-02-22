@@ -47,7 +47,8 @@ def get_candidate_fragments(text, shortform, window=100, exclude=None):
         # fragment of text in this window
         fragment = text[left:span[0]]
         # tokens in this text
-        tokens = [token.lower() for token in word_tokenize(fragment)
+        tokens = [token.lower() for token, _
+                  in word_tokenize(fragment)
                   if token not in string.punctuation]
         index = len(tokens)
         # Take only tokens from end up to but not including the last
