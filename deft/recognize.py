@@ -12,20 +12,20 @@ _stemmer = EnglishStemmer()
 
 
 class _TrieNode(object):
-    __slots__ = ['grounding', 'children']
+    __slots__ = ['longform', 'children']
     """TrieNode struct for use in recognizer
 
     Attributes
     ----------
-    concept : str|None
-        concept has a str value containing an agent ID at terminal nodes of
-        the recognizer trie, otherwise it has a None value.
+    longform : str|None
+        Set to associated longform at leaf nodes in the trie, otherwise None.
+        Each longform corresponds to a path in the trie from root to leaf.
 
     children : dict
         dict mapping tokens to child nodes
     """
-    def __init__(self, grounding=None):
-        self.grounding = grounding
+    def __init__(self, longform=None):
+        self.longform = longform
         self.children = {}
 
 
@@ -91,10 +91,11 @@ class DeftRecognizer(object):
             if not fragment:
                 continue
             # search for longform in trie
-            grounding = self._search(tuple(_stemmer.stem(token)
-                                           for token in fragment[::-1]))
+            longform = self._search(tuple(_stemmer.stem(token)
+                                          for token in fragment[::-1]))
             # if a longform is recognized, add it to output list
-            if grounding:
+            if longform:
+                grounding = self.grounding_map[longform]
                 groundings.add(grounding)
         return groundings
 
@@ -120,7 +121,7 @@ class DeftRecognizer(object):
             for index, token in enumerate(edges):
                 if token not in current.children:
                     if index == len(edges) - 1:
-                        new = _TrieNode(grounding)
+                        new = _TrieNode(longform)
                     else:
                         new = _TrieNode()
                     current.children[token] = new
@@ -150,8 +151,8 @@ class DeftRecognizer(object):
         for token in tokens:
             if token not in current.children:
                 break
-            if current.children[token].grounding is not None:
-                return current.children[token].grounding
+            if current.children[token].longform is not None:
+                return current.children[token].longform
             else:
                 current = current.children[token]
         else:

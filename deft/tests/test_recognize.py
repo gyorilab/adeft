@@ -51,9 +51,9 @@ def test_init():
         for index, token in enumerate(edges):
             assert token in current.children
             if index < len(edges) - 1:
-                assert current.children[token].grounding is None
+                assert current.children[token].longform is None
             else:
-                assert current.children[token].grounding == grounding
+                assert current.children[token].longform == longform
             current = current.children[token]
 
 
@@ -62,7 +62,7 @@ def test_search():
     dr = DeftRecognizer('ER', grounding_map)
     example = (('room', 'emerg', 'non', 'of', 'type', 'some',
                 'reduc', 'program', 'hmo', 'mandatori', ',', 'women', 'for'),
-               'ungrounded')
+               'emergency room')
     assert dr._search(example[0]) == example[1]
 
 
