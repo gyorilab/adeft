@@ -90,3 +90,9 @@ def word_tokenize(text):
     pattern = re.compile(r'\w+|[^\s\w]')
     matches = re.finditer(pattern, text)
     return [(m.group(), (m.start(), m.end()-1)) for m in matches]
+
+
+def untokenize(tokens):
+    """Returns inverse of the deft.nlp.word_tokenize
+    """
+    return
