@@ -10,15 +10,7 @@ logger = logging.getLogger('disambiguate')
 
 
 class DeftDisambiguator(object):
-    """Disambiguates longforms in texts for a particular shortform
-
-    Checks first if the standard pattern is matched in the text. If it is
-    matched for a unique recognizable longform return this longform. Otherwise
-    use a classifier to predict the correct disambiguation for the longform. If
-    no longform was detected by matching the standard pattern, return the
-    longform the classifier predicted with highest probability. If more than
-    one longform was matched using the standard pattern, return the longform
-    with highest predicted probability among the matched longforms.
+    """Disambiguates a particular shortform in a list of texts
 
     Parameters
     ----------
@@ -29,7 +21,7 @@ class DeftDisambiguator(object):
         Dictionary mapping longforms to their groundings
 
     names : dict
-        dictionary mapping groundings to standardized names
+        dictionary mapping groundings to canonical names
 
     Attributes
     ----------
@@ -53,6 +45,16 @@ class DeftDisambiguator(object):
     def disambiguate(self, texts):
         """Return disambiguations for a list of texts
 
+        First checks for defining patterns (DP) within a text. If there is
+        an unambiguous match to a longform with a defining pattern, considers
+        this the correct disambiguation with confidence 1.0. If no defining
+        pattern is found, uses a machine learning classifier to predict the
+        correct disambiguation. If there were multiple longforms with different
+        groundings found with a defining pattern, disambiguates to the one with
+        among these with highest predicted probability. If no defining pattern
+        was found, disambiguates to the grounding with highest predicted
+        probability.
+
         Parameters
         ----------
         texts : list of str
@@ -63,8 +65,8 @@ class DeftDisambiguator(object):
         result : list of tuple
             Disambiguations for text. For each text the corresponding
             disambiguation is a tuple of three elements. A grounding,
-            a standardized name for the grounding, and a dictionary
-            containing predicted probabilities for different groundings
+            a canonical name associted with the grounding, and a dictionary
+            containing predicted probabilities for possible groundings
         """
         # First disambiguate based on searching for defining patterns
         groundings = [self.recognizer.recognize(text)
@@ -123,9 +125,9 @@ def load_disambiguator(shortform, models_path=MODELS_PATH):
     shortform : str
         Shortform to disambiguate
     models_path : Optional[str]
-        Path to models directory. Defaults to deft pretrained models loaded
-        from s3. User has the option to specify a path to another directory
-        to use custom models
+        Path to models directory. Defaults to deft's pretrained models.
+        Users have the option to specify a path to another directory to use
+        custom models.
     """
     model = load_model(os.path.join(MODELS_PATH, shortform,
                                     shortform.lower() + '_model.gz'))

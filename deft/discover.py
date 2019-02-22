@@ -111,7 +111,8 @@ class _TrieNode(object):
 class DeftMiner(object):
     """Finds possible longforms corresponding to an abbreviation in a text corpus
 
-    Makes use of the acromine algorithm developed by Okazaki and Ananiadou
+    Makes use of the `Acromine <http://www.chokkan.org/research/acromine/>`_
+    algorithm developed by Okazaki and Ananiadou
 
     [Okazaki06] Naoaki Okazaki and Sophia Ananiadou. "Building an
     abbreviation dicationary using a term recognition approach".
@@ -120,9 +121,9 @@ class DeftMiner(object):
     Parameters
     ----------
     shortform : str
-        Search for candidate longforms associated to this shortform
+        Shortform to disambiguate
 
-    window : optional[int]
+    window : Optional[int]
         Specifies range of characters before a defining pattern (DP)
         to consider when finding longforms. If set to 30, candidate
         longforms would be taken from the string
@@ -158,11 +159,12 @@ class DeftMiner(object):
             self.exclude = exclude
 
     def process_texts(self, texts):
-        """Update longform candidate scores based on a corpus of texts
+        """Update longform candidate scores from a corpus of texts
 
-        An online method. Updates likelihoods of terms as it consumes
-        additional texts. Care should be taken to not consume the same text
-        multiple times.
+        Runs co-occurence statistics in a corpus of texts to compute
+        scores for candidate longforms associated to the shortform. This
+        is an online method, additional texts can be processed after training
+        has taken place.
 
         Parameters
         ----------
@@ -183,16 +185,16 @@ class DeftMiner(object):
 
         Parameters
         ----------
-        limit: Optional[int]
+        limit : Optional[int]
             Limit for the number of candidates to return. Default: None
 
         Returns
         ------
-        candidates: list of tuple
+        candidates : list of tuple
             List of tuples, each containing a candidate string and its
             likelihood score. Sorted first in descending order by
-        likelihood score, then by length from shortest to longest, and finally
-        by lexicographic order.
+            likelihood score, then by length from shortest to longest, and
+            finally by lexicographic order.
         """
         if not self._longforms:
             return []
@@ -212,22 +214,22 @@ class DeftMiner(object):
     def get_longforms(self, cutoff=1):
         """Return a list of extracted longforms with their scores
 
-        Makes use of a breadth first search to search for nodes with score
+        Runs a breadth first search to search for nodes with score
         greater than or equal to the scores of all children and strictly less
-        than the scores of all ancestors. These are the optimal longforms
+        than the scores of all ancestors.
 
         Parameters
         ----------
-        cutoff: Optional[int]
+        cutoff : Optional[int]
             Return only longforms with a score greater than the cutoff.
             Default: 1
 
         Returns
         -------
-        longforms: list of tuple
-        list of longforms along with their scores. It is sorted first in
-        descending order by score, then by the length of the longform from
-        shortest to longest, and finally by lexicographic order.
+        longforms : list of tuple
+            list of longforms along with their scores. It is sorted first in
+            descending order by score, then by the length of the longform from
+            shortest to longest, and finally by lexicographic order.
         """
         # Forward pass
         longforms = set()
@@ -286,7 +288,7 @@ class DeftMiner(object):
 
         Parameters
         ----------
-        tokens: str
+        tokens : str
             A list of tokens to add to the internal trie.
 
         """

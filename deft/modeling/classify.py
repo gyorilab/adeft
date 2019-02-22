@@ -18,20 +18,21 @@ logger = logging.getLogger('classify')
 
 
 class DeftClassifier(object):
-    """For training classifiers to disambiguate shortforms based on context
+    """Trains classifiers to disambiguate shortforms based on context
 
-    Fits a logistic regression with tfidf vectorized features. Uses sklearns
-    LogisticRegression and TfidfVectorizer classes. Models can be serialized
-    to gzipped json and loaded for later use. Capable of using a grid search to
-    find optimal hyperparameter values.
+    Fits logistic regression models with tfidf vectorized ngram features.
+    Uses sklearns LogisticRegression and TfidfVectorizer classes.
+    Models can be serialized and loaded for later use.
 
     Parameters
     ----------
     shortform: str
         Shortform to disambiguate
+
     pos_labels: list of str
-        Labels for positive classes. These are the longforms that it is
-        important to ground correctly.
+        Labels for positive classes. These correspond to the longforms of
+        interest in an application. For Deft pretrained models these are
+        typically genes and other relevant biological terms.
 
     Attributes
     ----------
@@ -40,17 +41,40 @@ class DeftClassifier(object):
         and fits a logistic regression.
 
     f1_score: float
-       Crossvalidated f1 score of classifier on training data. The positive
-       labels must be specified in constructor. For multiclass problems,
-       takes the average of f1 scores for all positive labels weighted by the
-       number of datapoints with each label.
-
+       Crossvalidated f1 score of classifier on training data if fit with
+       the cv method. For multiclass problems takes the average f1 score for
+       all positive labels weighted by the number of datapoints with each
+       label.
     """
     def __init__(self, shortform, pos_labels):
         self.shortform = shortform
         self.pos_labels = pos_labels
 
     def train(self, texts, y, C=1.0, ngram_range=(1, 2), max_features=1000):
+        """Fits a disambiguation model
+
+        Parameters
+        ----------
+        tests : iterable of str
+            Training texts
+
+        y : iterable of str
+            True labels for training texts
+
+        C : Optional[float]
+             L1 regularization parameter logistic regression model. Follows
+             convention of support vector machines with smaller values
+             corresponding to stronger regularization. Default: 1.0
+
+        ngram_range : Optional[tuple of int]
+            Range of ngram features to use. Must be a tuple of ints of the
+            form (a, b) with a <= b. When ngram_range is (1, 2), unigrams and
+            bigrams will be used as features. Default: (1, 2)
+
+        max_features : int
+            Maximum number of tfidf-vectorized ngrams to use as features in
+            model. Selects top_features by term frequency Default: 1000
+        """
         # Initialize pipeline
         logit_pipeline = Pipeline([('tfidf',
                                     TfidfVectorizer(ngram_range=ngram_range,
@@ -73,17 +97,14 @@ class DeftClassifier(object):
         Parameters
         ----------
         texts : iterable of str
-            Training data of texts
+             Training texts
 
         y : iterable of str
-            true labels for the training texts
+            True labels for the training texts
 
         param_grid : Optional[dict]
-          Grid search parameters. Can include the regularization parameter C
-          for logistic regression as well as max_features and ngram_range
-          for the TfidfVectorizer. If not specified, defaults to setting
-          performing crossvalidation with only C = 1.0, max_features = 1000,
-          and ngram_range = (1, 2).
+          Grid search parameters. Can contain all parameters from the train
+          method.
 
         n_jobs : Optional[int]
             Number of jobs to use when performing grid_search
