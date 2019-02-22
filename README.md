@@ -18,18 +18,10 @@ Deft's pretrained machine learning models can then be downloaded with the comman
 
     $ python -m deft.download
 
-or from within an interactive Python session
-
-```python
-from deft.download import download_models
-
-download_models()
-```
-
 ## Using Deft
 A list of available models can be imported with `from deft import available_models`
 
-An example of running an ER disambiguator on a list of texts
+Here's an example of running a disambiguator for ER on a list of texts
 
 ```python
 from deft.disambiguate import load_disambiguator
