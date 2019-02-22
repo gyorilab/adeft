@@ -35,7 +35,7 @@ class DeftClassifier(object):
 
     Attributes
     ----------
-    estimator: py:class:`sklearn.pipeline.Pipeline`
+    estimator: py:class:`sklearn.pipeline.Pipeline
         An sklearn pipeline that transforms text data with a TfidfVectorizer
         and fits a logistic regression.
 
