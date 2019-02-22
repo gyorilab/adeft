@@ -7,8 +7,11 @@ class DeftCorpusBuilder(object):
 
     Parameters
     ----------
-    lfr : :py:class:`deft.recognize.DeftRecognizer`
-        A recognizer that can find longforms by matching the standard pattern
+    shortform : str
+        Shortform to disambiguate
+
+    grounding_map : dict of str: str
+        Dictionary mapping longform texts to their groundings
 
     Attributes
     ----------
@@ -16,16 +19,33 @@ class DeftCorpusBuilder(object):
         build corpus for this shortform. this is taken from the objects
         longform_recognizer and included as an attribute for convenience
 
-    corpus : list of tuple
-       List of pairs of the form (<text>, <label>) that can be used as training
-       data for classification algorithms
+    dr : py:class`deft.recoginze.DeftRecognizer`
+        Recognizes longforms for shortform by finding defining patterns (DP)
     """
     def __init__(self, shortform, grounding_map):
         self.shortform = shortform
         self.grounding_map = grounding_map
-        self.lfr = DeftRecognizer(shortform, grounding_map)
+        self.dr = DeftRecognizer(shortform, grounding_map)
 
     def build_from_texts(self, texts):
+        """Build corpus from a list of texts
+
+        Parameters
+        ----------
+        texts : list of str
+            List of texts to build corpus from
+
+        Returns
+        -------
+        corpus : list of tuple
+            Contains tuples for each text in the input list which contains
+            a defining pattern. Multiple tuples correspond to  texts with
+            multiple defining patterns for longforms with different groundings.
+            The first element of each tuple contains the training text with all
+            defining patterns replaced with only the shortform. The second
+            element contains the groundings for longforms matched with a
+            defining pattern.
+        """
         corpus = set()
         for text in texts:
             data_points = self._process_text(text)
@@ -55,7 +75,7 @@ class DeftCorpusBuilder(object):
             text and a label for each label appearing in the input text
             matching the standard pattern.
         """
-        groundings = self.lfr.recognize(text)
+        groundings = self.dr.recognize(text)
         if not groundings:
             return None
         training_text = strip_defining_patterns(text, self.shortform)

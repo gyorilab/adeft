@@ -41,7 +41,7 @@ class DeftRecognizer(object):
         shortform to be recognized
 
     grounding_map : dict of str: str
-        Contains candidate longforms mapped to their groundings
+        Dictionary mapping longform texts to their groundings
 
     window : Optional[int]
         Specifies range of characters before a defining pattern (DP)

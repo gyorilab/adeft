@@ -8,9 +8,11 @@ from deft.locations import MODELS_PATH, S3_BUCKET_URL
 def download_models(update=False):
     """Download models from S3
 
-    Models are downloaded and placed int deft/models. Each model contains
-    a serialized deft classifier and a grounding map and is stored in a
-    directory named after the shortform it disambiguates.
+    Models are downloaded and placed into the models directory within deft.
+    Each model contains a serialized deft classifier, a dictionary mapping
+    longform texts to groundings, and a list of canonical names for each
+    grounding. Within the models directory, models are stored in subdirectories
+    named after the shortform they disambiguate.
 
     Parameters
     ---------
