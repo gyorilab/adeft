@@ -13,7 +13,7 @@ class WatchfulStemmer(object):
 
     Attributes
     ----------
-    __snow : :py:class:`nltk.stem.snowball.EnglishStemmer
+    __snow : :py:class:`nltk.stem.snowball.EnglishStemmer`
 
     counts : defaultdict of defaultdict of int
         Contains the count of the number of times a particular word has been

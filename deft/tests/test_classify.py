@@ -10,7 +10,7 @@ from deft.modeling.classify import DeftClassifier, load_model
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Example data contains 1000 labeled texts with shortform IR
-with open(f'{TEST_DIR}/example_training_data.json', 'r') as f:
+with open('%s/example_training_data.json' % TEST_DIR, 'r') as f:
     data = json.load(f)
 
 # The classifier works slightly differently for multiclass than it does for
