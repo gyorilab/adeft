@@ -1,7 +1,7 @@
 Deft Download
 -------------
 
-.. automodule:: deft.download
+.. automodule:: deft.download.download
    :members:
    :show-inheritance:
 
