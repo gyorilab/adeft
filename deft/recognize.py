@@ -1,3 +1,4 @@
+import re
 import logging
 
 from nltk.stem.snowball import EnglishStemmer
@@ -130,7 +131,7 @@ class DeftRecognizer(object):
                     current = current.children[token]
         return root
 
-    def strip_defining_patterns(text):
+    def strip_defining_patterns(self, text):
         """Return text with defining patterns stripped
 
            This is useful for training machine learning models where training
@@ -152,12 +153,34 @@ class DeftRecognizer(object):
            stripped_text : str
                Text with defining patterns replaced with shortform
         """
-        return
-        # fragments = get_candidate_fragments(text)
-        # for fragment in fragments:
-        #     frag_tokens = word_tokenize(fragment)
-        #     longform = self._search(tuple(_stemmer.stem(token)
-        #                                   for token in fragment[::-1]))
+        fragments = get_candidate_fragments(text, self.shortform)
+        for fragment in fragments:
+            # Each fragment is tokenized and its longform is identified
+            tokens = tokenize(fragment)
+            longform = self._search(tuple(_stemmer.stem(token)
+                                          for token, _ in tokens[::-1]))
+            if longform is None:
+                # If we find a longform not in the grounding map, we instead
+                # remove the parenthesized shortform
+                text = re.sub(r'(%s\s*)(\(\s*%s\s*\))' % (re.escape(fragment),
+                                                          self.shortform),
+                              r'\1 ', text)
+                continue
+            # Remove the longform from the fragment, keeping in mind that
+            # punctuation is ignored when extracting longforms from text
+            num_words = len(longform.split())
+            i = 0
+            j = len(tokens) - 1
+            while i < num_words:
+                if re.match(r'\w+', tokens[j][0]):
+                    j -= 1
+                    i += 1
+            text = text.replace(fragment.strip(),
+                                untokenize(tokens[:j+1]))
+            text = re.sub(r'\(\s*%s\s*\)' % self.shortform, self.shortform,
+                          text)
+            text = ' '.join(text.split())
+        return text
 
     def _search(self, tokens):
         """Returns longform from maximal candidate preceding shortform
