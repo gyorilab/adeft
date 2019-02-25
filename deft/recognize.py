@@ -2,8 +2,8 @@ import logging
 
 from nltk.stem.snowball import EnglishStemmer
 
-from deft.nlp import word_tokenize
-from deft.util import get_candidate_fragments
+from deft.nlp import tokenize, untokenize
+from deft.util import get_candidate_fragments, get_candidate
 
 
 logger = logging.getLogger('recognize')
@@ -85,14 +85,14 @@ class DeftRecognizer(object):
         """
         groundings = set()
         fragments = get_candidate_fragments(text, self.shortform,
-                                            window=self.window,
-                                            exclude=self.exclude)
+                                            window=self.window)
         for fragment in fragments:
             if not fragment:
                 continue
+            tokens = get_candidate(fragment, self.exclude)
             # search for longform in trie
             longform = self._search(tuple(_stemmer.stem(token)
-                                          for token in fragment[::-1]))
+                                          for token in tokens[::-1]))
             # if a longform is recognized, add it to output list
             if longform:
                 grounding = self.grounding_map[longform]
@@ -116,7 +116,7 @@ class DeftRecognizer(object):
         root = _TrieNode()
         for longform, grounding in self.grounding_map.items():
             edges = tuple(_stemmer.stem(token)
-                          for token, _ in word_tokenize(longform))[::-1]
+                          for token, _ in tokenize(longform))[::-1]
             current = root
             for index, token in enumerate(edges):
                 if token not in current.children:
