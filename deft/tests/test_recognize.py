@@ -1,6 +1,6 @@
 from nltk.stem.snowball import EnglishStemmer
 
-from deft.nlp import word_tokenize
+from deft.nlp import tokenize
 from deft.recognize import DeftRecognizer
 
 _stemmer = EnglishStemmer()
@@ -46,7 +46,7 @@ def test_init():
     trie = dr._trie
     for longform, grounding in grounding_map.items():
         edges = tuple(_stemmer.stem(token)
-                      for token, _ in word_tokenize(longform))[::-1]
+                      for token, _ in tokenize(longform))[::-1]
         current = trie
         for index, token in enumerate(edges):
             assert token in current.children
