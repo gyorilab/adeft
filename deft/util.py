@@ -45,6 +45,7 @@ def get_candidate_fragments(text, shortform, window=100):
         # fragment of text in this window
         fragment = text[left:span[0]]
         result.append(fragment)
+        end_previous = span[1]
     return result
 
 
