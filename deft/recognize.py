@@ -160,11 +160,8 @@ class DeftRecognizer(object):
             longform = self._search(tuple(_stemmer.stem(token)
                                           for token, _ in tokens[::-1]))
             if longform is None:
-                # If we find a longform not in the grounding map, we instead
-                # remove the parenthesized shortform
-                text = re.sub(r'(%s\s*)(\(\s*%s\s*\))' % (re.escape(fragment),
-                                                          self.shortform),
-                              r'\1 ', text)
+                # For now, ignore a fragment if its grounding has no longform
+                # from the grounding map
                 continue
             # Remove the longform from the fragment, keeping in mind that
             # punctuation is ignored when extracting longforms from text
