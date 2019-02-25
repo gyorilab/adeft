@@ -69,8 +69,8 @@ class WatchfulStemmer(object):
         return output
 
 
-def word_tokenize(text):
-    """Simple word-tokenizer based on a regular expression pattern
+def tokenize(text):
+    """Simple word tokenizer based on a regular expression pattern
 
     Everything that is not a block of alphanumeric characters is considered as
     a separate token.
