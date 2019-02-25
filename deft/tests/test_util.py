@@ -1,5 +1,4 @@
-from deft.util import contains_shortform, get_candidate_fragments,\
-    strip_defining_patterns
+from deft.util import contains_shortform, get_candidate_fragments
 
 
 text1 = ('Integrated Network and Dynamical Reasoning Assembler'
@@ -46,11 +45,6 @@ stopwords = set(['a', 'an', 'the', 'and', 'or', 'of', 'with', 'at', 'from',
 def test_contains_shortform():
     assert contains_shortform(text1, 'INDRA')
     assert not contains_shortform(text1, 'DD')
-
-
-def test_strip_defining_patterns():
-    stripped_text = strip_defining_patterns(text1, 'INDRA')
-    assert stripped_text == stripped1
 
 
 def test_get_candidate_fragments():
