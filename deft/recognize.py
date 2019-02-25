@@ -177,6 +177,7 @@ class DeftRecognizer(object):
                     i += 1
             text = text.replace(fragment.strip(),
                                 untokenize(tokens[:j+1]))
+            # replace all instances of parenthesized shortform with shortform
             text = re.sub(r'\(\s*%s\s*\)' % self.shortform, self.shortform,
                           text)
             text = ' '.join(text.split())
