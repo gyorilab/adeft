@@ -16,7 +16,7 @@ text1 = ('The Integrated Network and Dynamical Reasoning Assembler'
          ' into various modeling formalisms including causal graphs'
          ' and dynamical models.')
 
-result1 = ('The Integrated Network and Dynamical Reasoning Assembler'
+result1 = ('The INDRA'
            ' is an automated model assembly system interfacing'
            ' with NLP systems and databases to collect knowledge, and'
            ' through a process of assembly, produce causal graphs and'
@@ -40,11 +40,11 @@ text2 = ('The Integrated Network and Dynamical Reasoning Assembler'
          ' sentence the entire text would have been wiped away.'
          ' This has been fixed now.')
 
-result2 = ('The Integrated Network and Dynamical Reasoning Assembler'
+result2 = ('The INDRA'
            ' is an automated model assembly system interfacing'
            ' with NLP systems and databases to collect knowledge, and'
            ' through a process of assembly, produce causal graphs and'
-           ' dynamical models. The Indonesian Debt Restructuring Agency'
+           ' dynamical models. The INDRA'
            ' shares the same acronym. Previously, without this'
            ' sentence the entire text would have been wiped away.'
            ' This has been fixed now.')
@@ -55,9 +55,9 @@ text3 = ('In this sentence, (INDRA) appears but it is not preceded by a'
          ' recognized longform. Does it refer to the indonesian debt'
          ' restructuring agency (INDRA)? It\'s hard to say.')
 
-result3 = ('In this sentence, appears but it is not preceded by a'
-           ' recognized longform. Does it refer to the indonesian debt'
-           ' restructuring agency? It\'s hard to say.')
+result3 = ('In this sentence, INDRA appears but it is not preceded by a'
+           ' recognized longform. Does it refer to the INDRA?'
+           ' It\'s hard to say.')
 
 labels3 = set(['other indra'])
 

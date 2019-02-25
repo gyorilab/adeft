@@ -1,4 +1,5 @@
-from deft.util import contains_shortform, get_candidate_fragments
+from deft.util import contains_shortform, get_candidate_fragments, \
+    get_candidate
 
 
 text1 = ('Integrated Network and Dynamical Reasoning Assembler'
@@ -54,22 +55,25 @@ def test_get_candidate_fragments():
     for text, result in zip([text1, text2, text3, text4, text5],
                             [result1, result2, result3, result4, result5]):
         fragments = get_candidate_fragments(text, 'INDRA')
-        assert fragments == result
+        candidates = [get_candidate(fragment) for fragment in fragments]
+        assert candidates == result
 
     # Case where pattern is at start of the sentence
     fragments1 = get_candidate_fragments('(INDRA) is an ambiguous acronym',
                                          'INDRA')
-    assert not fragments1
+    candidate1 = get_candidate(fragments1[0])
+    assert not candidate1
     # Case where pattern is not found
     assert not get_candidate_fragments('Integrated Network'
                                        'and dynamical reasoning assembler',
                                        'INDRA')
 
     # Test with excluded words
-    fragments2 = get_candidate_fragments(text1, 'INDRA',
-                                         exclude=stopwords)
-    assert fragments2[0] == ['dynamical',  'reasoning', 'assembler']
+    fragments2 = get_candidate_fragments(text1, 'INDRA')
+    candidate2 = get_candidate(fragments2[0], exclude=stopwords)
+    assert candidate2 == ['dynamical',  'reasoning', 'assembler']
 
-    fragment3 = get_candidate_fragments('Is (INDRA) ambiguous?',
-                                        'INDRA', exclude=stopwords)
-    assert not fragment3
+    fragments3 = get_candidate_fragments('Is (INDRA) ambiguous?',
+                                         'INDRA')
+    candidate3 = get_candidate(fragments3[0], exclude=stopwords)
+    assert not candidate3
