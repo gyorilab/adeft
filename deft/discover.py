@@ -2,7 +2,7 @@ from collections import deque
 import logging
 
 from deft.nlp import WatchfulStemmer
-from deft.util import get_candidate_fragments
+from deft.util import get_candidate_fragments, get_candidate
 
 logger = logging.getLogger('discover')
 
@@ -175,10 +175,11 @@ class DeftMiner(object):
             # lonform candidates taken from a window of text before each
             # defining pattern
             fragments = get_candidate_fragments(text, self.shortform,
-                                                self.window, self.exclude)
+                                                self.window)
             for fragment in fragments:
                 if fragment:
-                    self._add(fragment)
+                    candidate = get_candidate(fragment, self.exclude)
+                    self._add(candidate)
 
     def top(self, limit=None):
         """Return top scoring candidates.

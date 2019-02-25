@@ -1,6 +1,6 @@
 from nltk.stem.snowball import EnglishStemmer
 
-from deft.nlp import word_tokenize
+from deft.nlp import tokenize
 from deft.recognize import DeftRecognizer
 
 _stemmer = EnglishStemmer()
@@ -46,14 +46,14 @@ def test_init():
     trie = dr._trie
     for longform, grounding in grounding_map.items():
         edges = tuple(_stemmer.stem(token)
-                      for token in word_tokenize(longform))[::-1]
+                      for token, _ in tokenize(longform))[::-1]
         current = trie
         for index, token in enumerate(edges):
             assert token in current.children
             if index < len(edges) - 1:
-                assert current.children[token].grounding is None
+                assert current.children[token].longform is None
             else:
-                assert current.children[token].grounding == grounding
+                assert current.children[token].longform == longform
             current = current.children[token]
 
 
@@ -62,7 +62,7 @@ def test_search():
     dr = DeftRecognizer('ER', grounding_map)
     example = (('room', 'emerg', 'non', 'of', 'type', 'some',
                 'reduc', 'program', 'hmo', 'mandatori', ',', 'women', 'for'),
-               'ungrounded')
+               'emergency room')
     assert dr._search(example[0]) == example[1]
 
 

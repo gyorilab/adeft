@@ -1,4 +1,3 @@
-from deft.util import strip_defining_patterns
 from deft.recognize import DeftRecognizer
 
 
@@ -78,7 +77,7 @@ class DeftCorpusBuilder(object):
         groundings = self.dr.recognize(text)
         if not groundings:
             return None
-        training_text = strip_defining_patterns(text, self.shortform)
+        training_text = self.dr.strip_defining_patterns(text)
         datapoints = [(training_text, grounding)
                       for grounding in groundings]
         return datapoints

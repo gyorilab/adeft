@@ -2,10 +2,10 @@ import re
 import json
 import string
 
-from deft.nlp import word_tokenize
+from deft.nlp import tokenize
 
 
-def get_candidate_fragments(text, shortform, window=100, exclude=None):
+def get_candidate_fragments(text, shortform, window=100):
     """Returns candidate longform fragments from text
 
     Identifies candidate longforms by searching for defining patterns (DP)
@@ -30,8 +30,6 @@ def get_candidate_fragments(text, shortform, window=100, exclude=None):
         Terms that are to be excluded from candidate longforms.
         Default: None
     """
-    if exclude is None:
-        exclude = set()
     # Find defining patterns by matching a regular expression
     matches = re.finditer(r'\(\s*%s\s*\)' % shortform, text)
     # Keep track of the index of the end of the previous
@@ -46,26 +44,27 @@ def get_candidate_fragments(text, shortform, window=100, exclude=None):
         left = max(end_previous+1, span[0]-window)
         # fragment of text in this window
         fragment = text[left:span[0]]
-        # tokens in this text
-        tokens = [token.lower() for token in word_tokenize(fragment)
-                  if token not in string.punctuation]
-        index = len(tokens)
-        # Take only tokens from end up to but not including the last
-        # excluded in the fragment
-        while index > 0:
-            index -= 1
-            if tokens[index] in exclude:
-                tokens = tokens[index+1:]
-                break
-        if tokens:
-            result.append(tokens)
+        result.append(fragment)
         end_previous = span[1]
     return result
 
 
-def strip_defining_patterns(text, shortform):
-    """Strip instances of defining pattern from text"""
-    return re.sub(r'\s?\(\s*%s\s*\)' % shortform, '', text)
+def get_candidate(fragment, exclude=None):
+    """Return tokens in candidate fragment up until last excluded word"""
+    if exclude is None:
+        exclude = set()
+    tokens = [token.lower() for token, _
+              in tokenize(fragment)
+              if token not in string.punctuation]
+    index = len(tokens)
+    # Take only tokens from end up to but not including the last
+    # excluded in the fragment
+    while index > 0:
+        index -= 1
+        if tokens[index] in exclude:
+            tokens = tokens[index+1:]
+            break
+    return tokens
 
 
 def contains_shortform(sentence, shortform):
