@@ -60,7 +60,7 @@ def test_add():
 
 
 def test_process_texts():
-    """Test processing of corpuses
+    """Test processing of texts
     """
     dm = DeftMiner('INDRA')
     dm.process_texts([example_text1, example_text2,
@@ -70,11 +70,26 @@ def test_process_texts():
                            ' reasoning assembler', 1.0)
     assert dm.top()[7] == ('reasoning assembler', 0.0)
 
+    # check that top works with limit
+    assert dm.top(limit=5) == dm.top()[0:5]
+
+
+def test_process_with_exclude():
+    """Test processing of texts with excluded words"""
+    dm = DeftMiner('INDRA', exclude='and')
+    dm.process_texts([example_text1, example_text2,
+                      example_text3, example_text4])
+    assert dm.top()[0] == ('dynamical reasoning assembler', 2.0)
+    assert dm.top()[1] == ('indonesian debt restructuring agency', 1.0)
+
 
 def test_get_longforms():
     """Test breadth first search algorithm to extract longforms
     """
     dm = DeftMiner('INDRA')
+    # ensure list of longforms is initialized correctly
+    assert dm.top() == []
+    
     dm.process_texts([example_text1, example_text2,
                       example_text3, example_text4])
     longforms = dm.get_longforms(cutoff=0.5)
