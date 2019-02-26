@@ -1,5 +1,4 @@
 import re
-import json
 import string
 
 from deft.nlp import tokenize
