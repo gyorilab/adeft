@@ -49,11 +49,15 @@ def download_models(update=False, models=None):
             resource_path = os.path.join(MODELS_PATH, model, resource)
             # if resource already exists, remove it since wget will not
             # overwrite existing files, choosing a new name instead
-            try:
-                os.remove(resource_path)
-            except OSError:
-                pass
+            _remove_if_exists(resource_path)
             wget.download(url=os.path.join(S3_BUCKET_URL, model, resource),
+                          out=resource_path)
+        if model == 'TEST':
+            resource_path = os.path.join(MODELS_PATH, model,
+                                         'example_training_data.json')
+            _remove_if_exists(resource_path)
+            wget.download(url=os.path.join(S3_BUCKET_URL, model,
+                                           'example_training_data.json'),
                           out=resource_path)
 
 
@@ -68,3 +72,17 @@ def get_s3_models():
     """Returns set of all models currently available on s3"""
     result = requests.get(S3_BUCKET_URL + '/s3_models.json')
     return result.json()
+
+
+def _remove_if_exists(path):
+    """Remove file if it exists, otherwise do nothing
+
+    Paramteters
+    -----------
+    path : str
+        file to attempt to remove
+    """
+    try:
+        os.remove(path)
+    except OSError:
+        pass
