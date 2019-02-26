@@ -3,6 +3,8 @@ import uuid
 import json
 import numpy as np
 from nose.plugins.attrib import attr
+from sklearn.metrics import f1_score
+
 from deft.modeling.classify import DeftClassifier, load_model
 
 # Get test directory so necessary datafiles can be found from any working
@@ -18,13 +20,28 @@ with open('%s/example_training_data.json' % TEST_DIR, 'r') as f:
 
 
 @attr('slow')
+def test_train():
+    params = {'C': 1.0,
+              'ngram_range': (1, 2),
+              'max_features': 1000}
+    classifier = DeftClassifier('IR', ['HGNC:6091'])
+    texts = data['train']
+    response = [label if label == 'HGNC:6091' else 'other'
+                for label in data['response']]
+    classifier.train(texts, response, **params)
+    assert hasattr(classifier, 'estimator')
+    assert (f1_score(response, classifier.predict(texts),
+                     pos_label='HGNC:6091') > 0.75)
+
+
+@attr('slow')
 def test_cv_multiclass():
     params = {'C': [1.0],
               'max_features': [1000]}
     classifier = DeftClassifier('IR', ['HGNC:6091'])
-    train = data['train']
+    texts = data['train']
     response = data['response']
-    classifier.cv(train, response, param_grid=params)
+    classifier.cv(texts, response, param_grid=params)
     assert classifier.best_score > 0.7
 
 
@@ -32,11 +49,11 @@ def test_cv_multiclass():
 def test_cv_binary():
     params = {'C': [1.0],
               'max_features': [1000]}
-    train = data['train']
+    texts = data['train']
     response = [label if label == 'HGNC:6091' else 'other'
                 for label in data['response']]
     classifier = DeftClassifier('IR', ['HGNC:6091'])
-    classifier.cv(train, response, param_grid=params)
+    classifier.cv(texts, response, param_grid=params)
     assert classifier.best_score > 0.7
 
 
