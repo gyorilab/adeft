@@ -65,17 +65,3 @@ def get_candidate(fragment, exclude=None):
             tokens = tokens[index+1:]
             break
     return tokens
-
-
-def contains_shortform(sentence, shortform):
-    """Count the occurences of a shortform in a sentence in standard pattern"""
-    return sentence.count('(%s)' % shortform)
-
-
-def is_jsonable(x):
-    """Tests whether an object can be serialized to json"""
-    try:
-        json.dumps(x)
-        return True
-    except (TypeError, OverflowError):
-        return False

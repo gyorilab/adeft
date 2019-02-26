@@ -1,5 +1,4 @@
-from deft.util import contains_shortform, get_candidate_fragments, \
-    get_candidate
+from deft.util import get_candidate, get_candidate_fragments
 
 
 text1 = ('Integrated Network and Dynamical Reasoning Assembler'
@@ -41,11 +40,6 @@ result5 = [['interior', 'natural', 'desert', 'reclamation', 'and',
 stopwords = set(['a', 'an', 'the', 'and', 'or', 'of', 'with', 'at', 'from',
                  'into', 'to', 'for', 'on', 'by', 'be', 'being', 'been', 'am',
                  'is', 'are', 'was', 'were', 'in', 'that', 'as'])
-
-
-def test_contains_shortform():
-    assert contains_shortform(text1, 'INDRA')
-    assert not contains_shortform(text1, 'DD')
 
 
 def test_get_candidate_fragments():
