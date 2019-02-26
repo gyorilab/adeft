@@ -6,7 +6,7 @@ from deft.locations import MODELS_PATH
 from deft.recognize import DeftRecognizer
 from deft.modeling.classify import load_model
 
-logger = logging.getLogger('disambiguate')
+logger = logging.getLogger(__file__)
 
 
 class DeftDisambiguator(object):

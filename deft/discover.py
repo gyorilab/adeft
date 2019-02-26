@@ -4,7 +4,7 @@ import logging
 from deft.nlp import WatchfulStemmer
 from deft.util import get_candidate_fragments, get_candidate
 
-logger = logging.getLogger('discover')
+logger = logging.getLogger(__file__)
 
 
 class _TrieNode(object):

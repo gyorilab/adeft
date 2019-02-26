@@ -14,7 +14,7 @@ from sklearn.metrics import f1_score, precision_score, recall_score,\
 
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
-logger = logging.getLogger('classify')
+logger = logging.getLogger(__file__)
 
 
 class DeftClassifier(object):

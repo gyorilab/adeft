@@ -7,7 +7,7 @@ from deft.nlp import tokenize, untokenize
 from deft.util import get_candidate_fragments, get_candidate
 
 
-logger = logging.getLogger('recognize')
+logger = logging.getLogger(__file__)
 
 _stemmer = EnglishStemmer()
 
