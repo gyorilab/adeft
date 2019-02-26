@@ -5,20 +5,23 @@ import numpy as np
 from nose.plugins.attrib import attr
 from sklearn.metrics import f1_score
 
+from deft.locations import MODELS_PATH
 from deft.modeling.classify import DeftClassifier, load_model
+from deft.download import get_downloaded_models, download_models
 
-# Get test directory so necessary datafiles can be found from any working
-# directory
-TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+# Get test path so we can write a temporary file here
+TESTS_PATH = os.path.dirname(os.path.abspath(__file__))
 
-# Example data contains 1000 labeled texts with shortform IR
-with open('%s/example_training_data.json' % TEST_DIR, 'r') as f:
+if 'TEST' not in get_downloaded_models():
+    download_models(models=['TEST'])
+
+with open(os.path.join(MODELS_PATH, 'TEST',
+                       'example_training_data.json'), 'r') as f:
     data = json.load(f)
+
 
 # The classifier works slightly differently for multiclass than it does for
 # binary labels. Both cases must be tested separately.
-
-
 @attr('slow')
 def test_train():
     params = {'C': 1.0,
@@ -61,9 +64,9 @@ def test_serialize():
     """Test that models can correctly be saved to and loaded from gzipped json
     """
     train = data['train']
-    temp_filename = '%s/%s' % (TEST_DIR, uuid.uuid4().hex)
-
-    classifier1 = load_model('%s/example_model.gz' % TEST_DIR)
+    temp_filename = os.path.join(TESTS_PATH, uuid.uuid4().hex)
+    classifier1 = load_model(os.path.join(MODELS_PATH, 'TEST',
+                                          'test_model.gz'))
     classifier1.dump_model(temp_filename)
 
     classifier2 = load_model(temp_filename)
