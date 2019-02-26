@@ -199,5 +199,3 @@ class DeftRecognizer(object):
                 return current.children[token].longform
             else:
                 current = current.children[token]
-        else:
-            return None
