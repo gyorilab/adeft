@@ -89,7 +89,7 @@ def test_get_longforms():
     dm = DeftMiner('INDRA')
     # ensure list of longforms is initialized correctly
     assert dm.top() == []
-    
+
     dm.process_texts([example_text1, example_text2,
                       example_text3, example_text4])
     longforms = dm.get_longforms(cutoff=0.5)
