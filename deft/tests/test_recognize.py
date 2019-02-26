@@ -9,7 +9,8 @@ grounding_map = {'endoplasmic reticulum': 'MESH:D004721',
                  'estrogen receptor': 'HGNC:3467',
                  'estrogen receptor alpha': 'HGNC:3467',
                  'endoplasmic reticular': 'MESH:D004721',
-                 'emergency room': 'ungrounded'}
+                 'emergency room': 'ungrounded',
+                 'extra room': 'ungrounded'}
 
 
 example1 = ('The growth of estrogen receptor (ER)-positive breast cancer'
@@ -60,10 +61,9 @@ def test_init():
 def test_search():
     """Test that searching for a longform in the trie works correctly"""
     dr = DeftRecognizer('ER', grounding_map)
-    example = (('room', 'emerg', 'non', 'of', 'type', 'some',
-                'reduc', 'program', 'hmo', 'mandatori', ',', 'women', 'for'),
-               'emergency room')
-    assert dr._search(example[0]) == example[1]
+    example = ('room', 'emerg', 'non', 'of', 'type', 'some',
+               'reduc', 'program', 'hmo', 'mandatori', ',', 'women', 'for')
+    assert dr._search(example) == 'emergency room'
 
 
 def test_recognizer():
@@ -72,3 +72,28 @@ def test_recognizer():
     for text, result in [example1, example2, example3, example4, example5]:
         longform = dr.recognize(text)
         assert longform.pop() == result
+
+    # Case where defining pattern appears at the start of the fragment
+    assert not dr.recognize('(ER) stress')
+
+
+def test_exclude():
+    """Test that using excluded words works"""
+    dr = DeftRecognizer('ER', grounding_map, exclude=['emergency'])
+    assert not dr.recognize(example3[0])
+
+
+def test_strip_defining_patterns():
+    dr = DeftRecognizer('ER', grounding_map)
+    test_case1 = 'Growth of estrogen receptor (ER)-positive breast cancer'
+    result1 = 'Growth of ER-positive breast cancer'
+
+    test_case2 = 'Retained in the endoplasmic reticulum (ER)'
+    result2 = 'Retained in the ER'
+
+    test_case3 = 'Extended release (ER)'
+    result3 = 'Extended release (ER)'
+
+    for test_case, result in zip([test_case1, test_case2, test_case3],
+                                 [result1, result2, result3]):
+        assert dr.strip_defining_patterns(test_case) == result
