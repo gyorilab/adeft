@@ -85,15 +85,18 @@ def test_exclude():
 
 def test_strip_defining_patterns():
     dr = DeftRecognizer('ER', grounding_map)
-    test_case1 = 'Growth of estrogen receptor (ER)-positive breast cancer'
-    result1 = 'Growth of ER-positive breast cancer'
+    test_cases = ['The endoplasmic reticulum (ER) is a transmembrane',
+                  'The endoplasmic reticulum(ER) is a transmembrane',
+                  'The endoplasmic reticulum (ER)is a transmembrane',
+                  'The endoplasmic reticulum(ER)is a transmembrane',
+                  'The endoplasmic reticulum-(ER) is a transmembrane',
+                  'The endoplasmic reticulum (ER)-is a transmembrane']
+    results = (['The ER is a transmembrane']*5 +
+               ['The ER -is a transmembrane'])
 
-    test_case2 = 'Retained in the endoplasmic reticulum (ER)'
-    result2 = 'Retained in the ER'
+    for case, result in zip(test_cases, results):
+        assert dr.strip_defining_patterns(case) == result
 
-    test_case3 = 'Extended release (ER)'
-    result3 = 'Extended release (ER)'
-
-    for test_case, result in zip([test_case1, test_case2, test_case3],
-                                 [result1, result2, result3]):
-        assert dr.strip_defining_patterns(test_case) == result
+    null_case = 'Newly developed extended release (ER) medications'
+    null_result = 'Newly developed extended release ER medications'
+    assert dr.strip_defining_patterns(null_case) == null_result
