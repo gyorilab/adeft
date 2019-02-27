@@ -56,12 +56,17 @@ text3 = ('In this sentence, (INDRA) appears but it is not preceded by a'
          ' restructuring agency (INDRA)? It\'s hard to say.')
 
 result3 = ('In this sentence, INDRA appears but it is not preceded by a'
-           ' recognized longform. Does it refer to the INDRA?'
+           ' recognized longform. Does it refer to the INDRA ?'
            ' It\'s hard to say.')
 
 labels3 = set(['other indra'])
 
 text4 = 'We cannot determine what INDRA means from this sentence.'
+
+result_corpus = [(result[0], label) for result in [(result1, labels1),
+                                                   (result2, labels2),
+                                                   (result3, labels3)]
+                 for label in result[1]]
 
 
 def test__process_text():
@@ -76,3 +81,9 @@ def test__process_text():
         assert all([datapoint[1] in labels for datapoint in datapoints])
 
     assert dcb._process_text(text4) is None
+
+
+def test_build_from_texts():
+    dcb = DeftCorpusBuilder('INDRA', longforms)
+    corpus = dcb.build_from_texts([text1, text2, text3, text4])
+    assert set(corpus) == set(result_corpus)
