@@ -37,17 +37,20 @@ def test_disambiguate():
         names = json.load(f)
 
     dd = DeftDisambiguator(test_model, grounding_map, names)
+    # case where there is a unique defining pattern
     disamb1 = dd.disambiguate([example1])[0]
     assert disamb1[0] == 'HGNC:6091'
     assert disamb1[1] == 'INSR'
     assert disamb1[2] == {'HGNC:6091': 1.0, 'MESH:D011839': 0.0,
                           'ungrounded': 0.0}
 
+    # case where there are conflicting defining patterns
     disamb2 = dd.disambiguate([example2])[0]
     preds = disamb2[2]
     nonzero = {key for key, value in preds.items() if value > 0.0}
     assert nonzero == {'HGNC:6091', 'ungrounded'}
 
+    # case without a defining pattern
     disamb3 = dd.disambiguate([example3])[0]
     assert disamb3[0] == 'HGNC:6091'
     assert disamb3[1] == 'INSR'
