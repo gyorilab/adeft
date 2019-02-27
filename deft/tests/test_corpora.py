@@ -56,7 +56,7 @@ text3 = ('In this sentence, (INDRA) appears but it is not preceded by a'
          ' restructuring agency (INDRA)? It\'s hard to say.')
 
 result3 = ('In this sentence, INDRA appears but it is not preceded by a'
-           ' recognized longform. Does it refer to the INDRA?'
+           ' recognized longform. Does it refer to the INDRA ?'
            ' It\'s hard to say.')
 
 labels3 = set(['other indra'])
