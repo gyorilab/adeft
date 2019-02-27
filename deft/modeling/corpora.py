@@ -45,11 +45,11 @@ class DeftCorpusBuilder(object):
             element contains the groundings for longforms matched with a
             defining pattern.
         """
-        corpus = set()
+        corpus = []
         for text in texts:
             data_points = self._process_text(text)
             if data_points:
-                corpus.update(data_points)
+                corpus.extend(data_points)
         return corpus
 
     def _process_text(self, text):
