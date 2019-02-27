@@ -1,4 +1,5 @@
 import re
+import string
 import logging
 
 from nltk.stem.snowball import EnglishStemmer
@@ -152,7 +153,8 @@ class DeftRecognizer(object):
             # Each fragment is tokenized and its longform is identified
             tokens = tokenize(fragment)
             longform = self._search(tuple(_stemmer.stem(token)
-                                          for token, _ in tokens[::-1]))
+                                          for token, _ in tokens[::-1]
+                                          if token not in string.punctuation))
             if longform is None:
                 # For now, ignore a fragment if its grounding has no longform
                 # from the grounding map
@@ -164,14 +166,17 @@ class DeftRecognizer(object):
             j = len(tokens) - 1
             while i < num_words:
                 if re.match(r'\w+', tokens[j][0]):
-                    j -= 1
                     i += 1
+                j -= 1
+                if i > 100:
+                    break
             text = text.replace(fragment.strip(),
                                 untokenize(tokens[:j+1]))
-            # replace all instances of parenthesized shortform with shortform
-            text = re.sub(r'\(\s*%s\s*\)' % self.shortform, self.shortform,
-                          text)
-            text = ' '.join(text.split())
+        # replace all instances of parenthesized shortform with shortform
+        text = re.sub(r'\(\s*%s\s*\)'
+                      % self.shortform,
+                      ' ' + self.shortform + ' ', text)
+        text = ' '.join(text.split())
         return text
 
     def _search(self, tokens):
