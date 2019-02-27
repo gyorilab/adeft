@@ -15,6 +15,10 @@ example2 = ('The insulin receptor (IR) is a transmembrane receptor that'
             ' is considered as a pathological condition in which cells fail'
             ' to respond normally to the hormone insulin')
 
+example3 = ('IR is a transmembrane receptor that is activated by insulin,'
+            ' IGF-1, IFG-II and belongs to the large class of tyrosine'
+            ' kinase receptors')
+
 
 def test_load_disambiguator():
     dd_test = load_disambiguator('TEST')
@@ -33,5 +37,17 @@ def test_disambiguate():
         names = json.load(f)
 
     dd = DeftDisambiguator(test_model, grounding_map, names)
-    for disamb in dd.disambiguate([example1, example2]):
-        print(disamb)
+    disamb1 = dd.disambiguate([example1])[0]
+    assert disamb1[0] == 'HGNC:6091'
+    assert disamb1[1] == 'INSR'
+    assert disamb1[2] == {'HGNC:6091': 1.0, 'MESH:D011839': 0.0,
+                          'ungrounded': 0.0}
+
+    disamb2 = dd.disambiguate([example2])[0]
+    preds = disamb2[2]
+    nonzero = {key for key, value in preds.items() if value > 0.0}
+    assert nonzero == {'HGNC:6091', 'ungrounded'}
+
+    disamb3 = dd.disambiguate([example3])[0]
+    assert disamb3[0] == 'HGNC:6091'
+    assert disamb3[1] == 'INSR'
