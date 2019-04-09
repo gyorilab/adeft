@@ -93,6 +93,11 @@ text7 = ('Nanoparticle (NP) PET/CT imaging of natriuretic peptide (NP)'
 result7 = ('NP PET/CT imaging of NP clearance receptor in prostate cancer.')
 labels7 = set(['nano', 'peptide'])
 
+result_corpus2 = [(result[0], label) for result in [(result5, labels5),
+                                                    (result6, labels6),
+                                                    (result7, labels7)]
+                  for label in result[1]]
+
 
 def test__process_text():
     dcb = DeftCorpusBuilder({'INDRA': longforms})
@@ -129,4 +134,8 @@ def test_build_from_texts():
 
 
 def test__build_from_texts_multiple():
-    pass
+    dcb = DeftCorpusBuilder({'NP': groundings1, 'NPs': groundings2})
+    corpus, counts = dcb.build_from_texts([text5, text6, text7])
+    assert counts['nano'] == 2
+    assert counts['nano::peptide'] == 1
+    assert set(corpus) == set(result_corpus2)
