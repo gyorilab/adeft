@@ -28,7 +28,7 @@ class DeftCorpusBuilder(object):
         self.recognizers = [DeftRecognizer(shortform, grounding_map)
                             for shortform, grounding_map
                             in grounding_dict.items()]
-        
+
     def build_from_texts(self, texts):
         """Build corpus from a list of texts
 
@@ -41,7 +41,7 @@ class DeftCorpusBuilder(object):
         -------
         corpus : list of tuple
             Contains tuples for each text in the input list which contains
-            a defining pattern. Multiple tuples correspond to  texts with
+            a defining pattern. Multiple tuples correspond to texts with
             multiple defining patterns for longforms with different groundings.
             The first element of each tuple contains the training text with all
             defining patterns replaced with only the shortform. The second
