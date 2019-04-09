@@ -14,18 +14,19 @@ class DeftCorpusBuilder(object):
 
     Attributes
     ----------
-    shortform : str
+    shortform : str or list of str
         build corpus for this shortform. this is taken from the objects
         longform_recognizer and included as an attribute for convenience
 
     dr : py:class`deft.recoginze.DeftRecognizer`
         Recognizes longforms for shortform by finding defining patterns (DP)
     """
-    def __init__(self, shortform, grounding_map):
-        self.shortform = shortform
-        self.grounding_map = grounding_map
-        self.dr = DeftRecognizer(shortform, grounding_map)
-
+    def __init__(self, grounding_dict):
+        self.grounding_dict = grounding_dict
+        self.recognizers = [DeftRecognizer(shortform, grounding_map)
+                            for shortform, grounding_map
+                            in grounding_dict.items()]
+        
     def build_from_texts(self, texts):
         """Build corpus from a list of texts
 
@@ -74,10 +75,12 @@ class DeftCorpusBuilder(object):
             text and a label for each label appearing in the input text
             matching the standard pattern.
         """
-        groundings = self.dr.recognize(text)
+        groundings = set()
+        for recognizer in self.recognizers:
+            groundings.update(recognizer.recognize(text))
         if not groundings:
             return None
-        training_text = self.dr.strip_defining_patterns(text)
-        datapoints = [(training_text, grounding)
-                      for grounding in groundings]
+        for recognizer in self.recognizers:
+            text = recognizer.strip_defining_patterns(text)
+        datapoints = [(text, grounding) for grounding in groundings]
         return datapoints
