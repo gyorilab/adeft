@@ -1,8 +1,13 @@
 import os
+import json
 import wget
+import logging
 import requests
 
 from deft.locations import MODELS_PATH, S3_BUCKET_URL
+
+
+logger = logging.getLogger(__file__)
 
 
 def download_models(update=False, models=None):
@@ -70,7 +75,13 @@ def get_downloaded_models():
 def get_s3_models():
     """Returns set of all models currently available on s3"""
     result = requests.get(S3_BUCKET_URL + '/s3_models.json')
-    return result.json()
+    try:
+        output = result.json()
+        assert isinstance(output, dict)
+    except json.JSONDecodeError or AssertionError:
+        output = {}
+        logger.warning('Online deft models are currently unavailable')
+    return output
 
 
 def _remove_if_exists(path):
