@@ -132,7 +132,5 @@ def test_build_from_texts():
 
 def test__build_from_texts_multiple():
     dcb = DeftCorpusBuilder({'NP': groundings1, 'NPs': groundings2})
-    corpus, counts = dcb.build_from_texts([text5, text6, text7])
-    assert counts['nano'] == 2
-    assert counts['nano::peptide'] == 1
+    corpus = dcb.build_from_texts([text5, text6, text7])
     assert set(corpus) == set(result_corpus2)
