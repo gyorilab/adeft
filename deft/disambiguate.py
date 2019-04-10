@@ -34,13 +34,16 @@ class DeftDisambiguator(object):
     labels : set
         set of labels classifier is able to predict
     """
-    def __init__(self, classifier, grounding_map, names):
+    def __init__(self, classifier, grounding_dict, names):
         self.classifier = classifier
-        self.shortform = classifier.shortform
-        self.recognizer = DeftRecognizer(self.shortform,
-                                         grounding_map)
+        self.shortforms = classifier.shortforms
+        self.recognizers = [DeftRecognizer(shortform,
+                                           grounding_map)
+                            for shortform,
+                            grounding_map in grounding_dict.items()]
         self.names = names
-        self.labels = set(grounding_map.values())
+        self.labels = set(value for grounding_map in grounding_dict.values()
+                          for value in grounding_map.values())
 
     def disambiguate(self, texts):
         """Return disambiguations for a list of texts
@@ -69,8 +72,12 @@ class DeftDisambiguator(object):
             containing predicted probabilities for possible groundings
         """
         # First disambiguate based on searching for defining patterns
-        groundings = [self.recognizer.recognize(text)
-                      for text in texts]
+        groundings = []
+        for text in texts:
+            grounding = set()
+            for recognizer in self.recognizers:
+                grounding.update(recognizer.recognize(text))
+            groundings.append(grounding)
         # For texts without a defining pattern or with inconsistent
         # defining patterns, use the longform classifier.
         undetermined = [text for text, grounding in zip(texts, groundings)
@@ -130,11 +137,11 @@ def load_disambiguator(shortform, models_path=MODELS_PATH):
         custom models.
     """
     model = load_model(os.path.join(MODELS_PATH, shortform,
-                                    shortform.lower() + '_model.gz'))
+                                    shortform + '_model.gz'))
     with open(os.path.join(MODELS_PATH, shortform,
-                           shortform.lower() + '_grounding_map.json')) as f:
-        grounding_map = json.load(f)
+                           shortform + '_grounding_dict.json')) as f:
+        grounding_dict = json.load(f)
     with open(os.path.join(MODELS_PATH, shortform,
-                           shortform.lower() + '_names.json')) as f:
+                           shortform + '_names.json')) as f:
         names = json.load(f)
-    return DeftDisambiguator(model, grounding_map, names)
+    return DeftDisambiguator(model, grounding_dict, names)
