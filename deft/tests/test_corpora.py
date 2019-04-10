@@ -64,10 +64,10 @@ labels3 = set(['other indra'])
 
 text4 = 'We cannot determine what INDRA means from this sentence.'
 
-result_corpus1 = [(result[0], label) for result in [(result1, labels1),
-                                                    (result2, labels2),
-                                                    (result3, labels3)]
-                  for label in result[1]]
+result_corpus = [(result[0], label) for result in [(result1, labels1),
+                                                   (result2, labels2),
+                                                   (result3, labels3)]
+                 for label in result[1]]
 
 #  content for corpus building with synomous shortforms
 groundings1 = {'nanoparticle': 'nano',
@@ -126,11 +126,8 @@ def test__process_text_multiple():
 
 def test_build_from_texts():
     dcb = DeftCorpusBuilder({'INDRA': longforms})
-    corpus, counts = dcb.build_from_texts([text1, text2, text3, text4])
-    assert counts['our indra'] == 1
-    assert counts['other indra::our indra'] == 1
-    assert counts['other indra'] == 1
-    assert set(corpus) == set(result_corpus1)
+    corpus = dcb.build_from_texts([text1, text2, text3, text4])
+    assert set(corpus) == set(result_corpus)
 
 
 def test__build_from_texts_multiple():
