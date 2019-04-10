@@ -34,35 +34,36 @@ def download_models(update=False, models=None):
     """
     s3_models = get_s3_models()
     if models is None:
-        models = s3_models
+        models = set(s3_models.values())
     else:
-        models = set(models) & set(s3_models)
+        models = set(models) & set(s3_models.values())
         update = True
 
     downloaded_models = get_downloaded_models()
     for model in models:
+        print(model)
         # if update is False do not download model
         if not update and model in downloaded_models:
             continue
         # create model directory if it does not currently exist
         if not os.path.exists(os.path.join(MODELS_PATH, model)):
             os.makedirs(os.path.join(MODELS_PATH, model))
-        for resource in (model.lower() + '_grounding_map.json',
-                         model.lower() + '_names.json',
-                         model.lower() + '_model.gz'):
+        for resource in (model + '_grounding_dict.json',
+                         model + '_names.json',
+                         model + '_model.gz'):
             resource_path = os.path.join(MODELS_PATH, model, resource)
             # if resource already exists, remove it since wget will not
             # overwrite existing files, choosing a new name instead
             _remove_if_exists(resource_path)
             wget.download(url=os.path.join(S3_BUCKET_URL, model, resource),
                           out=resource_path)
-        if model == 'TEST':
-            resource_path = os.path.join(MODELS_PATH, model,
-                                         'example_training_data.json')
-            _remove_if_exists(resource_path)
-            wget.download(url=os.path.join(S3_BUCKET_URL, model,
-                                           'example_training_data.json'),
-                          out=resource_path)
+        # if model == 'TEST':
+        #     resource_path = os.path.join(MODELS_PATH, model,
+        #                                  'example_training_data.json')
+        #     _remove_if_exists(resource_path)
+        #     wget.download(url=os.path.join(S3_BUCKET_URL, model,
+        #                                    'example_training_data.json'),
+        #                   out=resource_path)
 
 
 def get_downloaded_models():
@@ -74,7 +75,7 @@ def get_downloaded_models():
 
 def get_s3_models():
     """Returns set of all models currently available on s3"""
-    result = requests.get(S3_BUCKET_URL + '/s3_models.json')
+    result = requests.get(os.path.join(S3_BUCKET_URL, 's3_models.json'))
     try:
         output = result.json()
         assert isinstance(output, dict)
