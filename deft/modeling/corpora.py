@@ -1,5 +1,3 @@
-from collections import defaultdict
-
 from deft.recognize import DeftRecognizer
 
 
@@ -49,16 +47,11 @@ class DeftCorpusBuilder(object):
             defining pattern.
         """
         corpus = []
-        counts = defaultdict(int)
         for text in texts:
             data_points = self._process_text(text)
             if data_points:
                 corpus.extend(data_points)
-                labels = sorted(label for _, label in data_points)
-                key = '::'.join(labels)
-                counts[key] += 1
-
-        return corpus, dict(counts)
+        return corpus
 
     def _process_text(self, text):
         """Returns training data and label corresponding to text if found
