@@ -27,7 +27,7 @@ def test_train():
     params = {'C': 1.0,
               'ngram_range': (1, 2),
               'max_features': 1000}
-    classifier = DeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'])
+    classifier = DeftClassifier(['IR'], ['HGNC:6091', 'MESH:D011839'])
     texts = data['texts']
     labels = data['labels']
     classifier.train(texts, labels, **params)
@@ -41,7 +41,7 @@ def test_train():
 def test_cv_multiclass():
     params = {'C': [1.0],
               'max_features': [1000]}
-    classifier = DeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'])
+    classifier = DeftClassifier(['IR'], ['HGNC:6091', 'MESH:D011839'])
     texts = data['texts']
     labels = data['labels']
     classifier.cv(texts, labels, param_grid=params, cv=2)
@@ -55,7 +55,7 @@ def test_cv_binary():
     texts = data['texts']
     labels = [label if label == 'HGNC:6091' else 'ungrounded'
               for label in data['labels']]
-    classifier = DeftClassifier('IR', ['HGNC:6091'])
+    classifier = DeftClassifier(['IR'], ['HGNC:6091'])
     classifier.cv(texts, labels, param_grid=params, cv=2)
     assert classifier.best_score > 0.5
 
