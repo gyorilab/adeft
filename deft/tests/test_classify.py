@@ -66,7 +66,7 @@ def test_serialize():
     texts = data['texts']
     temp_filename = os.path.join(TESTS_PATH, uuid.uuid4().hex)
     classifier1 = load_model(os.path.join(MODELS_PATH, 'TEST',
-                                          'test_model.gz'))
+                                          'TEST_model.gz'))
     classifier1.dump_model(temp_filename)
 
     classifier2 = load_model(temp_filename)
