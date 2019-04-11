@@ -67,9 +67,24 @@ def download_models(update=False, models=None):
 
 def get_downloaded_models():
     """Returns set of all models currently in models folder"""
-    return [model for model in os.listdir(MODELS_PATH)
-            if os.path.isdir(os.path.join(MODELS_PATH, model))
-            and model != '__pycache__']
+    output = {}
+    for model in os.listdir(MODELS_PATH):
+        model_path = os.path.join(MODELS_PATH, model)
+        if os.path.isdir(model_path) and model != '__pycache__':
+            if model == 'TEST':
+                output['TEST'] = 'TEST'
+                continue
+            grounding_file = '%s_grounding_dict.json' % model
+            with open(os.path.join(model_path, grounding_file), 'r') as f:
+                grounding_dict = json.load(f)
+            for key, value in grounding_dict.items():
+                if key in output:
+                    logger.warning('Shortform %s has multiple deft models'
+                                   'This may lead to unexpected behavior'
+                                   % key)
+                else:
+                    output[key] = model
+    return output
 
 
 def get_s3_models():
