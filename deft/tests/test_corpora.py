@@ -1,6 +1,7 @@
 from deft.modeling.corpora import DeftCorpusBuilder
 
 
+# content for single shortform corpus building
 longforms = {'integrated network and dynamical reasoning assembler':
              'our indra',
              'indonesian debt restructuring agency': 'other indra'}
@@ -68,9 +69,38 @@ result_corpus = [(result[0], label) for result in [(result1, labels1),
                                                    (result3, labels3)]
                  for label in result[1]]
 
+#  content for corpus building with synomous shortforms
+groundings1 = {'nanoparticle': 'nano',
+               'natriuretic peptide': 'peptide'}
+
+groundings2 = {'nanoparticles': 'nano',
+               'natriuretic peptides': 'peptide'}
+
+text5 = ('The application of nanoparticles (NPs) for industrial processes'
+         ' and consumer products is rising at an exponential rate.')
+result5 = ('The application of NPs for industrial processes and consumer'
+           ' products is rising at an exponential rate.')
+labels5 = set(['nano'])
+
+text6 = ('Understanding the mechanism of nanoparticle (NP) induced toxicity'
+         ' is important for nanotoxicological and nanomedicinal studies.')
+result6 = ('Understanding the mechanism of NP induced toxicity is important'
+           ' for nanotoxicological and nanomedicinal studies.')
+labels6 = set(['nano'])
+
+text7 = ('Nanoparticle (NP) PET/CT imaging of natriuretic peptide (NP)'
+         ' clearance receptor in prostate cancer.')
+result7 = ('NP PET/CT imaging of NP clearance receptor in prostate cancer.')
+labels7 = set(['nano', 'peptide'])
+
+result_corpus2 = [(result[0], label) for result in [(result5, labels5),
+                                                    (result6, labels6),
+                                                    (result7, labels7)]
+                  for label in result[1]]
+
 
 def test__process_text():
-    dcb = DeftCorpusBuilder('INDRA', longforms)
+    dcb = DeftCorpusBuilder({'INDRA': longforms})
 
     for text, result, labels in [(text1, result1, labels1),
                                  (text2, result2, labels2),
@@ -83,7 +113,24 @@ def test__process_text():
     assert dcb._process_text(text4) is None
 
 
+def test__process_text_multiple():
+    dcb = DeftCorpusBuilder({'NP': groundings1, 'NPs': groundings2})
+    for text, result, labels in [(text5, result5, labels5),
+                                 (text6, result6, labels6),
+                                 (text7, result7, labels7)]:
+        datapoints = dcb._process_text(text)
+        assert len(datapoints) == len(labels)
+        assert all([datapoint[0] == result for datapoint in datapoints])
+        assert all([datapoint[1] in labels for datapoint in datapoints])
+
+
 def test_build_from_texts():
-    dcb = DeftCorpusBuilder('INDRA', longforms)
+    dcb = DeftCorpusBuilder({'INDRA': longforms})
     corpus = dcb.build_from_texts([text1, text2, text3, text4])
     assert set(corpus) == set(result_corpus)
+
+
+def test__build_from_texts_multiple():
+    dcb = DeftCorpusBuilder({'NP': groundings1, 'NPs': groundings2})
+    corpus = dcb.build_from_texts([text5, text6, text7])
+    assert set(corpus) == set(result_corpus2)

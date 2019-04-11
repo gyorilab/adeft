@@ -2,7 +2,7 @@ import os
 import shutil
 
 from deft.locations import MODELS_PATH
-from deft.download import download_models, get_downloaded_models, \
+from deft.download import download_models, get_available_models, \
     get_s3_models
 
 
@@ -18,8 +18,8 @@ def test_download_models():
     test_model_folder = os.path.join(MODELS_PATH, 'TEST')
     if os.path.isdir(test_model_folder):
         shutil.rmtree(test_model_folder)
-    assert 'TEST' not in get_downloaded_models()
+    assert 'TEST' not in get_available_models()
 
     # Download models
     download_models(models=['TEST'])
-    assert 'TEST' in get_downloaded_models()
+    assert 'TEST' in get_available_models()

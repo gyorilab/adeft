@@ -5,6 +5,7 @@ import logging
 from deft.locations import MODELS_PATH
 from deft.recognize import DeftRecognizer
 from deft.modeling.classify import load_model
+from deft.download import get_available_models
 
 logger = logging.getLogger(__file__)
 
@@ -34,13 +35,16 @@ class DeftDisambiguator(object):
     labels : set
         set of labels classifier is able to predict
     """
-    def __init__(self, classifier, grounding_map, names):
+    def __init__(self, classifier, grounding_dict, names):
         self.classifier = classifier
-        self.shortform = classifier.shortform
-        self.recognizer = DeftRecognizer(self.shortform,
-                                         grounding_map)
+        self.shortforms = classifier.shortforms
+        self.recognizers = [DeftRecognizer(shortform,
+                                           grounding_map)
+                            for shortform,
+                            grounding_map in grounding_dict.items()]
         self.names = names
-        self.labels = set(grounding_map.values())
+        self.labels = set(value for grounding_map in grounding_dict.values()
+                          for value in grounding_map.values())
 
     def disambiguate(self, texts):
         """Return disambiguations for a list of texts
@@ -69,8 +73,12 @@ class DeftDisambiguator(object):
             containing predicted probabilities for possible groundings
         """
         # First disambiguate based on searching for defining patterns
-        groundings = [self.recognizer.recognize(text)
-                      for text in texts]
+        groundings = []
+        for text in texts:
+            grounding = set()
+            for recognizer in self.recognizers:
+                grounding.update(recognizer.recognize(text))
+            groundings.append(grounding)
         # For texts without a defining pattern or with inconsistent
         # defining patterns, use the longform classifier.
         undetermined = [text for text, grounding in zip(texts, groundings)
@@ -122,19 +130,26 @@ def load_disambiguator(shortform, models_path=MODELS_PATH):
 
     Parameters
     ----------
-    shortform : str
-        Shortform to disambiguate
+    model_name : str
+        Model_Name to disambiguate
     models_path : Optional[str]
         Path to models directory. Defaults to deft's pretrained models.
         Users have the option to specify a path to another directory to use
         custom models.
     """
-    model = load_model(os.path.join(MODELS_PATH, shortform,
-                                    shortform.lower() + '_model.gz'))
-    with open(os.path.join(MODELS_PATH, shortform,
-                           shortform.lower() + '_grounding_map.json')) as f:
-        grounding_map = json.load(f)
-    with open(os.path.join(MODELS_PATH, shortform,
-                           shortform.lower() + '_names.json')) as f:
+    available = get_available_models()
+    try:
+        model_name = available[shortform]
+    except KeyError:
+        logger.error('No model available for shortform %s' % shortform)
+        return None
+
+    model = load_model(os.path.join(models_path, model_name,
+                                    model_name + '_model.gz'))
+    with open(os.path.join(models_path, model_name,
+                           model_name + '_grounding_dict.json')) as f:
+        grounding_dict = json.load(f)
+    with open(os.path.join(models_path, model_name,
+                           model_name + '_names.json')) as f:
         names = json.load(f)
-    return DeftDisambiguator(model, grounding_map, names)
+    return DeftDisambiguator(model, grounding_dict, names)

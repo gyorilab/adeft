@@ -46,8 +46,8 @@ class DeftClassifier(object):
        all positive labels weighted by the number of datapoints with each
        label.
     """
-    def __init__(self, shortform, pos_labels):
-        self.shortform = shortform
+    def __init__(self, shortforms, pos_labels):
+        self.shortforms = shortforms
         self.pos_labels = pos_labels
 
     def train(self, texts, y, C=1.0, ngram_range=(1, 2), max_features=1000):
@@ -153,8 +153,6 @@ class DeftClassifier(object):
             recall_scorer = make_scorer(recall_score,
                                         pos_label=self.pos_labels[0],
                                         average='binary')
-            f1_scorer = make_scorer(f1_score, pos_label=self.pos_labels[0],
-                                    average='binary')
 
         scorer = {'f1': f1_scorer, 'pr': precision_scorer,
                   'rc': recall_scorer}
@@ -172,7 +170,8 @@ class DeftClassifier(object):
         # Fit grid_search and set the estimator for the instance of the class
         grid_search = GridSearchCV(logit_pipeline, param_grid,
                                    cv=cv, n_jobs=n_jobs, scoring=scorer,
-                                   refit='f1', iid=False)
+                                   refit='f1', iid=False,
+                                   return_train_score=False)
         grid_search.fit(texts, y)
         logger.info('Best f1 score of %s found for' % grid_search.best_score_
                     + ' parameter values:\n%s' % grid_search.best_params_)
@@ -216,7 +215,7 @@ class DeftClassifier(object):
                       'tfidf': {'vocabulary_': vocabulary_,
                                 'idf_': idf_,
                                 'ngram_range': ngram_range},
-                      'shortform': self.shortform,
+                      'shortforms': self.shortforms,
                       'pos_labels': self.pos_labels}
         json_str = json.dumps(model_info)
         json_bytes = json_str.encode('utf-8')
@@ -241,10 +240,10 @@ def load_model(filepath):
     json_str = json_bytes.decode('utf-8')
     model_info = json.loads(json_str)
 
-    shortform = model_info['shortform']
+    shortforms = model_info['shortforms']
     pos_labels = model_info['pos_labels']
 
-    longform_model = DeftClassifier(shortform=shortform,
+    longform_model = DeftClassifier(shortforms=shortforms,
                                     pos_labels=pos_labels)
     ngram_range = model_info['tfidf']['ngram_range']
     tfidf = TfidfVectorizer(ngram_range=ngram_range)

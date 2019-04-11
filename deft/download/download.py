@@ -1,8 +1,13 @@
 import os
+import json
 import wget
+import logging
 import requests
 
 from deft.locations import MODELS_PATH, S3_BUCKET_URL
+
+
+logger = logging.getLogger(__file__)
 
 
 def download_models(update=False, models=None):
@@ -27,14 +32,14 @@ def download_models(update=False, models=None):
         as True regardless of how it was set. These should be considered
         as mutually exclusive parameters.
     """
-    s3_models = get_s3_models()
+    s3_models = set(get_s3_models().values())
     if models is None:
         models = s3_models
     else:
-        models = set(models) & set(s3_models)
+        models = set(models) & s3_models
         update = True
 
-    downloaded_models = get_downloaded_models()
+    downloaded_models = get_available_models()
     for model in models:
         # if update is False do not download model
         if not update and model in downloaded_models:
@@ -42,9 +47,9 @@ def download_models(update=False, models=None):
         # create model directory if it does not currently exist
         if not os.path.exists(os.path.join(MODELS_PATH, model)):
             os.makedirs(os.path.join(MODELS_PATH, model))
-        for resource in (model.lower() + '_grounding_map.json',
-                         model.lower() + '_names.json',
-                         model.lower() + '_model.gz'):
+        for resource in (model + '_grounding_dict.json',
+                         model + '_names.json',
+                         model + '_model.gz'):
             resource_path = os.path.join(MODELS_PATH, model, resource)
             # if resource already exists, remove it since wget will not
             # overwrite existing files, choosing a new name instead
@@ -60,17 +65,38 @@ def download_models(update=False, models=None):
                           out=resource_path)
 
 
-def get_downloaded_models():
+def get_available_models(models_path=MODELS_PATH):
     """Returns set of all models currently in models folder"""
-    return [model for model in os.listdir(MODELS_PATH)
-            if os.path.isdir(os.path.join(MODELS_PATH, model))
-            and model != '__pycache__']
+    output = {}
+    for model in os.listdir(models_path):
+        model_path = os.path.join(models_path, model)
+        if os.path.isdir(model_path) and model != '__pycache__':
+            if model == 'TEST':
+                output['TEST'] = 'TEST'
+                continue
+            grounding_file = '%s_grounding_dict.json' % model
+            with open(os.path.join(model_path, grounding_file), 'r') as f:
+                grounding_dict = json.load(f)
+            for key, value in grounding_dict.items():
+                if key in output:
+                    logger.warning('Shortform %s has multiple deft models'
+                                   'This may lead to unexpected behavior'
+                                   % key)
+                else:
+                    output[key] = model
+    return output
 
 
 def get_s3_models():
     """Returns set of all models currently available on s3"""
-    result = requests.get(S3_BUCKET_URL + '/s3_models.json')
-    return result.json()
+    result = requests.get(os.path.join(S3_BUCKET_URL, 's3_models.json'))
+    try:
+        output = result.json()
+        assert isinstance(output, dict)
+    except json.JSONDecodeError or AssertionError:
+        output = {}
+        logger.warning('Online deft models are currently unavailable')
+    return output
 
 
 def _remove_if_exists(path):
