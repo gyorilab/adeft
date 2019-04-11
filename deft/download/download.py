@@ -32,16 +32,15 @@ def download_models(update=False, models=None):
         as True regardless of how it was set. These should be considered
         as mutually exclusive parameters.
     """
-    s3_models = get_s3_models()
+    s3_models = set(get_s3_models().values())
     if models is None:
-        models = set(s3_models.values())
+        models = s3_models
     else:
-        models = set(models) & set(s3_models.values())
+        models = set(models) & s3_models
         update = True
 
     downloaded_models = get_downloaded_models()
     for model in models:
-        print(model)
         # if update is False do not download model
         if not update and model in downloaded_models:
             continue
@@ -57,13 +56,13 @@ def download_models(update=False, models=None):
             _remove_if_exists(resource_path)
             wget.download(url=os.path.join(S3_BUCKET_URL, model, resource),
                           out=resource_path)
-        # if model == 'TEST':
-        #     resource_path = os.path.join(MODELS_PATH, model,
-        #                                  'example_training_data.json')
-        #     _remove_if_exists(resource_path)
-        #     wget.download(url=os.path.join(S3_BUCKET_URL, model,
-        #                                    'example_training_data.json'),
-        #                   out=resource_path)
+        if model == 'TEST':
+            resource_path = os.path.join(MODELS_PATH, model,
+                                         'example_training_data.json')
+            _remove_if_exists(resource_path)
+            wget.download(url=os.path.join(S3_BUCKET_URL, model,
+                                           'example_training_data.json'),
+                          out=resource_path)
 
 
 def get_downloaded_models():
