@@ -39,7 +39,7 @@ def download_models(update=False, models=None):
         models = set(models) & s3_models
         update = True
 
-    downloaded_models = get_downloaded_models()
+    downloaded_models = get_available_models()
     for model in models:
         # if update is False do not download model
         if not update and model in downloaded_models:

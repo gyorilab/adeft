@@ -7,12 +7,12 @@ from sklearn.metrics import f1_score
 
 from deft.locations import MODELS_PATH
 from deft.modeling.classify import DeftClassifier, load_model
-from deft.download import get_downloaded_models, download_models
+from deft.download import get_available_models, download_models
 
 # Get test path so we can write a temporary file here
 TESTS_PATH = os.path.dirname(os.path.abspath(__file__))
 
-if 'TEST' not in get_downloaded_models():
+if 'TEST' not in get_available_models():
     download_models(models=['TEST'])
 
 with open(os.path.join(MODELS_PATH, 'TEST',

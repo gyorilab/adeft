@@ -5,6 +5,7 @@ import logging
 from deft.locations import MODELS_PATH
 from deft.recognize import DeftRecognizer
 from deft.modeling.classify import load_model
+from deft.download import get_available_models
 
 logger = logging.getLogger(__file__)
 
@@ -124,7 +125,7 @@ class DeftDisambiguator(object):
         return result
 
 
-def load_disambiguator(model_name, models_path=MODELS_PATH):
+def load_disambiguator(shortform, models_path=MODELS_PATH):
     """Returns deft disambiguator loaded from models directory
 
     Parameters
@@ -136,12 +137,19 @@ def load_disambiguator(model_name, models_path=MODELS_PATH):
         Users have the option to specify a path to another directory to use
         custom models.
     """
-    model = load_model(os.path.join(MODELS_PATH, model_name,
+    available = get_available_models()
+    try:
+        model_name = available[shortform]
+    except KeyError:
+        logger.error('No model available for shortform %s' % shortform)
+        return None
+
+    model = load_model(os.path.join(models_path, model_name,
                                     model_name + '_model.gz'))
-    with open(os.path.join(MODELS_PATH, model_name,
+    with open(os.path.join(models_path, model_name,
                            model_name + '_grounding_dict.json')) as f:
         grounding_dict = json.load(f)
-    with open(os.path.join(MODELS_PATH, model_name,
+    with open(os.path.join(models_path, model_name,
                            model_name + '_names.json')) as f:
         names = json.load(f)
     return DeftDisambiguator(model, grounding_dict, names)
