@@ -22,21 +22,21 @@ example3 = ('IR is a transmembrane receptor that is activated by insulin,'
 
 def test_load_disambiguator():
     dd_test = load_disambiguator('TEST')
-    assert dd_test.shortform == 'IR'
+    assert dd_test.shortforms == ['IR']
     assert hasattr(dd_test, 'classifier')
-    assert hasattr(dd_test, 'recognizer')
+    assert hasattr(dd_test, 'recognizers')
 
 
 def test_disambiguate():
     test_model = load_model(os.path.join(MODELS_PATH, 'TEST',
-                                         'test_model.gz'))
+                                         'TEST_model.gz'))
     with open(os.path.join(MODELS_PATH, 'TEST',
-                           'test_grounding_map.json')) as f:
-        grounding_map = json.load(f)
-    with open(os.path.join(MODELS_PATH, 'TEST', 'test_names.json')) as f:
+                           'TEST_grounding_dict.json')) as f:
+        grounding_dict = json.load(f)
+    with open(os.path.join(MODELS_PATH, 'TEST', 'TEST_names.json')) as f:
         names = json.load(f)
 
-    dd = DeftDisambiguator(test_model, grounding_map, names)
+    dd = DeftDisambiguator(test_model, grounding_dict, names)
     # case where there is a unique defining pattern
     disamb1 = dd.disambiguate([example1])[0]
     assert disamb1[0] == 'HGNC:6091'
