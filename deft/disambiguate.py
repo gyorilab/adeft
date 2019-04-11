@@ -124,24 +124,24 @@ class DeftDisambiguator(object):
         return result
 
 
-def load_disambiguator(shortform, models_path=MODELS_PATH):
+def load_disambiguator(model_name, models_path=MODELS_PATH):
     """Returns deft disambiguator loaded from models directory
 
     Parameters
     ----------
-    shortform : str
-        Shortform to disambiguate
+    model_name : str
+        Model_Name to disambiguate
     models_path : Optional[str]
         Path to models directory. Defaults to deft's pretrained models.
         Users have the option to specify a path to another directory to use
         custom models.
     """
-    model = load_model(os.path.join(MODELS_PATH, shortform,
-                                    shortform + '_model.gz'))
-    with open(os.path.join(MODELS_PATH, shortform,
-                           shortform + '_grounding_dict.json')) as f:
+    model = load_model(os.path.join(MODELS_PATH, model_name,
+                                    model_name + '_model.gz'))
+    with open(os.path.join(MODELS_PATH, model_name,
+                           model_name + '_grounding_dict.json')) as f:
         grounding_dict = json.load(f)
-    with open(os.path.join(MODELS_PATH, shortform,
-                           shortform + '_names.json')) as f:
+    with open(os.path.join(MODELS_PATH, model_name,
+                           model_name + '_names.json')) as f:
         names = json.load(f)
     return DeftDisambiguator(model, grounding_dict, names)
