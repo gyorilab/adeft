@@ -65,11 +65,11 @@ def download_models(update=False, models=None):
                           out=resource_path)
 
 
-def get_downloaded_models():
+def get_available_models(models_path=MODELS_PATH):
     """Returns set of all models currently in models folder"""
     output = {}
-    for model in os.listdir(MODELS_PATH):
-        model_path = os.path.join(MODELS_PATH, model)
+    for model in os.listdir(models_path):
+        model_path = os.path.join(models_path, model)
         if os.path.isdir(model_path) and model != '__pycache__':
             if model == 'TEST':
                 output['TEST'] = 'TEST'
