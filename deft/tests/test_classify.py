@@ -13,9 +13,9 @@ from deft.download import get_available_models, download_models
 TESTS_PATH = os.path.dirname(os.path.abspath(__file__))
 
 if 'TEST' not in get_available_models():
-    download_models(models=['TEST'])
+    download_models(models=['__TEST'])
 
-with open(os.path.join(MODELS_PATH, 'TEST',
+with open(os.path.join(MODELS_PATH, '__TEST',
                        'example_training_data.json'), 'r') as f:
     data = json.load(f)
 
@@ -65,8 +65,8 @@ def test_serialize():
     """
     texts = data['texts']
     temp_filename = os.path.join(TESTS_PATH, uuid.uuid4().hex)
-    classifier1 = load_model(os.path.join(MODELS_PATH, 'TEST',
-                                          'TEST_model.gz'))
+    classifier1 = load_model(os.path.join(MODELS_PATH, '__TEST',
+                                          '__TEST_model.gz'))
     classifier1.dump_model(temp_filename)
 
     classifier2 = load_model(temp_filename)
