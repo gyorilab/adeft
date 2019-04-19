@@ -56,7 +56,7 @@ def download_models(update=False, models=None):
             _remove_if_exists(resource_path)
             wget.download(url=os.path.join(S3_BUCKET_URL, model, resource),
                           out=resource_path)
-        if model == 'TEST':
+        if model == '__TEST':
             resource_path = os.path.join(MODELS_PATH, model,
                                          'example_training_data.json')
             _remove_if_exists(resource_path)
@@ -71,8 +71,8 @@ def get_available_models(models_path=MODELS_PATH):
     for model in os.listdir(models_path):
         model_path = os.path.join(models_path, model)
         if os.path.isdir(model_path) and model != '__pycache__':
-            if model == 'TEST':
-                output['TEST'] = 'TEST'
+            if model == '__TEST':
+                output['__TEST'] = '__TEST'
                 continue
             grounding_file = '%s_grounding_dict.json' % model
             with open(os.path.join(model_path, grounding_file), 'r') as f:
