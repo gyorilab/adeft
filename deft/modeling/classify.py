@@ -251,8 +251,8 @@ def load_model(filepath):
 
     tfidf.vocabulary_ = model_info['tfidf']['vocabulary_']
     tfidf.idf_ = model_info['tfidf']['idf_']
-
-    logit.classes_ = np.array(model_info['logit']['classes_'])
+    logit.classes_ = np.array(model_info['logit']['classes_'],
+                              dtype='<U32')
     logit.intercept_ = np.array(model_info['logit']['intercept_'])
     logit.coef_ = np.array(model_info['logit']['coef_'])
 
