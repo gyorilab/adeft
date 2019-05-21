@@ -45,6 +45,7 @@ class DeftDisambiguator(object):
         self.names = names
         self.labels = set(value for grounding_map in grounding_dict.values()
                           for value in grounding_map.values())
+        self.pos_labels = classifier.pos_labels
 
     def disambiguate(self, texts):
         """Return disambiguations for a list of texts
