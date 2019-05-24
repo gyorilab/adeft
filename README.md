@@ -1,12 +1,11 @@
 # Deft
 
-The Deft Disambiguator (DD) is a utility for disambiguating acronyms and
-abbreviations for genes in biological texts. It is based on a reimplementation
-of the [Acromine](http://www.chokkan.org/research/acromine/) system developed
-by the [NaCTeM](http://www.nactem.ac.uk/index.php) at the University of Manchester.
-It makes use of pattern matching and machine learning to disambiguate abbreviations
-based on text context.
-
+Deft (Disambiguation of Entities From Text-context)
+is a utility for building models to disambiguate acronyms and other abbreviations of biological terms in the scientific literature. It makes use of an implementation of the [Acromine](http://www.chokkan.org/research/acromine/) algorithm developed
+by the [NaCTeM](http://www.nactem.ac.uk/index.php) at the University of Manchester
+to identify possible longform expansions for shortforms in a text corpus.
+It allows users to build disambiguation models to disambiguate shortforms based
+on their text context. A growing number of pretrained disambiguation models are publically available to download through Deft.
 ## Installation
 
 Deft works with Python versions 3.5 and above. To install, point pip to the
@@ -19,7 +18,10 @@ Deft's pretrained machine learning models can then be downloaded with the comman
     $ python -m deft.download
 
 ## Using Deft
-A list of available models can be imported with `from deft import available_models`
+A dictionary of available models can be imported with `from deft import available_models`
+
+The dictionary maps shortforms to model names. It's possible for multiple equivalent
+shortforms to map to the same model.
 
 Here's an example of running a disambiguator for ER on a list of texts
 
