@@ -21,7 +21,7 @@ Deft's pretrained machine learning models can then be downloaded with the comman
 A dictionary of available models can be imported with `from deft import available_models`
 
 The dictionary maps shortforms to model names. It's possible for multiple equivalent
-shortforms to map to the same model
+shortforms to map to the same model.
 
 Here's an example of running a disambiguator for ER on a list of texts
 
