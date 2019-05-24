@@ -67,6 +67,8 @@ def download_models(update=False, models=None):
 
 def get_available_models(models_path=MODELS_PATH):
     """Returns set of all models currently in models folder"""
+    if not os.path.exists(models_path):
+        return {}
     output = {}
     for model in os.listdir(models_path):
         model_path = os.path.join(models_path, model)
