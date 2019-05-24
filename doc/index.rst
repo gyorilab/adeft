@@ -6,11 +6,9 @@
 Welcome to deft's documentation!
 ================================
 
-Deft is a utility for disambiguating acronyms and other abbreviations for genes
-in biological texts. It is based on a reimplementation of the
-`Acromine <http://www.chokkan.org/research/acromine/>`_ system developed by the `NaCTeM <http://www.nactem.ac.uk/index.php>`_ at the University of Manchester.
-It makes use of pattern matching and machine learning to disambiguate abbreviations
-based on text context.
+Deft is a utility for building models to disambiguate acronyms and other abbreviations of biological terms in the scientific literature. It makes use of an implementation of the
+`Acromine <http://www.chokkan.org/research/acromine/>`_ algorithm developed by the `NaCTeM <http://www.nactem.ac.uk/index.php>`_ at the University of Manchester to identify possible longform expansions for shortforms based on their text context.
+It allows users to build disambiguation models to disambiguate shortforms based on their text context. A growing number of pretrained disambiguation models are publically available to download through Deft.
 
 .. toctree::
    :maxdepth: 3
