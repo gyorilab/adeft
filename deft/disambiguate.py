@@ -71,8 +71,8 @@ class DeftDisambiguator(object):
         result : list of tuple
             Disambiguations for text. For each text the corresponding
             disambiguation is a tuple of three elements. A grounding,
-            a canonical name associted with the grounding, and a dictionary
-            containing predicted probabilities for possible groundings
+            a canonical name associated with the grounding, and a dictionary
+            containing predicted probabilities for each possible grounding
         """
         # First disambiguate based on searching for defining patterns
         groundings = []
