@@ -192,7 +192,7 @@ class DeftRecognizer(object):
 
         Returns
         -------
-        str|None:
+        str
             Agent ID corresponding to associated longform in the concept map
             if one exists, otherwise None.
         """
