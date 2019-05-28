@@ -18,8 +18,9 @@ class DeftDisambiguator(object):
     classifier :  py:class:`deft.modeling.classify.DeftClassifier`
        machine learning model for disambiguating shortforms based upon context
 
-    grounding_map : dict
-        Dictionary mapping longforms to their groundings
+    grounding_dict : dict
+        Dictionary mapping shortforms to grounding_map dictionaries mapping
+        longforms to groundings
 
     names : dict
         dictionary mapping groundings to canonical names
