@@ -6,20 +6,16 @@ class DeftCorpusBuilder(object):
 
     Parameters
     ----------
-    shortform : str
-        Shortform to disambiguate
-
-    grounding_map : dict of str: str
-        Dictionary mapping longform texts to their groundings
+    grounding_dict : dict of dict of str
+        Dictionary mapping shortforms to grounding_map dictionaries mapping
+        longforms to groundings
 
     Attributes
     ----------
-    shortform : str or list of str
-        build corpus for this shortform. this is taken from the objects
-        longform_recognizer and included as an attribute for convenience
-
-    dr : py:class`deft.recoginze.DeftRecognizer`
-        Recognizes longforms for shortform by finding defining patterns (DP)
+    recognizers : list of py:class`deft.recognize.DeftRecognizer`
+        List of recognizers for each shortform to be considered. Each
+        recognizer identifies longforms for a shortform by finding defining
+        matches to a defining pattern (DP)
     """
     def __init__(self, grounding_dict):
         self.grounding_dict = grounding_dict
