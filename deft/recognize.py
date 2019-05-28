@@ -173,11 +173,11 @@ class DeftRecognizer(object):
             text = text.replace(fragment.strip(),
                                 untokenize(tokens[:j+1]))
         # replace all instances of parenthesized shortform with shortform
-        text = re.sub(r'\(\s*%s\s*\)'
-                      % self.shortform,
-                      ' ' + self.shortform + ' ', text)
-        text = ' '.join(text.split())
-        return text
+        stripped_text = re.sub(r'\(\s*%s\s*\)'
+                               % self.shortform,
+                               ' ' + self.shortform + ' ', text)
+        stripped_text = ' '.join(stripped_text.split())
+        return stripped_text
 
     def _search(self, tokens):
         """Returns longform from maximal candidate preceding shortform
@@ -192,7 +192,7 @@ class DeftRecognizer(object):
 
         Returns
         -------
-        str|None:
+        str
             Agent ID corresponding to associated longform in the concept map
             if one exists, otherwise None.
         """

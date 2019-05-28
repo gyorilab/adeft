@@ -18,8 +18,9 @@ class DeftDisambiguator(object):
     classifier :  py:class:`deft.modeling.classify.DeftClassifier`
        machine learning model for disambiguating shortforms based upon context
 
-    grounding_map : dict
-        Dictionary mapping longforms to their groundings
+    grounding_dict : dict
+        Dictionary mapping shortforms to grounding_map dictionaries mapping
+        longforms to groundings
 
     names : dict
         dictionary mapping groundings to canonical names
@@ -52,13 +53,13 @@ class DeftDisambiguator(object):
 
         First checks for defining patterns (DP) within a text. If there is
         an unambiguous match to a longform with a defining pattern, considers
-        this the correct disambiguation with confidence 1.0. If no defining
-        pattern is found, uses a machine learning classifier to predict the
-        correct disambiguation. If there were multiple longforms with different
-        groundings found with a defining pattern, disambiguates to the one with
-        among these with highest predicted probability. If no defining pattern
-        was found, disambiguates to the grounding with highest predicted
-        probability.
+        this to be the correct disambiguation with confidence 1.0.
+        If no defining pattern is found, uses a logistic regression model to
+        predict the correct disambiguation. If there were multiple longforms
+        with different groundings found with a defining pattern, disambiguates
+        to the grounding among these with highest predicted probability. If no
+        defining pattern was found, disambiguates to the grounding with highest
+        predicted probability.
 
         Parameters
         ----------
@@ -70,8 +71,8 @@ class DeftDisambiguator(object):
         result : list of tuple
             Disambiguations for text. For each text the corresponding
             disambiguation is a tuple of three elements. A grounding,
-            a canonical name associted with the grounding, and a dictionary
-            containing predicted probabilities for possible groundings
+            a canonical name associated with the grounding, and a dictionary
+            containing predicted probabilities for each possible grounding
         """
         # First disambiguate based on searching for defining patterns
         groundings = []

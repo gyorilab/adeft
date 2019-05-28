@@ -51,8 +51,8 @@ class _TrieNode(object):
     score : float
         Likelihood score of the associated candidate longform.
         It is given by count - sum_ft**2/sum_ft
-        See
 
+        See
         [Okazaki06] Naoaki Okazaki and Sophia Ananiadou. "Building an
         abbreviation dicationary using a term recognition approach".
         Bioinformatics. 2006. Oxford University Press.
@@ -87,7 +87,10 @@ class _TrieNode(object):
         return self.parent is None
 
     def increment_count(self):
-        """Update count and likelihood when observing a longform again"""
+        """Update count and likelihood when observing a longform again
+
+        Update when a previously observed longform is seen again
+        """
         self.count += 1
         self.score += 1
 
