@@ -1,6 +1,6 @@
 # adeft
 
-adeft (Acromine based Disambiguation of Entities From Text context)
+Adeft (Acromine based Disambiguation of Entities From Text context)
 is a utility for building models to disambiguate acronyms and other abbreviations of biological terms in the scientific literature. It makes use of an implementation of the [Acromine](http://www.chokkan.org/research/acromine/) algorithm developed
 by the [NaCTeM](http://www.nactem.ac.uk/index.php) at the University of Manchester
 to identify possible longform expansions for shortforms in a text corpus.
@@ -8,12 +8,12 @@ It allows users to build disambiguation models to disambiguate shortforms based
 on their text context. A growing number of pretrained disambiguation models are publically available to download through adeft.
 ## Installation
 
-Deft works with Python versions 3.5 and above. To install, point pip to the
+Adeft works with Python versions 3.5 and above. To install, point pip to the
 source repository at
 
     $ pip install git+https://github.com/indralab/adeft.git
 
-Deft's pretrained machine learning models can then be downloaded with the command
+Adeft's pretrained machine learning models can then be downloaded with the command
 
     $ python -m adeft.download
 
