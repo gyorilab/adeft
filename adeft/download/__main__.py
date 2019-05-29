@@ -6,9 +6,9 @@ from adeft.download import download_models
 
 """
 Allows models to be downloaded from the command line with
-python -m deft.download
+python -m adeft.download
 
-Use python -m deft.download --update
+Use python -m adeft.download --update
 to update existing models if models have changed on S3
 """
 

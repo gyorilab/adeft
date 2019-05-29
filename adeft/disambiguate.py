@@ -15,7 +15,7 @@ class DeftDisambiguator(object):
 
     Parameters
     ----------
-    classifier :  py:class:`deft.modeling.classify.DeftClassifier`
+    classifier :  py:class:`adeft.modeling.classify.DeftClassifier`
        machine learning model for disambiguating shortforms based upon context
 
     grounding_dict : dict
@@ -30,7 +30,7 @@ class DeftDisambiguator(object):
     shortform : str
         shortform to disambiguate
 
-    recognizer : py:class:`deft.recognize.DeftRecognizer`
+    recognizer : py:class:`adeft.recognize.DeftRecognizer`
         recognizer to disambiguate by searching for a defining pattern
 
     labels : set

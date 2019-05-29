@@ -93,17 +93,17 @@ def tokenize(text):
 
 
 def untokenize(tokens):
-    """Returns inverse of deft's word tokenizer
+    """Returns inverse of the adeft word tokenizer
 
     The inverse is inexact. For simplicity, all white space characters are
-    replaced with a space. An exact inverse is not necessary for deft's
+    replaced with a space. An exact inverse is not necessary for adeft's
     purposes.
 
     Parameters
     ----------
     tokens : list of tuple
         List of tuples of the form (word, (start, end)) giving tokens
-        and coordinates as output by deft's word tokenizer
+        and coordinates as output by adeft's word tokenizer
 
     Returns
     -------
@@ -117,7 +117,7 @@ def untokenize(tokens):
     elif len(tokens) == 1:
         return tokens[0][0]
 
-    # This looks kind of harry but is simple conceptually.
+    # This looks messy but is simple conceptually.
     # At each step add the current token and a number of spaces determined
     # by the coordinates of the previous token and the current token.
     output = [tokens[0][0]] + [' ']*(tokens[1][1][0] - tokens[0][1][1] - 1)

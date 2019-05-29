@@ -59,16 +59,16 @@ class _TrieNode(object):
 
         for more information
 
-    parent : :py:class:`deft.discover._TrieNode`
+    parent : :py:class:`adeft.discover._TrieNode`
         link to node's parent
 
-    children : dict of :py:class:`deft.discover._TrieNode`
+    children : dict of :py:class:`adeft.discover._TrieNode`
         dictionary of child nodes
 
     best_ancestor_score : float
         best score among all of nodes ancestors
 
-    best_ancestor : :py:class:`deft.discover._TrieNode`
+    best_ancestor : :py:class:`adeft.discover._TrieNode`
         ancestor of node with best score
     """
     def __init__(self, longform=(), parent=None):
@@ -138,14 +138,14 @@ class DeftMiner(object):
 
     Attributes
     ----------
-    _internal_trie : :py:class:`deft.discover._TrieNode`
+    _internal_trie : :py:class:`adeft.discover._TrieNode`
         Stores trie data-structure used to implement the algorithm
 
     _longforms : dict
         Dictionary mapping candidate longforms to their likelihoods as
         produced by the acromine algorithm
 
-    _stemmer : :py:class:`deft.nlp.stem.SnowCounter`
+    _stemmer : :py:class:`adeft.nlp.stem.SnowCounter`
         English stemmer that keeps track of counts of the number of times a
         given word has been mapped to a given stem. Wraps the class
         EnglishStemmer from nltk.stem.snowball
