@@ -8,13 +8,14 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 
-setup(name='deft',
-      version='0.1.0',
-      description='Deft Disambiguator',
+setup(name='adeft',
+      version='0.2.1',
+      description=('Acromine based Disambiguation of Entities From'
+                   ' Text context'),
       long_description=long_description,
       long_description_content_type='text/markdown',
       url='https://github.com/indralab/deft',
-      author='Deft developers, Harvard Medical School',
+      author='adeft developers, Harvard Medical School',
       author_email='albert_steppi@hms.harvard.edu',
       classifiers=[
           'Development Status :: 4 - Beta',
