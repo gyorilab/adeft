@@ -1,4 +1,4 @@
-from deft.recognize import DeftRecognizer
+from adeft.recognize import DeftRecognizer
 
 
 class DeftCorpusBuilder(object):

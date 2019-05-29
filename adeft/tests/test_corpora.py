@@ -1,4 +1,4 @@
-from deft.modeling.corpora import DeftCorpusBuilder
+from adeft.modeling.corpora import DeftCorpusBuilder
 
 
 # content for single shortform corpus building

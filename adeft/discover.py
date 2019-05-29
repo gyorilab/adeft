@@ -1,8 +1,8 @@
 from collections import deque
 import logging
 
-from deft.nlp import WatchfulStemmer
-from deft.util import get_candidate_fragments, get_candidate
+from adeft.nlp import WatchfulStemmer
+from adeft.util import get_candidate_fragments, get_candidate
 
 logger = logging.getLogger(__file__)
 

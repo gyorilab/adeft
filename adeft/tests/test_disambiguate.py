@@ -1,9 +1,9 @@
 import os
 import json
 
-from deft.locations import MODELS_PATH
-from deft.modeling.classify import load_model
-from deft.disambiguate import DeftDisambiguator, load_disambiguator
+from adeft.locations import MODELS_PATH
+from adeft.modeling.classify import load_model
+from adeft.disambiguate import DeftDisambiguator, load_disambiguator
 
 example1 = ('The insulin receptor (IR) is a transmembrane receptor that'
             ' is activated by insulin, IGF-I, IGF-II and belongs to the large'

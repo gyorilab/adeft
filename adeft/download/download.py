@@ -4,7 +4,7 @@ import wget
 import logging
 import requests
 
-from deft.locations import MODELS_PATH, S3_BUCKET_URL
+from adeft.locations import MODELS_PATH, S3_BUCKET_URL
 
 
 logger = logging.getLogger(__file__)

@@ -4,8 +4,8 @@ import logging
 
 from nltk.stem.snowball import EnglishStemmer
 
-from deft.nlp import tokenize, untokenize
-from deft.util import get_candidate_fragments, get_candidate
+from adeft.nlp import tokenize, untokenize
+from adeft.util import get_candidate_fragments, get_candidate
 
 
 logger = logging.getLogger(__file__)

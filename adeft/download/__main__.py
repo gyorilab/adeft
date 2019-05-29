@@ -1,8 +1,8 @@
 import os
 import argparse
 
-from deft.locations import MODELS_PATH
-from deft.download import download_models
+from adeft.locations import MODELS_PATH
+from adeft.download import download_models
 
 """
 Allows models to be downloaded from the command line with

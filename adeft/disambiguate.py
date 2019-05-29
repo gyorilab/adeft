@@ -2,10 +2,10 @@ import os
 import json
 import logging
 
-from deft.locations import MODELS_PATH
-from deft.recognize import DeftRecognizer
-from deft.modeling.classify import load_model
-from deft.download import get_available_models
+from adeft.locations import MODELS_PATH
+from adeft.recognize import DeftRecognizer
+from adeft.modeling.classify import load_model
+from adeft.download import get_available_models
 
 logger = logging.getLogger(__file__)
 

@@ -1,6 +1,6 @@
 from nose.tools import raises
 
-from deft.nlp import tokenize, untokenize, WatchfulStemmer
+from adeft.nlp import tokenize, untokenize, WatchfulStemmer
 
 
 def test_tokenize_untokenize():
