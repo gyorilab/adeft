@@ -1,55 +1,55 @@
-adeft Download
--------------
+Adeft Download
+--------------
 
 .. automodule:: adeft.download.download
    :members:
    :show-inheritance:
 
-adeft Disambiguate
------------------
+Adeft Disambiguate
+------------------
 
 .. automodule:: adeft.disambiguate
     :members:
     :show-inheritance:
 
-adeft Discover
--------------
+Adeft Discover
+--------------
 
 .. automodule:: adeft.discover
    :members:
    :show-inheritance:
 
-adeft Recognize
---------------
+Adeft Recognize
+---------------
 
 .. automodule:: adeft.recognize
     :members:
     :show-inheritance:
 
-adeft Corpora
-------------
+Adeft Corpora
+-------------
 
 .. automodule:: adeft.modeling.corpora
     :members:
     :show-inheritance:
 
-adeft Classify
--------------
+Adeft Classify
+--------------
 
 .. automodule:: adeft.modeling.classify
    :members:
    :show-inheritance:
 
 
-adeft NLP
---------
+Adeft NLP
+---------
 
 .. automodule:: adeft.nlp
     :members:
     :show-inheritance:
 
-adeft Util
----------
+Adeft Util
+----------
 
 .. automodule:: adeft.util
    :members:
