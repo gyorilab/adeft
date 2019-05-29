@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'deft'
+project = 'adeft'
 copyright = '2019, Albert Steppi'
 author = 'Albert Steppi'
 
@@ -144,7 +144,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'deft', 'deft Documentation',
+    (master_doc, 'adeft', 'adeft Documentation',
      [author], 1)
 ]
 
@@ -155,8 +155,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'deft', 'deft Documentation',
-     author, 'deft', 'One line description of project.',
+    (master_doc, 'adeft', 'adeft Documentation',
+     author, 'adeft', 'One line description of project.',
      'Miscellaneous'),
 ]
 
