@@ -8,10 +8,9 @@ It allows users to build disambiguation models to disambiguate shortforms based
 on their text context. A growing number of pretrained disambiguation models are publically available to download through adeft.
 ## Installation
 
-Adeft works with Python versions 3.5 and above. To install, point pip to the
-source repository at
+Adeft works with Python versions 3.5 and above. It is available on PyPi and can be installed with the command
 
-    $ pip install git+https://github.com/indralab/adeft.git
+    $ pip install adeft
 
 Adeft's pretrained machine learning models can then be downloaded with the command
 
