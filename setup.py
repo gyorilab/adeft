@@ -14,7 +14,8 @@ setup(name='adeft',
                    ' Text context'),
       long_description=long_description,
       long_description_content_type='text/markdown',
-      url='https://github.com/indralab/deft',
+      url='https://github.com/indralab/adeft',
+      download_url='https://github.com/indralab/adeft/archive/0.2.1.tar.gz',
       author='adeft developers, Harvard Medical School',
       author_email='albert_steppi@hms.harvard.edu',
       classifiers=[
@@ -25,5 +26,6 @@ setup(name='adeft',
       ],
       packages=find_packages(),
       install_requires=['nltk', 'scikit-learn>=0.20.0', 'wget', 'requests'],
-      extras_require={'test': ['nose', 'coverage', 'python-coveralls']}
+      extras_require={'test': ['nose', 'coverage', 'python-coveralls']},
+      keywords=['nlp', 'biology', 'disambiguation']
       )
