@@ -5,9 +5,9 @@ import numpy as np
 from nose.plugins.attrib import attr
 from sklearn.metrics import f1_score
 
-from deft.locations import MODELS_PATH
-from deft.modeling.classify import DeftClassifier, load_model
-from deft.download import get_available_models, download_models
+from adeft.locations import MODELS_PATH
+from adeft.modeling.classify import DeftClassifier, load_model
+from adeft.download import get_available_models, download_models
 
 # Get test path so we can write a temporary file here
 TESTS_PATH = os.path.dirname(os.path.abspath(__file__))

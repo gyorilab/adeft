@@ -1,8 +1,8 @@
 import os
 import shutil
 
-from deft.locations import MODELS_PATH
-from deft.download import download_models, get_available_models, \
+from adeft.locations import MODELS_PATH
+from adeft.download import download_models, get_available_models, \
     get_s3_models
 
 

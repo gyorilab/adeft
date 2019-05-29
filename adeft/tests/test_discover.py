@@ -1,4 +1,4 @@
-from deft.discover import DeftMiner
+from adeft.discover import DeftMiner
 
 
 example_text1 = ('The Integrated Network and Dynamical Reasoning Assembler'

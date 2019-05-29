@@ -8,8 +8,8 @@ before_install:
  - pip install nose coverage python-coveralls
 install:
  - pip install .
- - python -m deft.download
+ - python -m adeft.download
 script:
- - nosetests deft -v --with-coverage --cover-inclusive --cover-package=deft
+ - nosetests adeft -v --with-coverage --cover-inclusive --cover-package=adeft
 after_success:
  - coveralls

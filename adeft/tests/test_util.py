@@ -1,4 +1,4 @@
-from deft.util import get_candidate, get_candidate_fragments
+from adeft.util import get_candidate, get_candidate_fragments
 
 
 text1 = ('Integrated Network and Dynamical Reasoning Assembler'

@@ -1,7 +1,7 @@
 import re
 import string
 
-from deft.nlp import tokenize
+from adeft.nlp import tokenize
 
 
 def get_candidate_fragments(text, shortform, window=100):

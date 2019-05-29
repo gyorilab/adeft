@@ -31,7 +31,7 @@ class DeftClassifier(object):
 
     pos_labels: list of str
         Labels for positive classes. These correspond to the longforms of
-        interest in an application. For Deft pretrained models these are
+        interest in an application. For adeft pretrained models these are
         typically genes and other relevant biological terms.
 
     Attributes
@@ -233,7 +233,7 @@ def load_model(filepath):
 
     Returns
     -------
-    longform_model: py:class:`deft.deft.classify.DeftClassifier`
+    longform_model: py:class:`adeft.classify.DeftClassifier`
     """
     with gzip.GzipFile(filepath, 'r') as fin:
         json_bytes = fin.read()

@@ -1,6 +1,6 @@
-.. _deft_modules_ref:
+.. _adeft_modules_ref:
 
-Deft modules reference
+adeft modules reference
 ----------------------
 
 .. toctree::

@@ -4,8 +4,8 @@ import logging
 
 from nltk.stem.snowball import EnglishStemmer
 
-from deft.nlp import tokenize, untokenize
-from deft.util import get_candidate_fragments, get_candidate
+from adeft.nlp import tokenize, untokenize
+from adeft.util import get_candidate_fragments, get_candidate
 
 
 logger = logging.getLogger(__file__)
@@ -56,7 +56,7 @@ class DeftRecognizer(object):
 
     Attributes
     ----------
-    _trie : :py:class:`deft.recognizer.__TrieNode`
+    _trie : :py:class:`adeft.recognizer.__TrieNode`
         Trie used to search for longforms. Edges correspond to stemmed tokens
         from longforms. They appear in reverse order to the bottom of the trie
         with terminal nodes containing the associated longform in their data.
@@ -106,7 +106,7 @@ class DeftRecognizer(object):
 
         Returns
         -------
-        root : :py:class:`deft.recogize._TrieNode`
+        root : :py:class:`adeft.recogize._TrieNode`
             Root of search trie used to recognize longforms
         """
         root = _TrieNode()

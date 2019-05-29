@@ -1,4 +1,4 @@
-from deft.recognize import DeftRecognizer
+from adeft.recognize import DeftRecognizer
 
 
 class DeftCorpusBuilder(object):
@@ -12,7 +12,7 @@ class DeftCorpusBuilder(object):
 
     Attributes
     ----------
-    recognizers : list of py:class`deft.recognize.DeftRecognizer`
+    recognizers : list of py:class`adeft.recognize.DeftRecognizer`
         List of recognizers for each shortform to be considered. Each
         recognizer identifies longforms for a shortform by finding defining
         matches to a defining pattern (DP)

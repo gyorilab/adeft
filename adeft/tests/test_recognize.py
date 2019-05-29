@@ -1,7 +1,7 @@
 from nltk.stem.snowball import EnglishStemmer
 
-from deft.nlp import tokenize
-from deft.recognize import DeftRecognizer
+from adeft.nlp import tokenize
+from adeft.recognize import DeftRecognizer
 
 _stemmer = EnglishStemmer()
 

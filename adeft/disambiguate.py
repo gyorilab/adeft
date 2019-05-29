@@ -2,10 +2,10 @@ import os
 import json
 import logging
 
-from deft.locations import MODELS_PATH
-from deft.recognize import DeftRecognizer
-from deft.modeling.classify import load_model
-from deft.download import get_available_models
+from adeft.locations import MODELS_PATH
+from adeft.recognize import DeftRecognizer
+from adeft.modeling.classify import load_model
+from adeft.download import get_available_models
 
 logger = logging.getLogger(__file__)
 
@@ -15,7 +15,7 @@ class DeftDisambiguator(object):
 
     Parameters
     ----------
-    classifier :  py:class:`deft.modeling.classify.DeftClassifier`
+    classifier :  py:class:`adeft.modeling.classify.DeftClassifier`
        machine learning model for disambiguating shortforms based upon context
 
     grounding_dict : dict
@@ -30,7 +30,7 @@ class DeftDisambiguator(object):
     shortform : str
         shortform to disambiguate
 
-    recognizer : py:class:`deft.recognize.DeftRecognizer`
+    recognizer : py:class:`adeft.recognize.DeftRecognizer`
         recognizer to disambiguate by searching for a defining pattern
 
     labels : set

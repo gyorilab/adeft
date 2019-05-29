@@ -4,7 +4,7 @@ import wget
 import logging
 import requests
 
-from deft.locations import MODELS_PATH, S3_BUCKET_URL
+from adeft.locations import MODELS_PATH, S3_BUCKET_URL
 
 
 logger = logging.getLogger(__file__)
@@ -13,11 +13,14 @@ logger = logging.getLogger(__file__)
 def download_models(update=False, models=None):
     """Download models from S3
 
-    Models are downloaded and placed into the models directory within deft.
-    Each model contains a serialized deft classifier, a dictionary mapping
-    longform texts to groundings, and a list of canonical names for each
-    grounding. Within the models directory, models are stored in subdirectories
-    named after the shortform they disambiguate.
+    Models are downloaded and placed into a models directory in the users
+    home directory. Each model contains a serialized DeftClassifier,
+    a dictionary mapping shortforms to dictionaries mapping longform texts to
+    groundings, and a list of canonical names for each grounding.
+    Within the models directory, models are stored in subdirectories named
+    after the shortform they disambiguate with escape characters used to
+    handle characters that cannot be used in filenames and to distinguish
+    upper and lower case for compatibility with case insensitive file systems.
 
     Parameters
     ---------
