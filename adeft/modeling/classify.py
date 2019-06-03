@@ -3,6 +3,7 @@ import json
 import logging
 import warnings
 import numpy as np
+from collections import Counter
 
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
@@ -26,29 +27,28 @@ class DeftClassifier(object):
 
     Parameters
     ----------
-    shortform: str
+    shortform : str
         Shortform to disambiguate
 
-    pos_labels: list of str
+    pos_labels : list of str
         Labels for positive classes. These correspond to the longforms of
         interest in an application. For adeft pretrained models these are
         typically genes and other relevant biological terms.
 
     Attributes
     ----------
-    estimator: py:class:`sklearn.pipeline.Pipeline`
+    estimator : py:class:`sklearn.pipeline.Pipeline`
         An sklearn pipeline that transforms text data with a TfidfVectorizer
         and fits a logistic regression.
 
-    f1_score: float
-       Crossvalidated f1 score of classifier on training data if fit with
-       the cv method. For multiclass problems takes the average f1 score for
-       all positive labels weighted by the number of datapoints with each
-       label.
+    stats : str
+       Statistics describing model performance. Only available after model is
+       fit with crossvalidation
     """
     def __init__(self, shortforms, pos_labels):
         self.shortforms = shortforms
         self.pos_labels = pos_labels
+        self.stats = None
 
     def train(self, texts, y, C=1.0, ngram_range=(1, 2), max_features=1000):
         """Fits a disambiguation model
@@ -176,9 +176,21 @@ class DeftClassifier(object):
         logger.info('Best f1 score of %s found for' % grid_search.best_score_
                     + ' parameter values:\n%s' % grid_search.best_params_)
 
+        cv = grid_search.cv_results_
+        best_index = cv['rank_test_f1'][0] - 1
+        labels = dict(Counter(y))
+        stats = {'label_distribution': labels,
+                 'f1': {'mean': cv['mean_test_f1'][best_index],
+                        'std': cv['std_test_f1'][best_index]},
+                 'precision': {'mean': cv['mean_test_pr'][best_index],
+                               'std': cv['std_test_pr'][best_index]},
+                 'recall': {'mean': cv['mean_test_rc'][best_index],
+                            'std': cv['std_test_rc'][best_index]}}
+
         self.estimator = grid_search.best_estimator_
         self.best_score = grid_search.best_score_
         self.grid_search = grid_search
+        self.stats = stats
 
     def predict_proba(self, texts):
         """Predict class probabilities for a list-like of texts"""
@@ -217,6 +229,9 @@ class DeftClassifier(object):
                                 'ngram_range': ngram_range},
                       'shortforms': self.shortforms,
                       'pos_labels': self.pos_labels}
+        # Add model statistics if they are available
+        if hasattr(self, 'stats') and self.stats:
+            model_info['stats'] = self.stats
         json_str = json.dumps(model_info)
         json_bytes = json_str.encode('utf-8')
         with gzip.GzipFile(filepath, 'w') as fout:
@@ -259,4 +274,7 @@ def load_model(filepath):
     estimator = Pipeline([('tfidf', tfidf),
                           ('logit', logit)])
     longform_model.estimator = estimator
+    # Load model statistics if they are available
+    if 'stats' in model_info:
+        longform_model.stats = model_info['stats']
     return longform_model
