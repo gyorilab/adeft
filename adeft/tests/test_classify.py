@@ -2,6 +2,7 @@ import os
 import uuid
 import json
 import numpy as np
+from collections import Counter
 from nose.plugins.attrib import attr
 from sklearn.metrics import f1_score
 
@@ -46,6 +47,8 @@ def test_cv_multiclass():
     labels = data['labels']
     classifier.cv(texts, labels, param_grid=params, cv=2)
     assert classifier.best_score > 0.5
+    assert classifier.stats['label_distribution'] == dict(Counter(labels))
+    assert classifier.stats['precision']['mean'] > 0.5
 
 
 @attr('slow')
@@ -58,6 +61,8 @@ def test_cv_binary():
     classifier = DeftClassifier(['IR'], ['HGNC:6091'])
     classifier.cv(texts, labels, param_grid=params, cv=2)
     assert classifier.best_score > 0.5
+    assert classifier.stats['label_distribution'] == dict(Counter(labels))
+    assert classifier.stats['precision']['mean'] > 0.5
 
 
 def test_serialize():
