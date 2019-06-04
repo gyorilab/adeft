@@ -129,6 +129,49 @@ class DeftDisambiguator(object):
                 pred_index += 1
         return result
 
+    def info(self):
+        """Get information about disambiguator and its performance."""
+        if len(self.shortforms) > 1:
+            readable_shortforms = (','.join(self.shortforms[:-1]) + ', and ' +
+                                   self.shortforms[-1])
+        else:
+            readable_shortforms = self.shortforms[0]
+        output = 'Disambiguation model for %s\n\n' % readable_shortforms
+        output += 'Produces the disambiguations:\n'
+        for grounding, name in self.names.items():
+            pos = '*' if grounding in self.pos_labels else ''
+            output += '\t%s%s\t%s\n' % (name, pos, grounding)
+        output += '\n'
+        if not (hasattr(self.classifier, 'stats') and self.classifier.stats):
+            output += 'Model statistics are not available.'
+            return output
+
+        model_stats = self.classifier.stats
+        output += 'Training data had class balance:\n'
+        label_distribution = model_stats['label_distribution']
+        for grounding, count in sorted(label_distribution.items(),
+                                       key=lambda x: - x[1]):
+            name = (self.names[grounding]
+                    if grounding in self.names else 'Ungrounded')
+            pos = '*' if grounding in self.pos_labels else ''
+            output += '\t%s%s\t%s\n' % (name, pos, count)
+        output += '\n'
+        output += 'Classification Metrics:\n'
+        f1 = round(model_stats['f1']['mean'], 5)
+        output += '\tF1 score:\t%s\n' % f1
+
+        precision = round(model_stats['precision']['mean'], 5)
+        output += '\tPrecision:\t%s\n' % precision
+
+        recall = round(model_stats['recall']['mean'], 5)
+        output += '\tRecall:\t\t%s\n' % recall
+        output += '\n'
+
+        output += 'Weighted average of metrics over positive labels.\n'
+        output += 'Weighted by number of datapoints for each positive label.\n'
+        output += 'Positive labels denoted with * in above lists.\n'
+        return output
+
 
 def load_disambiguator(shortform, models_path=MODELS_PATH):
     """Returns deft disambiguator loaded from models directory
