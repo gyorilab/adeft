@@ -63,8 +63,8 @@ class DeftDisambiguator(object):
 
         Parameters
         ----------
-        texts : list of str
-            fulltexts to disambiguate shortform
+        texts : str or list of str
+            fulltext or list of fulltexts in which to disambiguate shortform
 
         Returns
         -------
@@ -74,6 +74,9 @@ class DeftDisambiguator(object):
             a canonical name associated with the grounding, and a dictionary
             containing predicted probabilities for each possible grounding
         """
+        # Handle case where a single string is passed
+        if isinstance(texts, str):
+            return self.disambiguate([texts])
         # First disambiguate based on searching for defining patterns
         groundings = []
         for text in texts:
