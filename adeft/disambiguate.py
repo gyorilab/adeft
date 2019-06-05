@@ -177,9 +177,7 @@ class DeftDisambiguator(object):
         output += '\tRecall:\t\t%s\n' % recall
         output += '\n'
 
-        output += 'Weighted average of metrics over positive labels.\n'
-        output += 'Weighted by number of datapoints for each positive label.\n'
-        output += 'Positive labels denoted with * in above lists.\n'
+        output += 'See Docstring for explanation of metrics.\n'
         return output
 
 
