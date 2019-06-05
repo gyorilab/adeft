@@ -130,7 +130,17 @@ class DeftDisambiguator(object):
         return result
 
     def info(self):
-        """Get information about disambiguator and its performance."""
+        """Get information about disambiguator and its performance.
+
+        Displays disambiguations model is able to produce. Shows class
+        balance of disambiguation labels in the models training data and
+        crossvalidated F1 score, precision, and recall on training data.
+        Classification metrics are given by the weighted average of these
+        metrics over positive labels, weighted by number of examples in
+        each class in test data. Positive labels are appended with *s in
+        the displayed info. Classification metrics may not be available
+        depending upon how model was trained.
+        """
         if len(self.shortforms) > 1:
             readable_shortforms = (','.join(self.shortforms[:-1]) + ', and ' +
                                    self.shortforms[-1])
