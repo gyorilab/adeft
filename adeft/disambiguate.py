@@ -76,7 +76,7 @@ class DeftDisambiguator(object):
         """
         # Handle case where a single string is passed
         if isinstance(texts, str):
-            return self.disambiguate([texts])
+            return self.disambiguate([texts])[0]
         # First disambiguate based on searching for defining patterns
         groundings = []
         for text in texts:
