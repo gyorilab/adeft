@@ -177,7 +177,8 @@ class DeftDisambiguator(object):
         output += '\tRecall:\t\t%s\n' % recall
         output += '\n'
 
-        output += 'See Docstring for explanation of metrics.\n'
+        output += '* Positive labels\n'
+        output += 'See Docstring for explanation\n'
         return output
 
 
