@@ -1,5 +1,5 @@
 import re
-import string
+from unicodedata import category
 
 from adeft.nlp import tokenize
 
@@ -54,7 +54,7 @@ def get_candidate(fragment, exclude=None):
         exclude = set()
     tokens = [token.lower() for token, _
               in tokenize(fragment)
-              if token not in string.punctuation]
+              if len(token) > 1 or not category(token).startswith('P')]
     index = len(tokens)
     # Take only tokens from end up to but not including the last
     # excluded in the fragment
