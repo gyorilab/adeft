@@ -1,8 +1,8 @@
 from adeft.recognize import DeftRecognizer
 
 
-class DeftCorpusBuilder(object):
-    """Class for generating corpora
+class DeftLabeler(object):
+    """Class for labeling corpora
 
     Parameters
     ----------
@@ -24,7 +24,9 @@ class DeftCorpusBuilder(object):
                             in grounding_dict.items()]
 
     def build_from_texts(self, texts):
-        """Build corpus from a list of texts
+        """Build labeled corpus from a list of texts
+
+        Labels texts based on defining patterns (DPs)
 
         Parameters
         ----------
