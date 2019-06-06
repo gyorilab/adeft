@@ -111,7 +111,7 @@ class _TrieNode(object):
         self.score -= self.sum_ft2/self.sum_ft
 
 
-class DeftMiner(object):
+class AdeftMiner(object):
     """Finds possible longforms corresponding to an abbreviation in a text corpus
 
     Makes use of the `Acromine <http://www.chokkan.org/research/acromine/>`_

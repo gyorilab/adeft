@@ -3,19 +3,19 @@ import json
 import logging
 
 from adeft.locations import MODELS_PATH
-from adeft.recognize import DeftRecognizer
+from adeft.recognize import AdeftRecognizer
 from adeft.modeling.classify import load_model
 from adeft.download import get_available_models
 
 logger = logging.getLogger(__file__)
 
 
-class DeftDisambiguator(object):
+class AdeftDisambiguator(object):
     """Disambiguates a particular shortform in a list of texts
 
     Parameters
     ----------
-    classifier :  py:class:`adeft.modeling.classify.DeftClassifier`
+    classifier :  py:class:`adeft.modeling.classify.AdeftClassifier`
        machine learning model for disambiguating shortforms based upon context
 
     grounding_dict : dict
@@ -30,7 +30,7 @@ class DeftDisambiguator(object):
     shortform : str
         shortform to disambiguate
 
-    recognizer : py:class:`adeft.recognize.DeftRecognizer`
+    recognizer : py:class:`adeft.recognize.AdeftRecognizer`
         recognizer to disambiguate by searching for a defining pattern
 
     labels : set
@@ -39,8 +39,8 @@ class DeftDisambiguator(object):
     def __init__(self, classifier, grounding_dict, names):
         self.classifier = classifier
         self.shortforms = classifier.shortforms
-        self.recognizers = [DeftRecognizer(shortform,
-                                           grounding_map)
+        self.recognizers = [AdeftRecognizer(shortform,
+                                            grounding_map)
                             for shortform,
                             grounding_map in grounding_dict.items()]
         self.names = names
@@ -193,6 +193,10 @@ def load_disambiguator(shortform, models_path=MODELS_PATH):
         Path to models directory. Defaults to deft's pretrained models.
         Users have the option to specify a path to another directory to use
         custom models.
+
+    Returns
+    -------
+    py:class:`adeft.disambiguate.AdeftDisambiguator`
     """
     available = get_available_models()
     try:
@@ -209,4 +213,4 @@ def load_disambiguator(shortform, models_path=MODELS_PATH):
     with open(os.path.join(models_path, model_name,
                            model_name + '_names.json')) as f:
         names = json.load(f)
-    return DeftDisambiguator(model, grounding_dict, names)
+    return AdeftDisambiguator(model, grounding_dict, names)

@@ -3,7 +3,7 @@ import json
 
 from adeft.locations import MODELS_PATH
 from adeft.modeling.classify import load_model
-from adeft.disambiguate import DeftDisambiguator, load_disambiguator
+from adeft.disambiguate import AdeftDisambiguator, load_disambiguator
 
 example1 = ('The insulin receptor (IR) is a transmembrane receptor that'
             ' is activated by insulin, IGF-I, IGF-II and belongs to the large'
@@ -21,10 +21,10 @@ example3 = ('IR is a transmembrane receptor that is activated by insulin,'
 
 
 def test_load_disambiguator():
-    dd_test = load_disambiguator('__TEST')
-    assert dd_test.shortforms == ['IR']
-    assert hasattr(dd_test, 'classifier')
-    assert hasattr(dd_test, 'recognizers')
+    ad = load_disambiguator('__TEST')
+    assert ad.shortforms == ['IR']
+    assert hasattr(ad, 'classifier')
+    assert hasattr(ad, 'recognizers')
 
 
 def test_disambiguate():
@@ -36,21 +36,21 @@ def test_disambiguate():
     with open(os.path.join(MODELS_PATH, '__TEST', '__TEST_names.json')) as f:
         names = json.load(f)
 
-    dd = DeftDisambiguator(test_model, grounding_dict, names)
+    ad = AdeftDisambiguator(test_model, grounding_dict, names)
     # case where there is a unique defining pattern
-    disamb1 = dd.disambiguate([example1])[0]
+    disamb1 = ad.disambiguate([example1])[0]
     assert disamb1[0] == 'HGNC:6091'
     assert disamb1[1] == 'INSR'
     assert disamb1[2] == {'HGNC:6091': 1.0, 'MESH:D011839': 0.0,
                           'ungrounded': 0.0}
 
     # case where there are conflicting defining patterns
-    disamb2 = dd.disambiguate([example2])[0]
+    disamb2 = ad.disambiguate([example2])[0]
     preds = disamb2[2]
     nonzero = {key for key, value in preds.items() if value > 0.0}
     assert nonzero == {'HGNC:6091', 'ungrounded'}
 
     # case without a defining pattern
-    disamb3 = dd.disambiguate([example3])[0]
+    disamb3 = ad.disambiguate([example3])[0]
     assert disamb3[0] == 'HGNC:6091'
     assert disamb3[1] == 'INSR'

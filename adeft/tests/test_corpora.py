@@ -1,4 +1,4 @@
-from adeft.modeling.label import DeftLabeler
+from adeft.modeling.label import AdeftLabeler
 
 
 # content for single shortform corpus building
@@ -100,7 +100,7 @@ result_corpus2 = [(result[0], label) for result in [(result5, labels5),
 
 
 def test__process_text():
-    labeler = DeftLabeler({'INDRA': longforms})
+    labeler = AdeftLabeler({'INDRA': longforms})
 
     for text, result, labels in [(text1, result1, labels1),
                                  (text2, result2, labels2),
@@ -114,7 +114,7 @@ def test__process_text():
 
 
 def test__process_text_multiple():
-    labeler = DeftLabeler({'NP': groundings1, 'NPs': groundings2})
+    labeler = AdeftLabeler({'NP': groundings1, 'NPs': groundings2})
     for text, result, labels in [(text5, result5, labels5),
                                  (text6, result6, labels6),
                                  (text7, result7, labels7)]:
@@ -125,12 +125,12 @@ def test__process_text_multiple():
 
 
 def test_build_from_texts():
-    labeler = DeftLabeler({'INDRA': longforms})
+    labeler = AdeftLabeler({'INDRA': longforms})
     corpus = labeler.build_from_texts([text1, text2, text3, text4])
     assert set(corpus) == set(result_corpus)
 
 
 def test__build_from_texts_multiple():
-    labeler = DeftLabeler({'NP': groundings1, 'NPs': groundings2})
+    labeler = AdeftLabeler({'NP': groundings1, 'NPs': groundings2})
     corpus = labeler.build_from_texts([text5, text6, text7])
     assert set(corpus) == set(result_corpus2)

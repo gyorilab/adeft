@@ -18,7 +18,7 @@ warnings.filterwarnings("ignore", category=ConvergenceWarning)
 logger = logging.getLogger(__file__)
 
 
-class DeftClassifier(object):
+class AdeftClassifier(object):
     """Trains classifiers to disambiguate shortforms based on context
 
     Fits logistic regression models with tfidf vectorized ngram features.
@@ -252,7 +252,7 @@ def load_model(filepath):
 
     Returns
     -------
-    longform_model: py:class:`adeft.classify.DeftClassifier`
+    longform_model: py:class:`adeft.classify.AdeftClassifier`
     """
     with gzip.GzipFile(filepath, 'r') as fin:
         json_bytes = fin.read()
@@ -262,8 +262,8 @@ def load_model(filepath):
     shortforms = model_info['shortforms']
     pos_labels = model_info['pos_labels']
 
-    longform_model = DeftClassifier(shortforms=shortforms,
-                                    pos_labels=pos_labels)
+    longform_model = AdeftClassifier(shortforms=shortforms,
+                                     pos_labels=pos_labels)
     ngram_range = model_info['tfidf']['ngram_range']
     tfidf = TfidfVectorizer(ngram_range=ngram_range)
     logit = LogisticRegression()

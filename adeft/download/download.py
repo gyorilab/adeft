@@ -14,7 +14,7 @@ def download_models(update=False, models=None):
     """Download models from S3
 
     Models are downloaded and placed into a models directory in the users
-    home directory. Each model contains a serialized DeftClassifier,
+    home directory. Each model contains a serialized AdeftClassifier,
     a dictionary mapping shortforms to dictionaries mapping longform texts to
     groundings, and a list of canonical names for each grounding.
     Within the models directory, models are stored in subdirectories named

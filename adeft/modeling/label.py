@@ -1,7 +1,7 @@
-from adeft.recognize import DeftRecognizer
+from adeft.recognize import AdeftRecognizer
 
 
-class DeftLabeler(object):
+class AdeftLabeler(object):
     """Class for labeling corpora
 
     Parameters
@@ -12,14 +12,14 @@ class DeftLabeler(object):
 
     Attributes
     ----------
-    recognizers : list of py:class`adeft.recognize.DeftRecognizer`
+    recognizers : list of py:class`adeft.recognize.AdeftRecognizer`
         List of recognizers for each shortform to be considered. Each
         recognizer identifies longforms for a shortform by finding defining
         matches to a defining pattern (DP)
     """
     def __init__(self, grounding_dict):
         self.grounding_dict = grounding_dict
-        self.recognizers = [DeftRecognizer(shortform, grounding_map)
+        self.recognizers = [AdeftRecognizer(shortform, grounding_map)
                             for shortform, grounding_map
                             in grounding_dict.items()]
 

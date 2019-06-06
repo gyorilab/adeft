@@ -1,4 +1,4 @@
-from adeft.discover import DeftMiner
+from adeft.discover import AdeftMiner
 
 
 example_text1 = ('The Integrated Network and Dynamical Reasoning Assembler'
@@ -34,24 +34,24 @@ def test_add():
     original maximal candidate and check that likelihood has been updated
     correctly.
     """
-    dm = DeftMiner('INDRA')
+    miner = AdeftMiner('INDRA')
     candidate = ['the', 'integrated', 'network', 'and',
                  'dynamical', 'reasoning', 'assembler']
-    dm._add(candidate)
+    miner._add(candidate)
     stemmed = ['assembl', 'reason', 'dynam', 'and',
                'network', 'integr', 'the']
     counts = [1]*7
     penalty = [1]*6 + [0]
-    current = dm._internal_trie
+    current = miner._internal_trie
     for penalty, token in zip(penalty, stemmed):
         assert token in current.children
         score = 1 - penalty
         assert current.children[token].score == score
         current = current.children[token]
-    dm._add(candidate[1:])
+    miner._add(candidate[1:])
     counts = [2]*6 + [1]
     penalty = [2]*5 + [1, 0]
-    current = dm._internal_trie
+    current = miner._internal_trie
     for count, penalty, token in zip(counts, penalty, stemmed):
         assert token in current.children
         score = count - penalty
@@ -62,37 +62,37 @@ def test_add():
 def test_process_texts():
     """Test processing of texts
     """
-    dm = DeftMiner('INDRA')
-    dm.process_texts([example_text1, example_text2,
+    miner = AdeftMiner('INDRA')
+    miner.process_texts([example_text1, example_text2,
                       example_text3, example_text4])
-    assert dm.top()[0] == ('indonesian debt restructuring agency', 1.0)
-    assert dm.top()[3] == ('integrated network and dynamical'
+    assert miner.top()[0] == ('indonesian debt restructuring agency', 1.0)
+    assert miner.top()[3] == ('integrated network and dynamical'
                            ' reasoning assembler', 1.0)
-    assert dm.top()[7] == ('reasoning assembler', 0.0)
+    assert miner.top()[7] == ('reasoning assembler', 0.0)
 
     # check that top works with limit
-    assert dm.top(limit=5) == dm.top()[0:5]
+    assert miner.top(limit=5) == miner.top()[0:5]
 
 
 def test_process_with_exclude():
     """Test processing of texts with excluded words"""
-    dm = DeftMiner('INDRA', exclude='and')
-    dm.process_texts([example_text1, example_text2,
+    miner = AdeftMiner('INDRA', exclude='and')
+    miner.process_texts([example_text1, example_text2,
                       example_text3, example_text4])
-    assert dm.top()[0] == ('dynamical reasoning assembler', 2.0)
-    assert dm.top()[1] == ('indonesian debt restructuring agency', 1.0)
+    assert miner.top()[0] == ('dynamical reasoning assembler', 2.0)
+    assert miner.top()[1] == ('indonesian debt restructuring agency', 1.0)
 
 
 def test_get_longforms():
     """Test breadth first search algorithm to extract longforms
     """
-    dm = DeftMiner('INDRA')
+    miner = AdeftMiner('INDRA')
     # ensure list of longforms is initialized correctly
-    assert dm.top() == []
+    assert miner.top() == []
 
-    dm.process_texts([example_text1, example_text2,
+    miner.process_texts([example_text1, example_text2,
                       example_text3, example_text4])
-    longforms = dm.get_longforms(cutoff=0.5)
+    longforms = miner.get_longforms(cutoff=0.5)
     assert(len(longforms) == 2)
     assert longforms[0] == ('indonesian debt restructuring agency', 1.0)
     assert longforms[1] == ('integrated network and dynamical'

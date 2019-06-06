@@ -7,7 +7,7 @@ from nose.plugins.attrib import attr
 from sklearn.metrics import f1_score
 
 from adeft.locations import MODELS_PATH
-from adeft.modeling.classify import DeftClassifier, load_model
+from adeft.modeling.classify import AdeftClassifier, load_model
 from adeft.download import get_available_models, download_models
 
 # Get test path so we can write a temporary file here
@@ -28,7 +28,7 @@ def test_train():
     params = {'C': 1.0,
               'ngram_range': (1, 2),
               'max_features': 1000}
-    classifier = DeftClassifier(['IR'], ['HGNC:6091', 'MESH:D011839'])
+    classifier = AdeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'])
     texts = data['texts']
     labels = data['labels']
     classifier.train(texts, labels, **params)
@@ -42,7 +42,7 @@ def test_train():
 def test_cv_multiclass():
     params = {'C': [1.0],
               'max_features': [1000]}
-    classifier = DeftClassifier(['IR'], ['HGNC:6091', 'MESH:D011839'])
+    classifier = AdeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'])
     texts = data['texts']
     labels = data['labels']
     classifier.cv(texts, labels, param_grid=params, cv=2)
@@ -58,7 +58,7 @@ def test_cv_binary():
     texts = data['texts']
     labels = [label if label == 'HGNC:6091' else 'ungrounded'
               for label in data['labels']]
-    classifier = DeftClassifier(['IR'], ['HGNC:6091'])
+    classifier = AdeftClassifier('IR', ['HGNC:6091'])
     classifier.cv(texts, labels, param_grid=params, cv=2)
     assert classifier.best_score > 0.5
     assert classifier.stats['label_distribution'] == dict(Counter(labels))

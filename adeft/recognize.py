@@ -31,7 +31,7 @@ class _TrieNode(object):
         self.children = {}
 
 
-class DeftRecognizer(object):
+class AdeftRecognizer(object):
     """Class for recognizing longforms by searching for defining patterns (DP)
 
     Searches text for the pattern "<longform> (<shortform>)" for a collection
@@ -48,7 +48,7 @@ class DeftRecognizer(object):
     window : Optional[int]
         Specifies range of characters before a defining pattern (DP)
         to consider when finding longforms. Should be set to the same value
-        that was used in the DeftLongformMiner that was used to find longforms.
+        that was used in the AdeftMiner that was used to find longforms.
         Default: 100
     exclude : Optional[set]
         set of tokens to ignore when searching for longforms.
@@ -56,7 +56,7 @@ class DeftRecognizer(object):
 
     Attributes
     ----------
-    _trie : :py:class:`adeft.recognizer.__TrieNode`
+    _trie : :py:class:`adeft.recognize._TrieNode`
         Trie used to search for longforms. Edges correspond to stemmed tokens
         from longforms. They appear in reverse order to the bottom of the trie
         with terminal nodes containing the associated longform in their data.
