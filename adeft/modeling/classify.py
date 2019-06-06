@@ -27,8 +27,9 @@ class DeftClassifier(object):
 
     Parameters
     ----------
-    shortform : str
-        Shortform to disambiguate
+    shortform : str | list of str
+        Shortform to disambiguate or list of shortforms to build models
+        for multiple synomous shortforms
 
     pos_labels : list of str
         Labels for positive classes. These correspond to the longforms of
@@ -46,6 +47,9 @@ class DeftClassifier(object):
        fit with crossvalidation
     """
     def __init__(self, shortforms, pos_labels):
+        # handle case where single string is passed
+        if isinstance(shortforms, str):
+            shortforms = [shortforms]
         self.shortforms = shortforms
         self.pos_labels = pos_labels
         self.stats = None
