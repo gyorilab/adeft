@@ -267,7 +267,7 @@ def load_model(filepath):
     ngram_range = model_info['tfidf']['ngram_range']
     tfidf = TfidfVectorizer(ngram_range=ngram_range,
                             stop_words='english')
-    logit = LogisticRegression()
+    logit = LogisticRegression(multi_class='auto')
 
     tfidf.vocabulary_ = model_info['tfidf']['vocabulary_']
     tfidf.idf_ = model_info['tfidf']['idf_']
