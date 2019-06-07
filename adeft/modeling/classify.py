@@ -265,7 +265,8 @@ def load_model(filepath):
     longform_model = AdeftClassifier(shortforms=shortforms,
                                      pos_labels=pos_labels)
     ngram_range = model_info['tfidf']['ngram_range']
-    tfidf = TfidfVectorizer(ngram_range=ngram_range)
+    tfidf = TfidfVectorizer(ngram_range=ngram_range,
+                            stop_words='english')
     logit = LogisticRegression()
 
     tfidf.vocabulary_ = model_info['tfidf']['vocabulary_']
