@@ -1,0 +1,43 @@
+tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+td.score {
+    padding-left: 15px;
+    text-align: right;
+}
+
+.pad {
+    text-align: center;
+    padding-left: 40px;
+    padding-right: 40px;
+}
+
+td.blank {
+    background-color: #FFFFFF;
+}
+
+td.positive {
+    background-color: #89C4F4;
+}
+
+td.filled {
+    border: 3px solid #808080;
+    border-collapse: collapse;
+}
+
+td.labels-head {
+    text-align: center;
+}
+
+div.click-grounded {
+    cursor: pointer;
+}
+
+.delete {
+    cursor: pointer;
+}
+
+input[type=checkbox] {
+    transform: scale(1.5);
+}
