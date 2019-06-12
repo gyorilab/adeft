@@ -129,6 +129,33 @@ class AdeftDisambiguator(object):
                 pred_index += 1
         return result
 
+    def dump(self, model_name, path):
+        """Save disambiguator to disk
+
+        Parameters
+        ----------
+        model_name : str
+            Model files will be saved in directory with this name.
+
+        path : str
+            Folder where model is to be stored
+        """
+        grounding_dict = self.grounding_dict
+        names = self.names
+        classifier = self.classifier
+        # Create model directory is it does not already exist
+        if not os.path.exists(os.path.join(path, model_name)):
+            os.mkdir(model_name)
+
+        classifier.dump_model(os.path.join(path, model_name,
+                                           '%s_model.gz' % model_name))
+        with open(os.path.join(path, model_name,
+                               '%s_grounding_dict.json'), 'w') as f:
+            json.dump(grounding_dict, f)
+
+        with open(os.path.join(path, model_name, '%s_names.json'), 'w') as f:
+            json.dump(names, f)
+
     def info(self):
         """Get information about disambiguator and its performance.
 
