@@ -129,7 +129,7 @@ class AdeftDisambiguator(object):
                 pred_index += 1
         return result
 
-    def dump(self, model_name, path):
+    def dump(self, model_name, path=None):
         """Save disambiguator to disk
 
         Parameters
@@ -137,9 +137,13 @@ class AdeftDisambiguator(object):
         model_name : str
             Model files will be saved in directory with this name.
 
-        path : str
-            Folder where model is to be stored
+        path : Optional[str]
+            Path to where model is to be stored. Defaults to current directory.
+            Default: None
         """
+        if path is None:
+            path = os.getcwd()
+
         grounding_dict = self.grounding_dict
         names = self.names
         classifier = self.classifier
