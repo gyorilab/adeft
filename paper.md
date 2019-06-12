@@ -9,10 +9,10 @@ tags:
   - Acromine
 authors:
   - name: Albert Steppi
-    orcid: 
+    orcid: 0000-0001-5871-6245
     affiliation: 1
   - name: Benjamin M. Gyori
-    orcid: 0000-0000-0000-0000
+    orcid: 0000-0001-9439-5346
     affiliation: 1
   - name: John A. Bachman
     orcid: 0000-0001-6095-2466
