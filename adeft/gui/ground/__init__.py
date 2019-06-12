@@ -7,7 +7,7 @@ from flask import Flask, session, render_template
 def create_app(longforms, scores,
                grounding_map, names_map, pos_labels, outpath,
                verbose, port):
-    """Create and configure grounding assistant appear.
+    """Create and configure grounding assistant app.
 
     Takes same arguments as adeft.gui.ground_with_gui.
     """
