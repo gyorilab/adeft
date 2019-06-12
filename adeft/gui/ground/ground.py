@@ -69,7 +69,7 @@ def add_positive():
 
 @bp.route('/ground_generate', methods=['POST'])
 def generate_grounding_map():
-    longforms = session['longforms']
+    longforms = current_app.config['LONGFORMS']
     names = session['names']
     groundings = session['groundings']
     pos_labels = session['pos_labels']
@@ -85,4 +85,5 @@ def generate_grounding_map():
               'pos_labels': pos_labels}
     with open(os.path.join(outpath, 'output.json'), 'w') as f:
         json.dump(output, f)
+
     return "Groundings Submitted."
