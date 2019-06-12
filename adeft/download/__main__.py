@@ -1,7 +1,7 @@
 import os
 import argparse
 
-from adeft.locations import MODELS_PATH
+from adeft.locations import ADEFT_MODELS_PATH
 from adeft.download import download_models
 
 """
@@ -17,7 +17,7 @@ parser.add_argument('--update', action='store_true',
                     help='Update existing models if they have changed on S3')
 args = parser.parse_args()
 
-if not os.path.exists(MODELS_PATH):
-    os.makedirs(MODELS_PATH)
+if not os.path.exists(ADEFT_MODELS_PATH):
+    os.makedirs(ADEFT_MODELS_PATH)
 
 download_models(update=args.update)

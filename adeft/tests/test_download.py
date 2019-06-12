@@ -1,7 +1,7 @@
 import os
 import shutil
 
-from adeft.locations import MODELS_PATH
+from adeft.locations import ADEFT_MODELS_PATH
 from adeft.download import download_models, get_available_models, \
     get_s3_models
 
@@ -15,7 +15,7 @@ def test_get_s3_models():
 def test_download_models():
     """Test downloading of models from S3"""
     # Remove test models folder if it exists
-    test_model_folder = os.path.join(MODELS_PATH, '__TEST')
+    test_model_folder = os.path.join(ADEFT_MODELS_PATH, '__TEST')
     if os.path.isdir(test_model_folder):
         shutil.rmtree(test_model_folder)
     assert '__TEST' not in get_available_models()

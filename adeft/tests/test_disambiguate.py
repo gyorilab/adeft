@@ -1,7 +1,7 @@
 import os
 import json
 
-from adeft.locations import MODELS_PATH
+from adeft.locations import ADEFT_MODELS_PATH
 from adeft.modeling.classify import load_model
 from adeft.disambiguate import AdeftDisambiguator, load_disambiguator
 
@@ -28,12 +28,13 @@ def test_load_disambiguator():
 
 
 def test_disambiguate():
-    test_model = load_model(os.path.join(MODELS_PATH, '__TEST',
+    test_model = load_model(os.path.join(ADEFT_MODELS_PATH, '__TEST',
                                          '__TEST_model.gz'))
-    with open(os.path.join(MODELS_PATH, '__TEST',
+    with open(os.path.join(ADEFT_MODELS_PATH, '__TEST',
                            '__TEST_grounding_dict.json')) as f:
         grounding_dict = json.load(f)
-    with open(os.path.join(MODELS_PATH, '__TEST', '__TEST_names.json')) as f:
+    with open(os.path.join(ADEFT_MODELS_PATH,
+                           '__TEST', '__TEST_names.json')) as f:
         names = json.load(f)
 
     ad = AdeftDisambiguator(test_model, grounding_dict, names)

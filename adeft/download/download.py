@@ -4,7 +4,7 @@ import wget
 import logging
 import requests
 
-from adeft.locations import MODELS_PATH, S3_BUCKET_URL
+from adeft.locations import ADEFT_MODELS_PATH, S3_BUCKET_URL
 
 
 logger = logging.getLogger(__file__)
@@ -48,19 +48,19 @@ def download_models(update=False, models=None):
         if not update and model in downloaded_models:
             continue
         # create model directory if it does not currently exist
-        if not os.path.exists(os.path.join(MODELS_PATH, model)):
-            os.makedirs(os.path.join(MODELS_PATH, model))
+        if not os.path.exists(os.path.join(ADEFT_MODELS_PATH, model)):
+            os.makedirs(os.path.join(ADEFT_MODELS_PATH, model))
         for resource in (model + '_grounding_dict.json',
                          model + '_names.json',
                          model + '_model.gz'):
-            resource_path = os.path.join(MODELS_PATH, model, resource)
+            resource_path = os.path.join(ADEFT_MODELS_PATH, model, resource)
             # if resource already exists, remove it since wget will not
             # overwrite existing files, choosing a new name instead
             _remove_if_exists(resource_path)
             wget.download(url=os.path.join(S3_BUCKET_URL, model, resource),
                           out=resource_path)
         if model == '__TEST':
-            resource_path = os.path.join(MODELS_PATH, model,
+            resource_path = os.path.join(ADEFT_MODELS_PATH, model,
                                          'example_training_data.json')
             _remove_if_exists(resource_path)
             wget.download(url=os.path.join(S3_BUCKET_URL, model,
@@ -68,13 +68,13 @@ def download_models(update=False, models=None):
                           out=resource_path)
 
 
-def get_available_models(models_path=MODELS_PATH):
+def get_available_models(path=ADEFT_MODELS_PATH):
     """Returns set of all models currently in models folder"""
-    if not os.path.exists(models_path):
+    if not os.path.exists(path):
         return {}
     output = {}
-    for model in os.listdir(models_path):
-        model_path = os.path.join(models_path, model)
+    for model in os.listdir(path):
+        model_path = os.path.join(path, model)
         if os.path.isdir(model_path) and model != '__pycache__':
             if model == '__TEST':
                 output['__TEST'] = '__TEST'
@@ -84,7 +84,7 @@ def get_available_models(models_path=MODELS_PATH):
                 grounding_dict = json.load(f)
             for key, value in grounding_dict.items():
                 if key in output:
-                    logger.warning('Shortform %s has multiple deft models'
+                    logger.warning('Shortform %s has multiple adeft models'
                                    'This may lead to unexpected behavior'
                                    % key)
                 else:

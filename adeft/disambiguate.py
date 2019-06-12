@@ -2,7 +2,7 @@ import os
 import json
 import logging
 
-from adeft.locations import MODELS_PATH
+from adeft.locations import ADEFT_MODELS_PATH
 from adeft.recognize import AdeftRecognizer
 from adeft.modeling.classify import load_model
 from adeft.download import get_available_models
@@ -214,15 +214,15 @@ class AdeftDisambiguator(object):
         return output
 
 
-def load_disambiguator(shortform, models_path=MODELS_PATH):
+def load_disambiguator(shortform, path=ADEFT_MODELS_PATH):
     """Returns deft disambiguator loaded from models directory
 
     Parameters
     ----------
     model_name : str
         Model_Name to disambiguate
-    models_path : Optional[str]
-        Path to models directory. Defaults to deft's pretrained models.
+    path : Optional[str]
+        Path to models directory. Defaults to adeft's pretrained models.
         Users have the option to specify a path to another directory to use
         custom models.
 
@@ -237,12 +237,12 @@ def load_disambiguator(shortform, models_path=MODELS_PATH):
         logger.error('No model available for shortform %s' % shortform)
         return None
 
-    model = load_model(os.path.join(models_path, model_name,
+    model = load_model(os.path.join(path, model_name,
                                     model_name + '_model.gz'))
-    with open(os.path.join(models_path, model_name,
+    with open(os.path.join(path, model_name,
                            model_name + '_grounding_dict.json')) as f:
         grounding_dict = json.load(f)
-    with open(os.path.join(models_path, model_name,
+    with open(os.path.join(path, model_name,
                            model_name + '_names.json')) as f:
         names = json.load(f)
     return AdeftDisambiguator(model, grounding_dict, names)

@@ -6,7 +6,7 @@ from collections import Counter
 from nose.plugins.attrib import attr
 from sklearn.metrics import f1_score
 
-from adeft.locations import MODELS_PATH
+from adeft.locations import ADEFT_MODELS_PATH
 from adeft.modeling.classify import AdeftClassifier, load_model
 from adeft.download import get_available_models, download_models
 
@@ -16,7 +16,7 @@ TESTS_PATH = os.path.dirname(os.path.abspath(__file__))
 if 'TEST' not in get_available_models():
     download_models(models=['__TEST'])
 
-with open(os.path.join(MODELS_PATH, '__TEST',
+with open(os.path.join(ADEFT_MODELS_PATH, '__TEST',
                        'example_training_data.json'), 'r') as f:
     data = json.load(f)
 
@@ -70,7 +70,7 @@ def test_serialize():
     """
     texts = data['texts']
     temp_filename = os.path.join(TESTS_PATH, uuid.uuid4().hex)
-    classifier1 = load_model(os.path.join(MODELS_PATH, '__TEST',
+    classifier1 = load_model(os.path.join(ADEFT_MODELS_PATH, '__TEST',
                                           '__TEST_model.gz'))
     classifier1.dump_model(temp_filename)
 
