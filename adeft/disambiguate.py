@@ -43,6 +43,7 @@ class AdeftDisambiguator(object):
                                             grounding_map)
                             for shortform,
                             grounding_map in grounding_dict.items()]
+        self.grounding_dict = grounding_dict
         self.names = names
         self.labels = set(value for grounding_map in grounding_dict.values()
                           for value in grounding_map.values())
