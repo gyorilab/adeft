@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Adeft App</title>
+    <link rel="stylesheet" type="text/css" href="static/fix.css">
+  </head>
+  <body>
+    <h1><a href="{{ url_for('initialize') }}">Adeft Grounding Assistant</a></h1>
+    <table>
+      <tr>
+	<th>
+	  Name
+	</th>
+	<th>
+	  Grounding
+	</th>
+	<th>
+	  Example Longform
+	</th>
+	<th>
+	  New Name
+	</th>
+	<th>
+	  New Grounding
+	</th>
+      </tr>
+      {% for grounding, name, longform_list, _ in data %}
+	{% set index = loop.index - 1 %}
+      <tr>
+	<form action="{{ url_for('fix.change_grounding') }}" method="POST">
+	  <td>
+	    {{ name }}
+	  </td>
+	  <td>
+	    {{ grounding }}
+	  </td>
+	  <td>
+	    <span title="{{ longform_list}}">
+	      {{ longform_list[0] }}
+	    </span>
+	  </td>
+	  <td>
+	    <input name="new-name.{{ index }}" type="text">
+	  </td>
+	  <td>
+	    <input name="new-ground.{{ index }}"  type="text">
+	    <input name="s.{{ index }}" type="submit" value="Fix">
+	  </td>
+	</form>
+      </tr>
+      {% endfor %}
+    </table>
+    <table>
+      <tr>
+	<th>
+	  Labels
+	</th>
+      </tr>
+      {% for grounding, _, _, pos_label in data %}
+	{% set index = loop.index - 1 %}
+      <tr>
+	<td class="filled 
+		   {{ 'positive' if pos_label else 'blank' }}">
+	  {{ grounding }}
+	</td>
+	<td class="blank">
+	  <form action="{{ url_for('fix.toggle_positive') }}"
+		method="POST">
+	    <input name="pos-label.{{ index }}" value="+" type="submit">
+	  </form>
+	</td>
+      </tr>
+      {% endfor %}
+    </table>
+    <form action="{{ url_for('fix.submit') }}" method="POST">
+      <input name="submit" type="submit" value="submit">
+    </form>
+  </body>
+</html>
