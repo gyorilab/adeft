@@ -230,7 +230,7 @@ def load_disambiguator(shortform, path=ADEFT_MODELS_PATH):
     -------
     py:class:`adeft.disambiguate.AdeftDisambiguator`
     """
-    available = get_available_models()
+    available = get_available_models(path=path)
     try:
         model_name = available[shortform]
     except KeyError:
