@@ -225,18 +225,21 @@ class AdeftDisambiguator(object):
         grounding_dict = self.grounding_dict
         names = self.names
         classifier = self.classifier
-        # Create model directory is it does not already exist
-        if not os.path.exists(os.path.join(path, model_name)):
-            os.mkdir(os.path.join(path, model_name))
 
-        classifier.dump_model(os.path.join(path, model_name,
+        model_path = os.path.join(path, model_name)
+        # Create model directory if it does not already exist
+        if not os.path.exists(model_path):
+            os.mkdir(model_path)
+
+        classifier.dump_model(os.path.join(model_path,
                                            '%s_model.gz' % model_name))
-        with open(os.path.join(path, model_name,
+        with open(os.path.join(model_path,
                                '%s_grounding_dict.json'
                                % model_name), 'w') as f:
             json.dump(grounding_dict, f)
-
-        with open(os.path.join(path, model_name, '%s_names.json'
+                                             '%s_grounding_dict.json'
+                                             % model_name)))
+        with open(os.path.join(model_path, '%s_names.json'
                                % model_name), 'w') as f:
             json.dump(names, f)
 
@@ -324,4 +327,5 @@ def load_disambiguator(shortform, path=ADEFT_MODELS_PATH):
     with open(os.path.join(path, model_name,
                            model_name + '_names.json')) as f:
         names = json.load(f)
-    return AdeftDisambiguator(model, grounding_dict, names)
+    output = AdeftDisambiguator(model, grounding_dict, names)
+    return output
