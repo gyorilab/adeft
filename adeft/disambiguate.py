@@ -135,7 +135,8 @@ class AdeftDisambiguator(object):
 
         Modify groundings and standard names for the disambiguator without
         retraining. Cannot map two existing groundings to a single new
-        grounding, as this would require retraining.
+        grounding. This requires retraining since it should entail a structural
+        change in the classifier.
 
         Parameters
         ----------
@@ -153,20 +154,25 @@ class AdeftDisambiguator(object):
                     set(self.names.keys())):
                 raise ValueError('Keys of new names are not a subset of'
                                  ' the current groundings')
+            # Update names in names dictionary. Keep groundings the same
             self.names = {grounding: new_names[grounding]
                           if grounding in new_names
                           else name
                           for grounding, name in self.names.items()}
 
         if new_groundings is not None:
+            # Check if keys in new_groundings are a subset of
+            # current groundings
             if not (set(new_groundings.keys()) <=
                     set(self.names.keys())):
                 raise ValueError('Keys of new groundings are not a subset of'
                                  ' the current groundings')
+            # Update keys of names dictionary to new groundings
             self.names = {(new_groundings[grounding]
                           if grounding in new_groundings
                           else grounding): name
                           for grounding, name in self.names.items()}
+            # Update groundings in grounding_dict
             self.grounding_dict = {shortform:
                                    {(new_groundings[grounding]
                                     if grounding in new_groundings
@@ -176,16 +182,22 @@ class AdeftDisambiguator(object):
                                     grounding_map.items()}
                                    for shortform, grounding_map
                                    in self.grounding_dict.items()}
+            # Update positive labels in disambiguator
             self.pos_labels = [new_groundings[grounding]
                                if grounding in new_groundings
                                else grounding
                                for grounding in self.pos_labels]
+            # Update classifier
             classifier = self.classifier
+            # Update positive labels
             classifier.pos_labels = self.pos_labels
+            # Updated class labels. (This will change the labels for the
+            # predictions the classifier makes)
             for index, label in enumerate(classifier.estimator.classes_):
                 if label in new_groundings:
                     new_label = new_groundings[label]
                     classifier.estimator.classes_[index] = new_label
+            # Update labels in model statistics so info can be updated
             if hasattr(classifier, 'stats') and classifier.stats:
                 label_dist = classifier.stats['label_distribution']
                 label_dist = {(new_groundings[label]
