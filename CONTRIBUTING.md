@@ -2,13 +2,13 @@ Git fork/PR workflow
 --------------------
 This repository uses the [forking model](https://www.atlassian.com/git/tutorials/comparing-workflows/forking-workflow)
 for collaboration. In this model,
-each developer forks the main (sorgerlab/indra) repository, pushes code
+each developer forks the main (indralab/adeft) repository, pushes code
 only to branches in their own fork, and then submits pull requests to
-sorgerlab. After cloning your own fork of `indra`, you should add `sorgerlab`
+indralab. After cloning your own fork of `adeft`, you should add `indralab`
 as a remote to be able to track the latest changes by doing
 
 ```
-git remote add sorgerlab https://github.com/sorgerlab/indra.git
+git remote add indralab https://github.com/indralab/adeft.git
 ```
 
 When a PR is submitted from a branch, any further changes can be pushed
@@ -17,9 +17,9 @@ are automatically appended to the PR. Please always check the box on Github
 allowing the maintainers of the repo to make changes to the PR.
 
 In addition, as a convention, we only merge PRs whose branches are rebased
-on top of the latest sorgerlab/master. This means that instead of merging
-sorgerlab/master into your own branch to resolve conflicts, you should always
-rebase on top of sorgerlab/master and force push your branches if
+on top of the latest indralab/master. This means that instead of merging
+indralab/master into your own branch to resolve conflicts, you should always
+rebase on top of indralab/master and force push your branches if
 needed (you can do this even if a PR from that branch is already open).
 Consistent with this convention, in general, you should not use `git pull`
 to update your local fork. Rather, use `git fetch --all`,
@@ -32,7 +32,7 @@ some commits before merging.
 
 Pull requests
 -------------
-Always submit PRs via the sorgerlab repository.
+Always submit PRs via the indralab repository.
 Give your PR a concise and clear title that describes without excessive detail
 what the PR does. You should give more details in the description, pointing
 out the important changes made and any additional remarks that are relevant.
@@ -107,7 +107,7 @@ intended.
 
 Testing
 -------
-INDRA is tested using the `nosetests` script and `nose`/`unittest` tools.
+Adeft is tested using the `nosetests` script and `nose`/`unittest` tools.
 See the [nose documentation](http://nose.readthedocs.io/en/latest/) for more
 details.
 
@@ -116,7 +116,7 @@ circumstances prevent testing. Similarly, fixed bugs should have regression
 tests added. Normally, any test file with `test` in its
 name and any functions/classes that have `test/Test` in their names in these
 files will be automatically discovered and tested. Tests should generally be
-included in `indra/tests`, and new tests should be placed in the appropriate
+included in `adeft/tests`, and new tests should be placed in the appropriate
 existing file, if possible. Otherwise, a new file using the `test_a_module.py`
 naming convention. Where possible, tests should be short and focused. If the
 newly added test requires special dependencies or other preliminary setup, the
@@ -132,7 +132,7 @@ module to first create an approproately named logger,
 as for instance `logger = logging.getLogger(__name__)` and then use the
 appropriate level of logging (typically debug, info, warning or error) with
 the logger object to print messages. The configuration of the logging format
-is uniform across INDRA without further configuration needed for each
+is uniform across Adeft without further configuration needed for each
 individual logger instance. In addition, by using `__name__` to instantiate
 the logger, the hierarchy of logger objects across the module is maintained
 making it easier to control logging at various levels. Loggers not using
