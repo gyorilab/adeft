@@ -130,6 +130,71 @@ class AdeftDisambiguator(object):
                 pred_index += 1
         return result
 
+    def modify_groundings(self, new_groundings=None, new_names=None):
+        """Update groundings and standardized names
+
+        Modify groundings and standard names for the disambiguator without
+        retraining. Cannot map two existing groundings to a single new
+        grounding, as this would require retraining.
+
+        Parameters
+        ----------
+        new_groundings : Optional[dict]
+            Dictionary mapping a subset of previous groundings to updated
+            groundings. If None, no groundings are modified. Default: None
+
+        new_names : Optional[dict]
+            Dictionary mapping a subset of previous groundings to updated
+            names. If None, no names are modified. Default: None
+        """
+        if new_names is not None:
+            # Check if keys in new_names are a subset of current groundings
+            if not (set(new_names.keys()) <=
+                    set(self.names.keys())):
+                raise ValueError('Keys of new names are not a subset of'
+                                 ' the current groundings')
+            self.names = {grounding: new_names[grounding]
+                          if grounding in new_names
+                          else name
+                          for grounding, name in self.names.items()}
+
+        if new_groundings is not None:
+            if not (set(new_groundings.keys()) <=
+                    set(self.names.keys())):
+                raise ValueError('Keys of new groundings are not a subset of'
+                                 ' the current groundings')
+            self.names = {(new_groundings[grounding]
+                          if grounding in new_groundings
+                          else grounding): name
+                          for grounding, name in self.names.items()}
+            self.grounding_dict = {shortform:
+                                   {(new_groundings[grounding]
+                                    if grounding in new_groundings
+                                    else grounding):
+                                    name
+                                    for grounding, name in
+                                    grounding_map.items()}
+                                   for shortform, grounding_map
+                                   in self.grounding_dict.items()}
+            self.pos_labels = [new_groundings[grounding]
+                               if grounding in new_groundings
+                               else grounding
+                               for grounding in self.pos_labels]
+            classifier = self.classifier
+            classifier.pos_labels = self.pos_labels
+            for index, label in enumerate(classifier.estimator.classes_):
+                if label in new_groundings:
+                    new_label = new_groundings[label]
+                    classifier.estimator.classes_[index] = new_label
+            if hasattr(classifier, 'stats') and classifier.stats:
+                label_dist = classifier.stats['label_distribution']
+                label_dist = {(new_groundings[label]
+                               if label in new_groundings
+                               else label):
+                              count
+                              for label, count in label_dist.items()}
+                classifier.stats['label_distribution'] = label_dist
+
     def dump(self, model_name, path=None):
         """Save disambiguator to disk
 
