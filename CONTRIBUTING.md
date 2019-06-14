@@ -137,14 +137,3 @@ instructions are needed for setup
 - either added to doc/conf.py as an installed dependency or mocked to make doc
 builds on readthedocs.io pass
 - added to .travis.yml unless installed on Travis via setup.py
-
-New modules
------------
-If a new submodule is added, that submodule needs to be
-- listed in setup.py under packages to make sure it is included in installs
-- referred to in the documentation explicitly to be included
-
-New non-python resource files
------------------------------
-If a new non-python file is added to the repository, it needs to be listed
-in MANIFEST.in to make sure it is included in installations.
