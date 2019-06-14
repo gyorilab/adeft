@@ -124,9 +124,7 @@ the logger object to print messages. The configuration of the logging format
 is uniform across Adeft without further configuration needed for each
 individual logger instance. In addition, by using `__name__` to instantiate
 the logger, the hierarchy of logger objects across the module is maintained
-making it easier to control logging at various levels. Loggers not using
-`__name__` should only be used under special circumstances, for instance, if
-the file is likely to be run as a standalone script rather than imported.
+making it easier to control logging at various levels.
 
 New dependencies
 ----------------
