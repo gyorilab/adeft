@@ -71,9 +71,7 @@ up and clutter the auto-generated API documentation.
 
 Python version compatibility and unicode
 ----------------------------------------
-Adeft is Python 3 only. Compatibility with Python 3.5 is maintained. This means
-that features only available in later versions of Python such as f-strings should
-not be used when contributing to Adeft. 
+Adeft is compatible with Python versions 3.5 and later. Features available in later  versions but not in Python 3.5 such as f-strings should not be used when contributing to Adeft. 
 
 Documentation
 -------------
