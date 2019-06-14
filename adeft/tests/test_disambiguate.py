@@ -55,3 +55,16 @@ def test_disambiguate():
     disamb3 = ad.disambiguate([example3])[0]
     assert disamb3[0] == 'HGNC:6091'
     assert disamb3[1] == 'INSR'
+
+
+def test_modify_groundings():
+    """Test updating groundings of existing model."""
+    ad = load_disambiguator('__TEST')
+    ad.modify_groundings(new_groundings={'HGNC:6091': 'UP:P06213'},
+                         new_names={'HGNC:6091': 'Insulin Receptor'})
+
+    assert 'UP:P06213' in ad.pos_labels
+    assert 'UP:P06213' in ad.classifier.pos_labels
+    assert 'UP:P06213' in ad.classifier.estimator.classes_
+    assert 'UP:P06213' in ad.names
+    assert ad.names['UP:P06213'] == 'Insulin Receptor'
