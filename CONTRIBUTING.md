@@ -128,8 +128,8 @@ making it easier to control logging at various levels.
 
 New dependencies
 ----------------
-When adding new functionalities, using built-in Python libraries or
-packages that are already standard dependencies of INDRA are preferred.
+When adding new features, using built-in Python libraries or
+packages that are already standard dependencies of Adeft is strongly preferred.
 In case a new dependency needs to be used, that dependency needs to be
 - added to the install list or one of the extras list in setup.py
 - added to the installation instructions in the documentation if any special
