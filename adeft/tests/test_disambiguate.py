@@ -1,9 +1,17 @@
 import os
+import uuid
 import json
+import shutil
+import logging
 
 from adeft.locations import ADEFT_MODELS_PATH
 from adeft.modeling.classify import load_model
 from adeft.disambiguate import AdeftDisambiguator, load_disambiguator
+
+logger = logging.getLogger(__name__)
+
+# Get test model path so we can write a temporary file here
+TEST_MODEL_PATH = os.path.join(ADEFT_MODELS_PATH, '__TEST')
 
 example1 = ('The insulin receptor (IR) is a transmembrane receptor that'
             ' is activated by insulin, IGF-I, IGF-II and belongs to the large'
@@ -25,6 +33,28 @@ def test_load_disambiguator():
     assert ad.shortforms == ['IR']
     assert hasattr(ad, 'classifier')
     assert hasattr(ad, 'recognizers')
+
+
+def test_dump_disambiguator():
+    ad = load_disambiguator('__TEST')
+    # tempname = uuid.uuid4().hex
+    tempname = 'wtf'
+    ad.dump(tempname, path=TEST_MODEL_PATH)
+    x = load_disambiguator(tempname, path=TEST_MODEL_PATH)
+    print('sdf9df')
+    print(ad)
+    print(x)
+    # assert ad.grounding_dict == ad2.grounding_dict
+    # assert ad.names == ad2.names
+    # assert ad.pos_labels == ad2.pos_labels
+    # assert (ad.classifier.estimator.named_steps['logit'].coef_ ==
+    #         ad2.classifier.estimator.named_steps['logit'].coef_)
+    # assert ad.info() == ad2.info()
+    # try:
+    #     shutil.rmtree(os.path.join(TEST_MODEL_PATH, tempname))
+    # except Exception:
+    #     logger.warning('Could not clean up temporary folder %s'
+    #                    % os.path.join(TEST_MODEL_PATH, tempname))
 
 
 def test_disambiguate():
