@@ -150,7 +150,7 @@ class AdeftDisambiguator(object):
         classifier = self.classifier
         # Create model directory is it does not already exist
         if not os.path.exists(os.path.join(path, model_name)):
-            os.mkdir(model_name)
+            os.mkdir(os.path.join(path, model_name))
 
         classifier.dump_model(os.path.join(path, model_name,
                                            '%s_model.gz' % model_name))
