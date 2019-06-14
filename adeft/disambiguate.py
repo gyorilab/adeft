@@ -155,10 +155,12 @@ class AdeftDisambiguator(object):
         classifier.dump_model(os.path.join(path, model_name,
                                            '%s_model.gz' % model_name))
         with open(os.path.join(path, model_name,
-                               '%s_grounding_dict.json'), 'w') as f:
+                               '%s_grounding_dict.json'
+                               % model_name), 'w') as f:
             json.dump(grounding_dict, f)
 
-        with open(os.path.join(path, model_name, '%s_names.json'), 'w') as f:
+        with open(os.path.join(path, model_name, '%s_names.json'
+                               % model_name), 'w') as f:
             json.dump(names, f)
 
     def info(self):
