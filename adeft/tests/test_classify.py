@@ -10,13 +10,13 @@ from adeft.locations import ADEFT_MODELS_PATH
 from adeft.modeling.classify import AdeftClassifier, load_model
 from adeft.download import get_available_models, download_models
 
-# Get test path so we can write a temporary file here
-TESTS_PATH = os.path.dirname(os.path.abspath(__file__))
+# Get test model path so we can write a temporary file here
+TEST_MODEL_PATH = os.path.join(ADEFT_MODELS_PATH, '__TEST')
 
 if 'TEST' not in get_available_models():
     download_models(models=['__TEST'])
 
-with open(os.path.join(ADEFT_MODELS_PATH, '__TEST',
+with open(os.path.join(TEST_MODEL_PATH,
                        'example_training_data.json'), 'r') as f:
     data = json.load(f)
 
@@ -69,7 +69,7 @@ def test_serialize():
     """Test that models can correctly be saved to and loaded from gzipped json
     """
     texts = data['texts']
-    temp_filename = os.path.join(TESTS_PATH, uuid.uuid4().hex)
+    temp_filename = os.path.join(TEST_MODEL_PATH, uuid.uuid4().hex)
     classifier1 = load_model(os.path.join(ADEFT_MODELS_PATH, '__TEST',
                                           '__TEST_model.gz'))
     classifier1.dump_model(temp_filename)
