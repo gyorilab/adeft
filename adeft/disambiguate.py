@@ -237,8 +237,6 @@ class AdeftDisambiguator(object):
                                '%s_grounding_dict.json'
                                % model_name), 'w') as f:
             json.dump(grounding_dict, f)
-                                             '%s_grounding_dict.json'
-                                             % model_name)))
         with open(os.path.join(model_path, '%s_names.json'
                                % model_name), 'w') as f:
             json.dump(names, f)
