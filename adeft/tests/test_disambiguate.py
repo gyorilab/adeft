@@ -4,14 +4,18 @@ import json
 import shutil
 import logging
 
-from adeft.locations import ADEFT_MODELS_PATH
+from numpy import array_equal
+
 from adeft.modeling.classify import load_model
+from adeft.locations import TEST_RESOURCES_PATH
 from adeft.disambiguate import AdeftDisambiguator, load_disambiguator
 
 logger = logging.getLogger(__name__)
 
 # Get test model path so we can write a temporary file here
-TEST_MODEL_PATH = os.path.join(ADEFT_MODELS_PATH, '__TEST')
+TEST_MODEL_PATH = os.path.join(TEST_RESOURCES_PATH, 'test_model')
+# Path to scratch directory to write files to during tests
+SCRATCH_PATH = os.path.join(TEST_RESOURCES_PATH, 'scratch')
 
 example1 = ('The insulin receptor (IR) is a transmembrane receptor that'
             ' is activated by insulin, IGF-I, IGF-II and belongs to the large'
@@ -29,7 +33,7 @@ example3 = ('IR is a transmembrane receptor that is activated by insulin,'
 
 
 def test_load_disambiguator():
-    ad = load_disambiguator('__TEST')
+    ad = load_disambiguator('IR', path=TEST_MODEL_PATH)
     assert ad.shortforms == ['IR']
     assert hasattr(ad, 'classifier')
     assert hasattr(ad, 'recognizers')
@@ -55,13 +59,13 @@ def test_dump_disambiguator():
 
 
 def test_disambiguate():
-    test_model = load_model(os.path.join(ADEFT_MODELS_PATH, '__TEST',
-                                         '__TEST_model.gz'))
-    with open(os.path.join(ADEFT_MODELS_PATH, '__TEST',
-                           '__TEST_grounding_dict.json')) as f:
+    test_model = load_model(os.path.join(TEST_MODEL_PATH, 'IR',
+                                         'IR_model.gz'))
+    with open(os.path.join(TEST_MODEL_PATH, 'IR',
+                           'IR_grounding_dict.json')) as f:
         grounding_dict = json.load(f)
-    with open(os.path.join(ADEFT_MODELS_PATH,
-                           '__TEST', '__TEST_names.json')) as f:
+    with open(os.path.join(TEST_MODEL_PATH, 'IR',
+                           'IR_names.json')) as f:
         names = json.load(f)
 
     ad = AdeftDisambiguator(test_model, grounding_dict, names)
@@ -86,7 +90,7 @@ def test_disambiguate():
 
 def test_modify_groundings():
     """Test updating groundings of existing model."""
-    ad = load_disambiguator('__TEST')
+    ad = load_disambiguator('IR', path=TEST_MODEL_PATH)
     ad.modify_groundings(new_groundings={'HGNC:6091': 'UP:P06213'},
                          new_names={'HGNC:6091': 'Insulin Receptor'})
 
