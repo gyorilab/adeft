@@ -169,10 +169,15 @@ class AdeftDisambiguator(object):
                 raise ValueError('Keys of new groundings are not a subset of'
                                  ' the current groundings')
             # Update keys of names dictionary to new groundings
-            self.names = {(new_groundings[grounding]
-                          if grounding in new_groundings
-                          else grounding): name
-                          for grounding, name in self.names.items()}
+            names = {(new_groundings[grounding]
+                      if grounding in new_groundings
+                      else grounding): name
+                     for grounding, name in self.names.items()}
+            # Check that two previously distinct labels have not been merged
+            if len(names) != len(self.names):
+                raise ValueError('Previously distinct groundings have been'
+                                 ' merged')
+            self.names = names
             # Update groundings in grounding_dict
             self.grounding_dict = {shortform:
                                    {(new_groundings[grounding]
