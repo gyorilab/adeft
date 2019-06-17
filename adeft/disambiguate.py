@@ -134,9 +134,10 @@ class AdeftDisambiguator(object):
         """Update groundings and standardized names
 
         Modify groundings and standard names for the disambiguator without
-        retraining. Cannot map two existing groundings to a single new
-        grounding. This requires retraining since it should entail a structural
-        change in the classifier.
+        retraining. Cannot cause two previously separate groundings to map
+        to a single new grounding. Cannot map two existing groundings to a
+        single new grounding, as this leads to a nontrivial change in the
+        model rather than just a relabeling.
 
         Parameters
         ----------
