@@ -27,7 +27,7 @@ def download_models(update=False, models=None):
     update : Optional[bool]
         If True, replace all existing models with versions on S3
         otherwise only download models that aren't currently available.
-        Default: True
+        Default: False
 
     models : Optional[iterable of str]
         List of models to be downloaded. Allows user to select specific
