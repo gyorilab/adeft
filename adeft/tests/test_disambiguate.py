@@ -36,25 +36,22 @@ def test_load_disambiguator():
 
 
 def test_dump_disambiguator():
-    ad = load_disambiguator('__TEST')
-    # tempname = uuid.uuid4().hex
-    tempname = 'wtf'
-    ad.dump(tempname, path=TEST_MODEL_PATH)
-    x = load_disambiguator(tempname, path=TEST_MODEL_PATH)
-    print('sdf9df')
-    print(ad)
-    print(x)
-    # assert ad.grounding_dict == ad2.grounding_dict
-    # assert ad.names == ad2.names
-    # assert ad.pos_labels == ad2.pos_labels
-    # assert (ad.classifier.estimator.named_steps['logit'].coef_ ==
-    #         ad2.classifier.estimator.named_steps['logit'].coef_)
-    # assert ad.info() == ad2.info()
-    # try:
-    #     shutil.rmtree(os.path.join(TEST_MODEL_PATH, tempname))
-    # except Exception:
-    #     logger.warning('Could not clean up temporary folder %s'
-    #                    % os.path.join(TEST_MODEL_PATH, tempname))
+    ad1 = load_disambiguator('IR', path=TEST_MODEL_PATH)
+    tempname = uuid.uuid4().hex
+    ad1.dump(tempname, path=SCRATCH_PATH)
+    ad2 = load_disambiguator('IR', path=SCRATCH_PATH)
+
+    assert ad1.grounding_dict == ad2.grounding_dict
+    assert ad1.names == ad2.names
+    assert ad1.pos_labels == ad2.pos_labels
+    assert (array_equal(ad1.classifier.estimator.named_steps['logit'].coef_,
+                        ad2.classifier.estimator.named_steps['logit'].coef_))
+    assert ad1.info() == ad2.info()
+    try:
+        shutil.rmtree(os.path.join(SCRATCH_PATH, tempname))
+    except Exception:
+        logger.warning('Could not clean up temporary folder %s'
+                       % os.path.join(SCRATCH_PATH, tempname))
 
 
 def test_disambiguate():
