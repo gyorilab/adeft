@@ -6,17 +6,17 @@ from collections import Counter
 from nose.plugins.attrib import attr
 from sklearn.metrics import f1_score
 
-from adeft.locations import ADEFT_MODELS_PATH
+from adeft.locations import TEST_RESOURCES_PATH
 from adeft.modeling.classify import AdeftClassifier, load_model
-from adeft.download import get_available_models, download_models
+
 
 # Get test model path so we can write a temporary file here
-TEST_MODEL_PATH = os.path.join(ADEFT_MODELS_PATH, '__TEST')
+TEST_MODEL_PATH = os.path.join(TEST_RESOURCES_PATH, 'test_model')
+# Path to scratch directory to write files to during tests
+SCRATCH_PATH = os.path.join(TEST_RESOURCES_PATH, 'scratch')
 
-if 'TEST' not in get_available_models():
-    download_models(models=['__TEST'])
 
-with open(os.path.join(TEST_MODEL_PATH,
+with open(os.path.join(TEST_RESOURCES_PATH,
                        'example_training_data.json'), 'r') as f:
     data = json.load(f)
 
@@ -69,9 +69,9 @@ def test_serialize():
     """Test that models can correctly be saved to and loaded from gzipped json
     """
     texts = data['texts']
-    temp_filename = os.path.join(TEST_MODEL_PATH, uuid.uuid4().hex)
-    classifier1 = load_model(os.path.join(ADEFT_MODELS_PATH, '__TEST',
-                                          '__TEST_model.gz'))
+    classifier1 = load_model(os.path.join(TEST_MODEL_PATH, 'IR',
+                                          'IR_model.gz'))
+    temp_filename = os.path.join(SCRATCH_PATH, uuid.uuid4().hex)
     classifier1.dump_model(temp_filename)
 
     classifier2 = load_model(temp_filename)
