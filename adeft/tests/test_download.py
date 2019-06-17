@@ -9,7 +9,7 @@ from adeft.download import download_models, get_available_models, \
 def test_get_s3_models():
     """Test function to check which models are available on S3"""
     models = get_s3_models()
-    assert '__TEST' in models
+    assert 'IR' in models
 
 
 def test_download_models():
