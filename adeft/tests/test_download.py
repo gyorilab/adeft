@@ -1,15 +1,15 @@
 import os
 import shutil
 
-from adeft.locations import ADEFT_MODELS_PATH
+from adeft.locations import ADEFT_MODELS_PATH, TEST_RESOURCES_PATH
 from adeft.download import download_models, get_available_models, \
-    get_s3_models
+    get_s3_models, download_test_resources, setup_test_resource_folders
 
 
 def test_get_s3_models():
     """Test function to check which models are available on S3"""
     models = get_s3_models()
-    assert 'IR' in models
+    assert '__TEST' in models
 
 
 def test_download_models():
@@ -23,3 +23,13 @@ def test_download_models():
     # Download models
     download_models(models=['__TEST'])
     assert '__TEST' in get_available_models()
+
+
+def test_download_test_resources():
+    """Test download of test resources from S3"""
+    setup_test_resource_folders()
+    test_model = os.path.join(TEST_RESOURCES_PATH, 'test_model',
+                              'IR', 'IR_model.gz')
+    assert not os.path.exists(test_model)
+    download_test_resources()
+    assert os.path.exists(test_model)
