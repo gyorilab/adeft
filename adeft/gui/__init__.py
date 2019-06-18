@@ -5,11 +5,7 @@ import shutil
 import logging
 import tempfile
 import webbrowser
-from copy import deepcopy
 from multiprocessing import Process
-from collections import defaultdict
-
-from adeft.disambiguate import AdeftDisambiguator
 
 logger = logging.getLogger(__name__)
 
