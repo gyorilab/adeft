@@ -3,8 +3,7 @@ import argparse
 
 from adeft.download import download_models, setup_test_resource_folders, \
     download_test_resources
-from adeft.locations import ADEFT_PATH, ADEFT_MODELS_PATH, \
-    TEST_RESOURCES_PATH
+from adeft.locations import ADEFT_PATH, ADEFT_MODELS_PATH
 
 
 """
@@ -25,7 +24,6 @@ if not os.path.exists(ADEFT_PATH):
     os.mkdir(ADEFT_PATH)
     os.mkdir(ADEFT_MODELS_PATH)
 
-
+download_models(update=args.update)
 setup_test_resource_folders()
 download_test_resources()
-download_models(update=args.update)

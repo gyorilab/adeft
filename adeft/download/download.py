@@ -65,28 +65,6 @@ def download_models(update=False, models=None):
                           out=resource_path)
 
 
-def download_test_resources():
-    """Download files necessary to run tests
-
-    Downloads a test disambiguator and a set of example training data and
-    places them in the test_resources folder of the .adeft directory. This
-    function will error if the necessary directories do not exist. If they do
-    not already exist they will be created when running
-    python -m adeft.download
-    """
-    if not os.path.exists(os.path.join(TEST_RESOURCES_PATH, 'test_model',
-                                       'IR')):
-        os.mkdir(os.path.join(TEST_RESOURCES_PATH, 'test_model', 'IR'))
-    for resource in ('IR_grounding_dict.json', 'IR_names.json', 'IR_model.gz'):
-        wget.download(url=os.path.join(S3_BUCKET_URL, 'Test', 'IR', resource),
-                      out=os.path.join(TEST_RESOURCES_PATH, 'test_model', 'IR',
-                                       resource))
-    wget.download(url=os.path.join(S3_BUCKET_URL, 'Test',
-                                   'example_training_data.json'),
-                  out=os.path.join(TEST_RESOURCES_PATH,
-                                   'example_training_data.json'))
-
-
 def setup_test_resource_folders():
     """Make test resource folders and download content
 
@@ -98,7 +76,34 @@ def setup_test_resource_folders():
     os.mkdir(TEST_RESOURCES_PATH)
     os.mkdir(os.path.join(TEST_RESOURCES_PATH, 'test_model'))
     os.mkdir(os.path.join(TEST_RESOURCES_PATH, 'scratch'))
+    os.mkdir(os.path.join(TEST_RESOURCES_PATH, 'test_model', 'IR'))
+    download_test_resources()
     return
+
+
+def download_test_resources():
+    """Download files necessary to run tests
+
+    Downloads a test disambiguator and a set of example training data and
+    places them in the test_resources folder of the .adeft directory. This
+    function will error if the necessary directories do not exist. If they do
+    not already exist they will be created when running
+    python -m adeft.download
+    """
+    test_model_path = os.path.join(TEST_RESOURCES_PATH, 'test_model', 'IR')
+    if not os.path.exists(test_model_path):
+        os.mkdir(test_model_path)
+    for resource in ('IR_grounding_dict.json', 'IR_names.json', 'IR_model.gz'):
+        if not os.path.exists(os.path.join(test_model_path, resource)):
+            wget.download(url=os.path.join(S3_BUCKET_URL, 'Test', 'IR',
+                                           resource),
+                          out=os.path.join(test_model_path, resource))
+    if not os.path.exists(os.path.join(TEST_RESOURCES_PATH,
+                                       'example_training_data.json')):
+        wget.download(url=os.path.join(S3_BUCKET_URL, 'Test',
+                                       'example_training_data.json'),
+                      out=os.path.join(TEST_RESOURCES_PATH,
+                                       'example_training_data.json'))
 
 
 def get_available_models(path=ADEFT_MODELS_PATH):

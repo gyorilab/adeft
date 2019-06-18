@@ -28,8 +28,10 @@ def test_download_models():
 def test_download_test_resources():
     """Test download of test resources from S3"""
     setup_test_resource_folders()
-    test_model = os.path.join(TEST_RESOURCES_PATH, 'test_model',
-                              'IR', 'IR_model.gz')
-    assert not os.path.exists(test_model)
-    download_test_resources()
-    assert os.path.exists(test_model)
+    test_model_path = os.path.join(TEST_RESOURCES_PATH, 'test_model',
+                                   'IR', 'IR_model.gz')
+    assert os.path.exists(os.path.join(test_model_path, 'IR_model.gz'))
+    assert os.path.exists(os.path.join(test_model_path, 'IR_names.json'))
+    assert os.path.exists(os.path.join(test_model_path,
+                                       'IR_grounding_dict.json'))
+    assert os.path.exists(TEST_RESOURCES_PATH, 'example_training_data.json')
