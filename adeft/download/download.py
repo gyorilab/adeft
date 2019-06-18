@@ -1,6 +1,7 @@
 import os
 import json
 import wget
+import shutil
 import logging
 import requests
 
@@ -84,6 +85,20 @@ def download_test_resources():
                                    'example_training_data.json'),
                   out=os.path.join(TEST_RESOURCES_PATH,
                                    'example_training_data.json'))
+
+
+def setup_test_resource_folders():
+    """Make test resource folders and download content
+
+    Replaces content in existing test_resource_folders if they already
+    exist.
+    """
+    if os.path.isdir(TEST_RESOURCES_PATH):
+        shutil.rmtree(TEST_RESOURCES_PATH)
+    os.mkdir(TEST_RESOURCES_PATH)
+    os.mkdir(os.path.join(TEST_RESOURCES_PATH, 'test_model'))
+    os.mkdir(os.path.join(TEST_RESOURCES_PATH, 'scratch'))
+    return
 
 
 def get_available_models(path=ADEFT_MODELS_PATH):
