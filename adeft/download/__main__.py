@@ -1,7 +1,8 @@
 import os
 import argparse
 
-from adeft.download import download_models, download_test_resources
+from adeft.download import download_models, setup_test_resource_folders, \
+    download_test_resources
 from adeft.locations import ADEFT_PATH, ADEFT_MODELS_PATH, \
     TEST_RESOURCES_PATH
 
@@ -23,9 +24,8 @@ args = parser.parse_args()
 if not os.path.exists(ADEFT_PATH):
     os.mkdir(ADEFT_PATH)
     os.mkdir(ADEFT_MODELS_PATH)
-    os.mkdir(TEST_RESOURCES_PATH)
-    os.mkdir(os.path.join(TEST_RESOURCES_PATH, 'test_model'))
-    os.mkdir(os.path.join(TEST_RESOURCES_PATH, 'scratch'))
-    download_test_resources()
 
+
+setup_test_resource_folders()
+download_test_resources()
 download_models(update=args.update)
