@@ -1,2 +1,2 @@
 from .download import download_models, get_available_models, get_s3_models, \
-    download_test_resources
+    download_test_resources, setup_test_resource_folders
