@@ -96,68 +96,6 @@ def ground_with_gui(longforms, scores, grounding_map=None,
     return grounding_map, names, pos_labels
 
 
-def update_groundings_with_gui(disambiguator, verbose=False, port=5000):
-    from .fix import create_app
-
-    label_distribution = disambiguator.classifier.stats['label_distribution']
-    groundings_list = [grounding for grounding, _
-                       in sorted(label_distribution.items(),
-                                 key=lambda x: x[1], reverse=True)
-                       if grounding != 'ungrounded']
-
-    pos_labels = [grounding in disambiguator.pos_labels
-                  for grounding in groundings_list]
-
-    names_list = [disambiguator.names[grounding]
-                  for grounding in groundings_list]
-
-    longforms_dict = defaultdict(list)
-    for _, grounding_map in disambiguator.grounding_dict.items():
-        for longform, grounding in grounding_map.items():
-            if grounding != 'ungrounded':
-                longforms_dict[grounding].append(longform)
-
-    longforms_list = [sorted(longforms_dict[grounding])
-                      for grounding in groundings_list]
-
-    outpath = tempfile.mkdtemp()
-    app = create_app(groundings_list, names_list, longforms_list,
-                     disambiguator.pos_labels,
-                     outpath, verbose, port)
-    flask_server = Process(target=app.run)
-    flask_server.start()
-    webbrowser.open('http://localhost:%d/' % port)
-    while not os.path.exists(os.path.join(outpath, 'output.json')):
-        time.sleep(1)
-    flask_server.terminate()
-
-    with open(os.path.join(outpath, 'output.json')) as f:
-        output = json.load(f)
-
-    try:
-        shutil.rmtree(outpath)
-    except Exception:
-        logger.warning('Could not clean up temporary file %s' % outpath)
-    groundings_transition = output['groundings_transition']
-    names_transition = output['names_transition']
-    pos_labels = output['pos_labels']
-
-    grounding_dict = {shortform: {longform: groundings_transition[grounding]
-                                  for longform, grounding in grounding_map.items()}
-                      for shortform, grounding_map in
-                      disambiguator.grounding_dict.items()}
-    names = {groundings_transition[grounding]: names_transition[name]
-             for grounding, name in disambiguator.names.items()}
-
-    classifier = deepcopy(disambiguator.estimator)
-    for index, label in classifier.classes_:
-        classifier.classes_[index] = groundings_transition[label]
-
-    classifier.pos_labels = pos_labels
-    new_disambiguator = AdeftDisambiguator(classifier, grounding_dict, names)
-    return new_disambiguator
-
-
 def _empty_grounding_map(longforms):
     """Returns empty grounding map."""
     return {longform: None for longform in longforms}
