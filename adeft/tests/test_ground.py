@@ -246,5 +246,3 @@ class GroundingTestCase1(unittest.TestCase):
                           'select': '3'})
             print(flask.session['pos_labels'])
             assert flask.session['pos_labels'] == [0, 1, 2]
-
-            
