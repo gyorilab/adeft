@@ -1,8 +1,14 @@
+import os
+import json
 import flask
+import shutil
+import logging
 import tempfile
 import unittest
 
 from adeft.gui.ground import create_app
+
+logger = logging.getLogger(__name__)
 
 
 class GroundingTestCase1(unittest.TestCase):
@@ -23,6 +29,7 @@ class GroundingTestCase1(unittest.TestCase):
         self.longforms = longforms
         self.grounding_map = grounding_map
         self.names_map = names_map
+        self.outpath = outpath
         self.app = app
 
     # Tests
@@ -51,7 +58,7 @@ class GroundingTestCase1(unittest.TestCase):
             assert res.status_code == 200, res
             names_map['insulin receptor'] = 'INSR'
             grounding_map['insulin receptor'] = 'HGNC:6091'
-          
+
             assert names_map == flask.session['names_map']
             assert grounding_map == flask.session['grounding_map']
 
@@ -253,3 +260,62 @@ class GroundingTestCase1(unittest.TestCase):
                           'grounding': 'MESH:D007333',
                           'select': '2'})
             assert flask.session['pos_labels'] == [0, 2]
+
+    def test_generate_grounding_map(self):
+        with self.app.test_client() as tc:
+            res = tc.get('/')
+            assert res.status_code == 200, res
+            res = tc.post('ground_add',
+                          data={'name': 'Radiation, Ionizing',
+                                'grounding': 'MESH:D011839',
+                                'select': ['0', '3']})
+            assert res.status_code == 200, res
+
+            res = tc.post('ground_add',
+                          data={'name': 'INSR',
+                                'grounding': 'HGNC:6091',
+                                'select': '1'})
+            assert res.status_code == 200, res
+
+            res = tc.post('ground_add',
+                          data={'name': 'Insulin Resistance',
+                                'grounding': 'MESH:D007333',
+                                'select': '2'})
+
+            assert res.status_code == 200, res
+            # Labels are the unique groundings stored in sorted order
+            # pos labels contains a list of strings representing ints
+            res = tc.post('ground_pos_label',
+                          data={'pos-label.0': '+'})
+            assert res.status_code == 200, res
+
+            res = tc.post('ground_pos_label',
+                          data={'pos-label.2': '+'})
+            assert res.status_code == 200, res
+
+            tc.post('generate_grounding_map')
+
+            # Get output from temporary file
+            outpath = self.outpath
+            with open(os.path.join(outpath, 'output.json')) as f:
+                output = json.load(f)
+            # Clean up temporary file
+            try:
+                shutil.rmtree(outpath)
+            except Exception:
+                logger.warning('Could not clean up temporary file %s'
+                               % outpath)
+
+            grounding_map = {'ionizing radiation': 'MESH:D011839',
+                             'irradiation': 'MESH:D011839',
+                             'insulin receptor': 'HGNC:6091',
+                             'insulin resistance': 'MESH:D007333'}
+            assert output['grounding_map'] == grounding_map
+
+            names = {'MESH:D011839': 'Radiation, Ionizing',
+                     'MESH:D007333': 'Insulin Resistance',
+                     'HGNC:6091': 'INSR'}
+            assert output['names'] == names
+
+            pos_labels = ['HGNC:6091', 'MESH:D011839']
+            assert pos_labels == output['pos_labels']
