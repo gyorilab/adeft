@@ -76,7 +76,8 @@ def add_positive():
 def generate_grounding_map():
     grounding_map = {longform: grounding if grounding
                      else 'ungrounded'
-                     for longform, grounding in session['grounding_map']}
+                     for longform, grounding in
+                     session['grounding_map'].items()}
 
     names = {grounding: session['names_map'][longform]
              for longform, grounding in grounding_map.items()
