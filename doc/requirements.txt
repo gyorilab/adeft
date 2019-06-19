@@ -4,3 +4,4 @@ scikit-learn>=0.20.0
 nltk
 wget
 requests
+flask
