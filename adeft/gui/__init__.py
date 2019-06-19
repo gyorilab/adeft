@@ -76,10 +76,6 @@ def ground_with_gui(longforms, scores, grounding_map=None,
     if pos_labels is None:
         pos_labels = []
 
-    if not set(names_map.keys()) <= set(grounding_map.values()):
-        raise ValueError('keys in names_map must be subset of values of'
-                         ' grounding_map')
-
     # create temporary file for storing output
     outpath = tempfile.mkdtemp()
     # initialize flask app
