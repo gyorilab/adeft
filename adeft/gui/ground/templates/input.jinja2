@@ -54,7 +54,7 @@
 	{% for longform in config['LONGFORMS'] %}
 	  {% set index = loop.index - 1 %}
 	  {% set grounding = grounding_map[longform] %}
-	  {% set name = names_map[grounding_map[longform]] %}
+	  {% set name = names_map[longform] %}
 	  <tr>
 	    <td>
 	      <input name="select" value="{{ index }}" type="checkbox">
