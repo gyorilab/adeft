@@ -43,17 +43,28 @@
 	    Labels
 	  </td>
 	</th>
-	{% for longform, score, name, grounding, label in data %}
+	{# load config and session variables into local variables to save space #}
+	{% set longforms = config['LONGFORMS'] %}
+	{% set scores = config['SCORES'] %}
+	{% set grounding_map = session['grounding_map'] %}
+	{% set names_map = session['names_map'] %}
+	{% set pos_labels = session['pos_labels'] %}
+	{# pad labels with empty strings to length of longforms #}
+	{% set labels = session['labels'] + ['']*(config['LONGFORMS']|length - session['labels']|length) %}
+	{% for longform in config['LONGFORMS'] %}
+	  {% set index = loop.index - 1 %}
+	  {% set grounding = grounding_map[longform] %}
+	  {% set name = names_map[grounding_map[longform]] %}
 	  <tr>
 	    <td>
-	      <input name="select" value="{{ loop.index }}" type="checkbox">
+	      <input name="select" value="{{ index }}" type="checkbox">
 	    <td>
 	      <div>
 		{{ longform }}
 	      </div>
 	    </td>
 	    <td class="score">
-	      {{ score }}
+	      {{ scores[index] }}
 	    </td>
 	    <td class="pad">
 		<div class="click-grounded" data-name="{{ name }}"
@@ -68,25 +79,25 @@
 	      </div>
 	    </td>
 	    <td>
-	      <form id="delete-form-{{ loop.index }}"
+	      <form id="delete-form-{{ index }}"
 		    action="{{ url_for('ground.delete_grounding') }}"
 		    method="POST">
-		<input name="delete.{{ loop.index }}" class="delete"
-		       value="X" type="submit" form="delete-form-{{ loop.index }}">
+		<input name="delete.{{ index }}" class="delete"
+		       value="X" type="submit" form="delete-form-{{ index }}">
 	      </form>
 	    </td>
 	    <td class="pad blank">
 	    </td>
-	    <td class="pad {{ 'filled' if label else 'unfilled' }}
-		       {{ 'positive' if label in pos_labels else 'blank' }}">
-	      {{ label }}
+	    <td class="pad {{ 'filled' if labels[index] else 'unfilled' }}
+		       {{ 'positive' if index in pos_labels else 'blank' }}">
+	      {{ labels[index] }}
 	    </td>
 	    </td>
 	    <td class="blank">
-	      {% if label %}
+	      {% if labels[index] %}
 	      <form action="{{ url_for('ground.add_positive') }}"
 		    method="POST">
-		<input name="pos-label.{{ label }}" value="+"
+		<input name="pos-label.{{ index }}" value="+"
 		       type="submit">
 	      </form>
 	      {% endif %}
