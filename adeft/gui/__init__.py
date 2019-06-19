@@ -76,6 +76,9 @@ def ground_with_gui(longforms, scores, grounding_map=None,
     if pos_labels is None:
         pos_labels = []
 
+    # Round scores for better presentation
+    scores = [round(score, 2) for score in scores]
+
     # create temporary file for storing output
     outpath = tempfile.mkdtemp()
     # initialize flask app
