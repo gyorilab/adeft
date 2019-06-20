@@ -339,8 +339,16 @@ def test_ground_with_gui_with_initial():
                              pos_labels=pos_labels,
                              test=True)
 
-    assert result[0] == {longform: grounding_map[longform]
-                         if longform in grounding_map
-                         else 'ungrounded' for longform in longforms}
+    correct_gm = {longform: grounding_map[longform]
+                  if longform in grounding_map
+                  else 'ungrounded' for longform in longforms}
+    assert result[0] == correct_gm
     assert result[1] == {'HGNC:6091': 'INSR'}
     assert result[2] == ['HGNC:6091']
+
+    result = ground_with_gui(longforms, scores,
+                             grounding_map=grounding_map,
+                             test=True)
+    assert result[0] == correct_gm
+    assert result[1] == {}
+    assert result[2] == []
