@@ -81,11 +81,11 @@ def ground_with_gui(longforms, scores, grounding_map=None,
                          grounding_map[longform] in names
                          and names[grounding_map[longform]] else ''
                          for longform in longforms}
+    labels = sorted(set(grounding for _, grounding
+                        in grounding_map.items() if grounding))
     if pos_labels is None:
         pos_labels = []
     else:
-        labels = sorted(set(grounding for _, grounding
-                            in grounding_map.items() if grounding))
         pos_labels = [i for i, label in enumerate(labels)
                       if label in pos_labels]
 
@@ -96,8 +96,8 @@ def ground_with_gui(longforms, scores, grounding_map=None,
     outpath = tempfile.mkdtemp()
     # initialize flask app
     app = create_app(longforms, scores, grounding_map,
-                     names_map, pos_labels, outpath, verbose, port,
-                     test=test)
+                     names_map, labels, pos_labels, outpath,
+                     verbose, port, test=test)
 
     # Run flask server in new process
     flask_server = Process(target=app.run)
