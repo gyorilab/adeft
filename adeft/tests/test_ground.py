@@ -7,6 +7,7 @@ import tempfile
 import unittest
 
 from adeft.gui.ground import create_app
+from adeft.locations import TEST_RESOURCES_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ class GroundingTestCase1(unittest.TestCase):
         grounding_map = {longform: '' for longform in longforms}
         names_map = {longform: '' for longform in longforms}
         pos_labels = []
-        outpath = tempfile.mkdtemp()
+        outpath = os.path.join(TEST_RESOURCES_PATH, 'scratch')
         verbose = False
         port = 5000
         app = create_app(longforms, scores, grounding_map, names_map,
@@ -299,12 +300,8 @@ class GroundingTestCase1(unittest.TestCase):
             outpath = self.outpath
             with open(os.path.join(outpath, 'output.json')) as f:
                 output = json.load(f)
-            # Clean up temporary file
-            try:
-                shutil.rmtree(outpath)
-            except Exception:
-                logger.warning('Could not clean up temporary file %s'
-                               % outpath)
+
+            os.remove(os.path.join(outpath, 'output.json'))
 
             grounding_map = {'ionizing radiation': 'MESH:D011839',
                              'irradiation': 'MESH:D011839',
