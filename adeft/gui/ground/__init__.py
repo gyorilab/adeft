@@ -8,14 +8,14 @@ from adeft.gui.ground.ground import _convert_grounding_data
 
 
 def create_app(longforms, scores,
-               grounding_map, names_map, pos_labels, outpath,
+               grounding_map, names_map, labels, pos_labels, outpath,
                verbose, port, test=False):
     """Create and configure grounding assistant app.
 
     Takes same arguments as adeft.gui.ground_with_gui.
     """
     if test:
-        return MockApp(outpath, grounding_map, names_map, pos_labels)
+        return MockApp(outpath, grounding_map, names_map, labels, pos_labels)
 
     if not verbose:
         # disable all logging
@@ -37,8 +37,6 @@ def create_app(longforms, scores,
     @app.route('/')
     def initialize():
         """Load initial page for grounding app"""
-        labels = sorted(grounding for _, grounding in grounding_map.items())
-
         session['grounding_map'] = grounding_map
         session['names_map'] = names_map
         session['labels'] = labels
@@ -51,14 +49,13 @@ def create_app(longforms, scores,
 
 
 class MockApp(object):
-    def __init__(self, outpath, grounding_map, names_map, pos_labels):
+    def __init__(self, outpath, grounding_map, names_map,
+                 labels, pos_labels):
         self.outpath = outpath
         self.grounding_map = grounding_map
         self.names_map = names_map
         self.pos_labels = pos_labels
-        self.labels = sorted(set(grounding for _,
-                                 grounding in grounding_map.items()
-                                 if grounding))
+        self.labels = labels
 
     def run(self):
         output = _convert_grounding_data(self.grounding_map,
