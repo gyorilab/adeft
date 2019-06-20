@@ -11,7 +11,8 @@ logger = logging.getLogger(__name__)
 
 
 def ground_with_gui(longforms, scores, grounding_map=None,
-                    names=None, pos_labels=None, verbose=False, port=5000):
+                    names=None, pos_labels=None, verbose=False, port=5000,
+                    test=False):
     """Opens grounding gui in browser. Returns output upon user submission
 
     Parameters
@@ -43,6 +44,10 @@ def ground_with_gui(longforms, scores, grounding_map=None,
         Port where flask is served. Defaults to flask's default.
         Default: 5000
 
+    test : Optional[bool]
+        If True the Flask app is replaced with a mock version for testing.
+        Default: False
+
     Returns
     -------
     grounding_map : dict
@@ -61,17 +66,17 @@ def ground_with_gui(longforms, scores, grounding_map=None,
     elif names is None:
         names_map = {longform: '' for longform in longforms}
     else:
-        if not set(names_map.keys()) <= set(grounding_map.values()):
+        if not set(names.keys()) <= set(grounding_map.values()):
             raise ValueError('keys in names_map must be subset of values of'
                              ' grounding_map')
         grounding_map = {longform: grounding_map[longform]
                          if longform in grounding_map
                          and grounding_map[longform]
                          else '' for longform in longforms}
-        names_map = {longform: names_map[grounding_map[longform]]
+        names_map = {longform: names[grounding_map[longform]]
                      if longform in grounding_map and
-                     grounding_map[longform] in names_map
-                     and names_map[grounding_map[longform]] else ''
+                     grounding_map[longform] in names
+                     and names[grounding_map[longform]] else ''
                      for longform in longforms}
     if pos_labels is None:
         pos_labels = []
@@ -83,12 +88,15 @@ def ground_with_gui(longforms, scores, grounding_map=None,
     outpath = tempfile.mkdtemp()
     # initialize flask app
     app = create_app(longforms, scores, grounding_map,
-                     names_map, pos_labels, outpath, verbose, port)
+                     names_map, pos_labels, outpath, verbose, port,
+                     test=test)
+
     # Run flask server in new process
     flask_server = Process(target=app.run)
     flask_server.start()
-    # Open app in browser
-    webbrowser.open('http://localhost:%d/' % port)
+    # Open app in browser unless a test is being run
+    if not test:
+        webbrowser.open('http://localhost:%d/' % port)
     # Poll until user submits groundings. Checks if output file exists
     while not os.path.exists(os.path.join(outpath, 'output.json')):
         time.sleep(1)
