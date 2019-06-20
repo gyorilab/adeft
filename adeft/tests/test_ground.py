@@ -294,7 +294,7 @@ class GroundingTestCase1(unittest.TestCase):
                           data={'pos-label.2': '+'})
             assert res.status_code == 200, res
 
-            tc.post('generate_grounding_map')
+            tc.post('ground_generate')
 
             # Get output from temporary file
             outpath = self.outpath
