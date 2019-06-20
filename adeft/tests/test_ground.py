@@ -1,15 +1,12 @@
 import os
 import json
+import time
 import flask
-import shutil
-import logging
-import tempfile
 import unittest
 
+from adeft.gui import ground_with_gui
 from adeft.gui.ground import create_app
 from adeft.locations import TEST_RESOURCES_PATH
-
-logger = logging.getLogger(__name__)
 
 
 class GroundingTestCase1(unittest.TestCase):
