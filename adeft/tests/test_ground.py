@@ -313,3 +313,34 @@ class GroundingTestCase1(unittest.TestCase):
 
             pos_labels = ['HGNC:6091', 'MESH:D011839']
             assert pos_labels == output['pos_labels']
+
+
+def test_ground_with_gui():
+    longforms = ['ionizing radiation', 'insulin receptor',
+                 'insulin resistance', 'irradiation']
+    scores = [20.0, 15.0, 10.0, 7.0]
+    result = ground_with_gui(longforms, scores, test=True)
+    assert result[0] == {longform: 'ungrounded' for longform in longforms}
+    assert result[1] == {}
+    assert result[2] == []
+
+
+def test_ground_with_gui_with_initial():
+    longforms = ['ionizing radiation', 'insulin receptor',
+                 'insulin resistance', 'irradiation']
+    scores = [20.0, 15.0, 10.0, 7.0]
+    grounding_map = {'insulin receptor': 'HGNC:6091'}
+    names = {'HGNC:6091': 'INSR'}
+    pos_labels = ['HGNC:6091']
+
+    result = ground_with_gui(longforms, scores,
+                             names=names,
+                             grounding_map=grounding_map,
+                             pos_labels=pos_labels,
+                             test=True)
+
+    assert result[0] == {longform: grounding_map[longform]
+                         if longform in grounding_map
+                         else 'ungrounded' for longform in longforms}
+    assert result[1] == {'HGNC:6091': 'INSR'}
+    assert result[2] == ['HGNC:6091']
