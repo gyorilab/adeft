@@ -74,25 +74,34 @@ def add_positive():
 
 @bp.route('/ground_generate', methods=['POST'])
 def generate_grounding_map():
-    grounding_map = {longform: grounding if grounding
-                     else 'ungrounded'
-                     for longform, grounding in
-                     session['grounding_map'].items()}
-
-    names = {grounding: session['names_map'][longform]
-             for longform, grounding in grounding_map.items()
-             if grounding != 'ungrounded'}
-
-    pos_labels = [session['labels'][i] for i in session['pos_labels']]
+    output = _convert_grounding_data(session['grounding_map'],
+                                     session['names_map'],
+                                     session['labels'],
+                                     session['pos_labels'])
 
     outpath = current_app.config['OUTPATH']
-    output = {'grounding_map': grounding_map,
-              'names': names,
-              'pos_labels': pos_labels}
     with open(os.path.join(outpath, 'output.json'), 'w') as f:
         json.dump(output, f)
 
-    return "Groundings Submitted."
+    return 'Groundings Submitted. You may close this browser tab.'
+
+
+def _convert_grounding_data(grounding_map, names_map, labels, pos_labels):
+    """Map apps representation of grounding data to external representation"""
+    grounding_map = {longform: grounding if grounding
+                     else 'ungrounded'
+                     for longform, grounding in
+                     grounding_map.items()}
+    names = {grounding: names_map[longform]
+             for longform, grounding in
+             grounding_map.items()
+             if grounding != 'ungrounded' and names_map[longform]}
+    pos_labels = [label for i, label in enumerate(labels)
+                  if i in pos_labels]
+    output = {'grounding_map': grounding_map,
+              'names': names,
+              'pos_labels': pos_labels}
+    return output
 
 
 class GroundingState(object):
