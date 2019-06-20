@@ -67,6 +67,7 @@ def ground_with_gui(longforms, scores, grounding_map=None,
         grounding_map = {longform: grounding_map[longform]
                          if longform in grounding_map
                          and grounding_map[longform]
+                         and grounding_map[longform] != 'ungrounded'
                          else '' for longform in longforms}
         # Set initial names as empty if None are passed
         if names is None:
