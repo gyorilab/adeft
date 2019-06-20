@@ -4,6 +4,8 @@ import logging
 
 from flask import Flask, session, render_template
 
+from adeft.gui.ground.ground import _convert_grounding_data
+
 
 def create_app(longforms, scores,
                grounding_map, names_map, pos_labels, outpath,
@@ -54,18 +56,14 @@ class MockApp(object):
         self.grounding_map = grounding_map
         self.names_map = names_map
         self.pos_labels = pos_labels
+        self.labels = sorted(set(grounding for _,
+                                 grounding in grounding_map.items()
+                                 if grounding))
 
     def run(self):
-        grounding_map = {longform: grounding if grounding
-                         else 'ungrounded'
-                         for longform, grounding in
-                         self.grounding_map.items()}
-        names = {grounding: self.names_map[longform]
-                 for longform, grounding in
-                 grounding_map.items()
-                 if grounding != 'ungrounded'}
-        output = {'grounding_map': grounding_map,
-                  'names': names,
-                  'pos_labels': self.pos_labels}
+        output = _convert_grounding_data(self.grounding_map,
+                                         self.names_map,
+                                         self.labels,
+                                         self.pos_labels)
         with open(os.path.join(self.outpath, 'output.json'), 'w') as f:
             json.dump(output, f)
