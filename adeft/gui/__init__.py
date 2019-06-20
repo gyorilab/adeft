@@ -58,28 +58,35 @@ def ground_with_gui(longforms, scores, grounding_map=None,
         List of groundings to be considered as positive labels
     """
     from .ground import create_app
-    # Set initial groundings etc. to empty if none are passed
+    # Set initial groundings as empty if None are passed
     if grounding_map is None:
         grounding_map = {longform: '' for longform in longforms}
         names_map = {longform: '' for longform in longforms}
         pos_labels = []
-    elif names is None:
-        names_map = {longform: '' for longform in longforms}
     else:
-        if not set(names.keys()) <= set(grounding_map.values()):
-            raise ValueError('keys in names_map must be subset of values of'
-                             ' grounding_map')
         grounding_map = {longform: grounding_map[longform]
                          if longform in grounding_map
                          and grounding_map[longform]
                          else '' for longform in longforms}
-        names_map = {longform: names[grounding_map[longform]]
-                     if longform in grounding_map and
-                     grounding_map[longform] in names
-                     and names[grounding_map[longform]] else ''
-                     for longform in longforms}
+        # Set initial names as empty if None are passed
+        if names is None:
+            names_map = {longform: '' for longform in longforms}
+        else:
+            if not set(names.keys()) <= set(grounding_map.values()):
+                raise ValueError('keys in names_map must be subset of values'
+                                 ' of grounding_map')
+            names_map = {longform: names[grounding_map[longform]]
+                         if longform in grounding_map and
+                         grounding_map[longform] in names
+                         and names[grounding_map[longform]] else ''
+                         for longform in longforms}
     if pos_labels is None:
         pos_labels = []
+    else:
+        labels = sorted(set(grounding for _, grounding
+                            in grounding_map.items() if grounding))
+        pos_labels = [i for i, label in enumerate(labels)
+                      if label in pos_labels]
 
     # Round scores for better presentation
     scores = [round(score, 2) for score in scores]
