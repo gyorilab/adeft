@@ -69,7 +69,7 @@ class AdeftDisambiguator(object):
 
         Returns
         -------
-        result : list of tuple
+        result : tuple or list of tuple
             Disambiguations for text. For each text the corresponding
             disambiguation is a tuple of three elements. A grounding,
             a canonical name associated with the grounding, and a dictionary
