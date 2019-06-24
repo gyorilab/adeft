@@ -30,17 +30,17 @@ For machines to extract useful information from scientific documents, they must
 be able to identify the entities referenced in the text. For example, in the
 phrase "binding of ligand to the IR is reduced", "IR" refers to the insulin
 receptor, a gene with official symbol ``INSR``. This process of identification,
-known as *named entity disambiguation,* requires the text string for the entity
-to be mapped to an identifier in a database or ontology. A complicating factor
-is that multiple distinct entities may be associated with the same text,
-leading to ambiguity. In scientific and technical documents, this ambiguity
-frequently originates from the use of overlapping acronyms or abbreviations:
-for example, in the biomedical literature, the term "IR" can refer not only to
-the insulin receptor, but also to ionizing radiation, ischemia reperfusion,
-insulin resistance, and other concepts. While interpreting these ambiguities is
-rarely a problem for human readers given the context of the whole document, it
-remains a challenge for text mining tools, many of which process text one
-sentence at a time.
+known as *named entity disambiguation* or *grounding*, requires the text string
+for the entity to be mapped to an identifier in a database or ontology. A
+complicating factor is that multiple distinct entities may be associated with
+the same text, leading to ambiguity. In scientific and technical documents,
+this ambiguity frequently originates from the use of overlapping acronyms or
+abbreviations: for example, in the biomedical literature, the term "IR" can
+refer not only to the insulin receptor, but also to ionizing radiation,
+ischemia reperfusion, insulin resistance, and other concepts. While
+interpreting these ambiguities is rarely a problem for human readers given the
+context of the whole document, it remains a challenge for text mining tools,
+many of which process text one sentence at a time.
 
 ``Adeft`` (Acromine-based Disambiguation of Entities From Text) is a Python
 package for training and using statistical models to disambiguate named
@@ -68,23 +68,32 @@ documents according to the defining patterns they contain, resulting in a
 training corpus with multiple subsets of documents, one for each target concept
 (a concept may be associated with multiple longforms).
 
-Based on this training corpus, Adeft builds statistical models that can be used
-to disambiguate an entity shortform given the full text of the document
-containing the shortform. Adeft uses the Python package Scikit-learn [@sklearn]
-to normalize the word frequencies for the documents in the training corpus by
-term frequency-inverse document frequency (TF-IDF), and then trains logistic
-regression models to predict the entity identity from the normalized word
-frequency vectors. Once trained, these models can be used to disambiguate
-entities in new documents (including those not containing the defining
-pattern).
+Based on this training corpus, Adeft builds logistic regression models (one for
+each entity shortform) that can be used to disambiguate an entity given the
+full text of the document. Adeft uses the Python package Scikit-learn
+[@sklearn] to normalize the word frequencies for the documents in the training
+corpus by term frequency-inverse document frequency (TF-IDF), and then trains
+logistic regression models to predict the entity identity from the normalized
+word frequency vectors.
+
+Once trained, these models can be used to disambiguate entities in new
+documents (including those not containing the defining pattern). Downstream
+applications make use of Adeft models by loading the appropriate model for the
+shortform and passing the enclosing text to the
+``AdeftDisambiguator.disambiguate`` method. The method returns the top
+grounding along with a dictionary including probabilities for all alternative
+groundings. Adeft has already been integrated into the Integrated Network and
+Dynamical Reasoning Assembler (INDRA), a system that assembles mechanistic
+information from multiple natural language processing systems [@indra]. INDRA
+uses Adeft in its ``grounding_mapper`` submodule to re-ground ambiguous
+entities from external NLP systems.
 
 In addition to the tools provided to build disambiguation models, Adeft also
-facilitates the use of pre-trained models for **XXX** ambiguous acronyms from
-the biomedical literature. However, the methods used by Adeft are not specific
-to any particular domain or type of document. In addition to code
-documentation, the Adeft repository contains Jupyter notebooks demonstrating
-Adeft workflows, including the use of pre-trained models and the construction
-of new ones.
+facilitates the use of pre-trained models for 46 ambiguous acronyms from the
+biomedical literature. However, the methods used by Adeft are not specific to
+any particular domain or type of document. In addition to documentation, the
+Adeft repository contains Jupyter notebooks demonstrating Adeft workflows,
+including the use of pre-trained models and the construction of new ones.
 
 # Acknowledgements
 
