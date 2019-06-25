@@ -1,10 +1,13 @@
 import os
 import json
 import wget
+import shutil
 import logging
 import requests
 
-from adeft.locations import MODELS_PATH, S3_BUCKET_URL
+
+from adeft.locations import ADEFT_MODELS_PATH, S3_BUCKET_URL, \
+    TEST_RESOURCES_PATH
 
 
 logger = logging.getLogger(__file__)
@@ -14,7 +17,7 @@ def download_models(update=False, models=None):
     """Download models from S3
 
     Models are downloaded and placed into a models directory in the users
-    home directory. Each model contains a serialized DeftClassifier,
+    home directory. Each model contains a serialized AdeftClassifier,
     a dictionary mapping shortforms to dictionaries mapping longform texts to
     groundings, and a list of canonical names for each grounding.
     Within the models directory, models are stored in subdirectories named
@@ -27,7 +30,7 @@ def download_models(update=False, models=None):
     update : Optional[bool]
         If True, replace all existing models with versions on S3
         otherwise only download models that aren't currently available.
-        Default: True
+        Default: False
 
     models : Optional[iterable of str]
         List of models to be downloaded. Allows user to select specific
@@ -48,43 +51,75 @@ def download_models(update=False, models=None):
         if not update and model in downloaded_models:
             continue
         # create model directory if it does not currently exist
-        if not os.path.exists(os.path.join(MODELS_PATH, model)):
-            os.makedirs(os.path.join(MODELS_PATH, model))
+        if not os.path.exists(os.path.join(ADEFT_MODELS_PATH, model)):
+            os.makedirs(os.path.join(ADEFT_MODELS_PATH, model))
         for resource in (model + '_grounding_dict.json',
                          model + '_names.json',
                          model + '_model.gz'):
-            resource_path = os.path.join(MODELS_PATH, model, resource)
+            resource_path = os.path.join(ADEFT_MODELS_PATH, model, resource)
             # if resource already exists, remove it since wget will not
             # overwrite existing files, choosing a new name instead
             _remove_if_exists(resource_path)
-            wget.download(url=os.path.join(S3_BUCKET_URL, model, resource),
-                          out=resource_path)
-        if model == '__TEST':
-            resource_path = os.path.join(MODELS_PATH, model,
-                                         'example_training_data.json')
-            _remove_if_exists(resource_path)
-            wget.download(url=os.path.join(S3_BUCKET_URL, model,
-                                           'example_training_data.json'),
+            wget.download(url=os.path.join(S3_BUCKET_URL, 'Models',
+                                           model, resource),
                           out=resource_path)
 
 
-def get_available_models(models_path=MODELS_PATH):
+def setup_test_resource_folders():
+    """Make test resource folders and download content
+
+    Replaces content in existing test_resource_folders if they already
+    exist.
+    """
+    if os.path.isdir(TEST_RESOURCES_PATH):
+        shutil.rmtree(TEST_RESOURCES_PATH)
+    os.mkdir(TEST_RESOURCES_PATH)
+    os.mkdir(os.path.join(TEST_RESOURCES_PATH, 'test_model'))
+    os.mkdir(os.path.join(TEST_RESOURCES_PATH, 'scratch'))
+    os.mkdir(os.path.join(TEST_RESOURCES_PATH, 'test_model', 'IR'))
+    download_test_resources()
+    return
+
+
+def download_test_resources():
+    """Download files necessary to run tests
+
+    Downloads a test disambiguator and a set of example training data and
+    places them in the test_resources folder of the .adeft directory. This
+    function will error if the necessary directories do not exist. If they do
+    not already exist they will be created when running
+    python -m adeft.download
+    """
+    test_model_path = os.path.join(TEST_RESOURCES_PATH, 'test_model', 'IR')
+    if not os.path.exists(test_model_path):
+        os.mkdir(test_model_path)
+    for resource in ('IR_grounding_dict.json', 'IR_names.json', 'IR_model.gz'):
+        if not os.path.exists(os.path.join(test_model_path, resource)):
+            wget.download(url=os.path.join(S3_BUCKET_URL, 'Test', 'IR',
+                                           resource),
+                          out=os.path.join(test_model_path, resource))
+    if not os.path.exists(os.path.join(TEST_RESOURCES_PATH,
+                                       'example_training_data.json')):
+        wget.download(url=os.path.join(S3_BUCKET_URL, 'Test',
+                                       'example_training_data.json'),
+                      out=os.path.join(TEST_RESOURCES_PATH,
+                                       'example_training_data.json'))
+
+
+def get_available_models(path=ADEFT_MODELS_PATH):
     """Returns set of all models currently in models folder"""
-    if not os.path.exists(models_path):
+    if not os.path.exists(path):
         return {}
     output = {}
-    for model in os.listdir(models_path):
-        model_path = os.path.join(models_path, model)
+    for model in os.listdir(path):
+        model_path = os.path.join(path, model)
         if os.path.isdir(model_path) and model != '__pycache__':
-            if model == '__TEST':
-                output['__TEST'] = '__TEST'
-                continue
             grounding_file = '%s_grounding_dict.json' % model
             with open(os.path.join(model_path, grounding_file), 'r') as f:
                 grounding_dict = json.load(f)
             for key, value in grounding_dict.items():
                 if key in output:
-                    logger.warning('Shortform %s has multiple deft models'
+                    logger.warning('Shortform %s has multiple adeft models'
                                    'This may lead to unexpected behavior'
                                    % key)
                 else:
@@ -94,7 +129,8 @@ def get_available_models(models_path=MODELS_PATH):
 
 def get_s3_models():
     """Returns set of all models currently available on s3"""
-    result = requests.get(os.path.join(S3_BUCKET_URL, 's3_models.json'))
+    result = requests.get(os.path.join(S3_BUCKET_URL, 'Models',
+                                       's3_models.json'))
     try:
         output = result.json()
         assert isinstance(output, dict)
@@ -107,8 +143,8 @@ def get_s3_models():
 def _remove_if_exists(path):
     """Remove file if it exists, otherwise do nothing
 
-    Paramteters
-    -----------
+    Parameters
+    ----------
     path : str
         file to attempt to remove
     """

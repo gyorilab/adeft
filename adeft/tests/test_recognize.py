@@ -1,7 +1,7 @@
 from nltk.stem.snowball import EnglishStemmer
 
 from adeft.nlp import tokenize
-from adeft.recognize import DeftRecognizer
+from adeft.recognize import AdeftRecognizer
 
 _stemmer = EnglishStemmer()
 
@@ -43,8 +43,8 @@ example5 = ('A number of studies showed that chemotherapeutic benefits'
 
 def test_init():
     """Test that the recognizers internal trie is initialized correctly"""
-    dr = DeftRecognizer('ER', grounding_map)
-    trie = dr._trie
+    rec = AdeftRecognizer('ER', grounding_map)
+    trie = rec._trie
     for longform, grounding in grounding_map.items():
         edges = tuple(_stemmer.stem(token)
                       for token, _ in tokenize(longform))[::-1]
@@ -60,31 +60,31 @@ def test_init():
 
 def test_search():
     """Test that searching for a longform in the trie works correctly"""
-    dr = DeftRecognizer('ER', grounding_map)
+    rec = AdeftRecognizer('ER', grounding_map)
     example = ('room', 'emerg', 'non', 'of', 'type', 'some',
                'reduc', 'program', 'hmo', 'mandatori', ',', 'women', 'for')
-    assert dr._search(example) == 'emergency room'
+    assert rec._search(example) == 'emergency room'
 
 
 def test_recognizer():
     """Test the recognizer end to end"""
-    dr = DeftRecognizer('ER', grounding_map)
+    rec = AdeftRecognizer('ER', grounding_map)
     for text, result in [example1, example2, example3, example4, example5]:
-        longform = dr.recognize(text)
+        longform = rec.recognize(text)
         assert longform.pop() == result
 
     # Case where defining pattern appears at the start of the fragment
-    assert not dr.recognize('(ER) stress')
+    assert not rec.recognize('(ER) stress')
 
 
 def test_exclude():
     """Test that using excluded words works"""
-    dr = DeftRecognizer('ER', grounding_map, exclude=['emergency'])
-    assert not dr.recognize(example3[0])
+    rec = AdeftRecognizer('ER', grounding_map, exclude=['emergency'])
+    assert not rec.recognize(example3[0])
 
 
 def test_strip_defining_patterns():
-    dr = DeftRecognizer('ER', grounding_map)
+    rec = AdeftRecognizer('ER', grounding_map)
     test_cases = ['The endoplasmic reticulum (ER) is a transmembrane',
                   'The endoplasmic reticulum(ER) is a transmembrane',
                   'The endoplasmic reticulum (ER)is a transmembrane',
@@ -95,8 +95,8 @@ def test_strip_defining_patterns():
                ['The ER -is a transmembrane'])
 
     for case, result in zip(test_cases, results):
-        assert dr.strip_defining_patterns(case) == result
+        assert rec.strip_defining_patterns(case) == result
 
     null_case = 'Newly developed extended release (ER) medications'
     null_result = 'Newly developed extended release ER medications'
-    assert dr.strip_defining_patterns(null_case) == null_result
+    assert rec.strip_defining_patterns(null_case) == null_result

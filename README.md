@@ -1,4 +1,9 @@
-# adeft
+# Adeft
+[![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
+[![Build](https://travis-ci.org/indralab/adeft.svg)](https://travis-ci.org/indralab/adeft)
+[![Documentation](https://readthedocs.org/projects/adeft/badge/?version=latest)](https://adeft.readthedocs.io/en/latest/?badge=latest)
+[![PyPI version](https://badge.fury.io/py/adeft.svg)](https://badge.fury.io/py/adeft)
+[![Python 3](https://img.shields.io/pypi/pyversions/adeft.svg)](https://www.python.org/downloads/release/python-357/)
 
 Adeft (Acromine based Disambiguation of Entities From Text context)
 is a utility for building models to disambiguate acronyms and other abbreviations of biological terms in the scientific literature. It makes use of an implementation of the [Acromine](http://www.chokkan.org/research/acromine/) algorithm developed
@@ -6,6 +11,7 @@ by the [NaCTeM](http://www.nactem.ac.uk/index.php) at the University of Manchest
 to identify possible longform expansions for shortforms in a text corpus.
 It allows users to build disambiguation models to disambiguate shortforms based
 on their text context. A growing number of pretrained disambiguation models are publically available to download through adeft.
+
 ## Installation
 
 Adeft works with Python versions 3.5 and above. It is available on PyPi and can be installed with the command
@@ -16,7 +22,7 @@ Adeft's pretrained machine learning models can then be downloaded with the comma
 
     $ python -m adeft.download
 
-## Using adeft
+## Using Adeft
 A dictionary of available models can be imported with `from adeft import available_models`
 
 The dictionary maps shortforms to model names. It's possible for multiple equivalent
@@ -43,4 +49,17 @@ for more info.
 Documentation is available at
 [https://adeft.readthedocs.io](http://adeft.readthedocs.io)
     
+
+## Testing
+
+Adeft uses `nosetests` for unit testing, and is integrated with the Travis
+continuous integration environment. To run tests locally, make sure
+to install the test-specific requirements listed in setup.py as
+
+```bash
+pip install adeft[test]
+```
+
+and download all pre-trained models as shown above.
+Then run `nosetests` in the top-level `adeft` folder.
 

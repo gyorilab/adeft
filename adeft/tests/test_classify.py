@@ -2,20 +2,21 @@ import os
 import uuid
 import json
 import numpy as np
+from collections import Counter
 from nose.plugins.attrib import attr
 from sklearn.metrics import f1_score
 
-from adeft.locations import MODELS_PATH
-from adeft.modeling.classify import DeftClassifier, load_model
-from adeft.download import get_available_models, download_models
+from adeft.locations import TEST_RESOURCES_PATH
+from adeft.modeling.classify import AdeftClassifier, load_model
 
-# Get test path so we can write a temporary file here
-TESTS_PATH = os.path.dirname(os.path.abspath(__file__))
 
-if 'TEST' not in get_available_models():
-    download_models(models=['__TEST'])
+# Get test model path so we can write a temporary file here
+TEST_MODEL_PATH = os.path.join(TEST_RESOURCES_PATH, 'test_model')
+# Path to scratch directory to write files to during tests
+SCRATCH_PATH = os.path.join(TEST_RESOURCES_PATH, 'scratch')
 
-with open(os.path.join(MODELS_PATH, '__TEST',
+
+with open(os.path.join(TEST_RESOURCES_PATH,
                        'example_training_data.json'), 'r') as f:
     data = json.load(f)
 
@@ -27,7 +28,7 @@ def test_train():
     params = {'C': 1.0,
               'ngram_range': (1, 2),
               'max_features': 1000}
-    classifier = DeftClassifier(['IR'], ['HGNC:6091', 'MESH:D011839'])
+    classifier = AdeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'])
     texts = data['texts']
     labels = data['labels']
     classifier.train(texts, labels, **params)
@@ -41,11 +42,13 @@ def test_train():
 def test_cv_multiclass():
     params = {'C': [1.0],
               'max_features': [1000]}
-    classifier = DeftClassifier(['IR'], ['HGNC:6091', 'MESH:D011839'])
+    classifier = AdeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'])
     texts = data['texts']
     labels = data['labels']
     classifier.cv(texts, labels, param_grid=params, cv=2)
     assert classifier.best_score > 0.5
+    assert classifier.stats['label_distribution'] == dict(Counter(labels))
+    assert classifier.stats['precision']['mean'] > 0.5
 
 
 @attr('slow')
@@ -55,18 +58,20 @@ def test_cv_binary():
     texts = data['texts']
     labels = [label if label == 'HGNC:6091' else 'ungrounded'
               for label in data['labels']]
-    classifier = DeftClassifier(['IR'], ['HGNC:6091'])
+    classifier = AdeftClassifier('IR', ['HGNC:6091'])
     classifier.cv(texts, labels, param_grid=params, cv=2)
     assert classifier.best_score > 0.5
+    assert classifier.stats['label_distribution'] == dict(Counter(labels))
+    assert classifier.stats['precision']['mean'] > 0.5
 
 
 def test_serialize():
     """Test that models can correctly be saved to and loaded from gzipped json
     """
     texts = data['texts']
-    temp_filename = os.path.join(TESTS_PATH, uuid.uuid4().hex)
-    classifier1 = load_model(os.path.join(MODELS_PATH, '__TEST',
-                                          '__TEST_model.gz'))
+    classifier1 = load_model(os.path.join(TEST_MODEL_PATH, 'IR',
+                                          'IR_model.gz'))
+    temp_filename = os.path.join(SCRATCH_PATH, uuid.uuid4().hex)
     classifier1.dump_model(temp_filename)
 
     classifier2 = load_model(temp_filename)

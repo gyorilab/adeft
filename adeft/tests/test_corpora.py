@@ -1,4 +1,4 @@
-from adeft.modeling.corpora import DeftCorpusBuilder
+from adeft.modeling.label import AdeftLabeler
 
 
 # content for single shortform corpus building
@@ -100,37 +100,37 @@ result_corpus2 = [(result[0], label) for result in [(result5, labels5),
 
 
 def test__process_text():
-    dcb = DeftCorpusBuilder({'INDRA': longforms})
+    labeler = AdeftLabeler({'INDRA': longforms})
 
     for text, result, labels in [(text1, result1, labels1),
                                  (text2, result2, labels2),
                                  (text3, result3, labels3)]:
-        datapoints = dcb._process_text(text)
+        datapoints = labeler._process_text(text)
         assert len(datapoints) == len(labels)
         assert all([datapoint[0] == result for datapoint in datapoints])
         assert all([datapoint[1] in labels for datapoint in datapoints])
 
-    assert dcb._process_text(text4) is None
+    assert labeler._process_text(text4) is None
 
 
 def test__process_text_multiple():
-    dcb = DeftCorpusBuilder({'NP': groundings1, 'NPs': groundings2})
+    labeler = AdeftLabeler({'NP': groundings1, 'NPs': groundings2})
     for text, result, labels in [(text5, result5, labels5),
                                  (text6, result6, labels6),
                                  (text7, result7, labels7)]:
-        datapoints = dcb._process_text(text)
+        datapoints = labeler._process_text(text)
         assert len(datapoints) == len(labels)
         assert all([datapoint[0] == result for datapoint in datapoints])
         assert all([datapoint[1] in labels for datapoint in datapoints])
 
 
 def test_build_from_texts():
-    dcb = DeftCorpusBuilder({'INDRA': longforms})
-    corpus = dcb.build_from_texts([text1, text2, text3, text4])
+    labeler = AdeftLabeler({'INDRA': longforms})
+    corpus = labeler.build_from_texts([text1, text2, text3, text4])
     assert set(corpus) == set(result_corpus)
 
 
 def test__build_from_texts_multiple():
-    dcb = DeftCorpusBuilder({'NP': groundings1, 'NPs': groundings2})
-    corpus = dcb.build_from_texts([text5, text6, text7])
+    labeler = AdeftLabeler({'NP': groundings1, 'NPs': groundings2})
+    corpus = labeler.build_from_texts([text5, text6, text7])
     assert set(corpus) == set(result_corpus2)

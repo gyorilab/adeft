@@ -1,3 +1,8 @@
+"""Implements a set of natural language processing tools used to pre-process
+text used for finding candidate longforms, recognizing defining patterns,
+and learning classification models.
+
+"""
 import re
 from collections import defaultdict
 
@@ -13,7 +18,7 @@ class WatchfulStemmer(object):
 
     Attributes
     ----------
-    __snow : :py:class:`nltk.stem.snowball.EnglishStemmer`
+    __snowball : :py:class:`nltk.stem.snowball.EnglishStemmer`
 
     counts : defaultdict of defaultdict of int
         Contains the count of the number of times a particular word has been
@@ -54,7 +59,7 @@ class WatchfulStemmer(object):
 
         Returns
         -------
-        output : str|None
+        output : str or None
             Most frequent word that has been mapped to the input stem or None
             if the wrapped stemmer has never mapped the a word to the input
             stem. Break ties with lexicographic order
@@ -78,7 +83,7 @@ def tokenize(text):
     Parameters
     ----------
     text : str
-        Text to tokenized
+        Text to tokenize
 
     Returns
     -------
@@ -93,7 +98,7 @@ def tokenize(text):
 
 
 def untokenize(tokens):
-    """Returns inverse of the adeft word tokenizer
+    """Return inverse of the Adeft word tokenizer
 
     The inverse is inexact. For simplicity, all white space characters are
     replaced with a space. An exact inverse is not necessary for adeft's
@@ -103,7 +108,7 @@ def untokenize(tokens):
     ----------
     tokens : list of tuple
         List of tuples of the form (word, (start, end)) giving tokens
-        and coordinates as output by adeft's word tokenizer
+        and coordinates as output by Adeft's word tokenizer
 
     Returns
     -------

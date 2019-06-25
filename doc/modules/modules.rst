@@ -1,55 +1,67 @@
-Adeft Download
---------------
+Download Trained Models
+-----------------------
+
+.. automodule:: adeft.download
+   :members:
+   :show-inheritance:
 
 .. automodule:: adeft.download.download
    :members:
    :show-inheritance:
 
-Adeft Disambiguate
-------------------
+Disambiguate Shortforms
+-----------------------
 
 .. automodule:: adeft.disambiguate
     :members:
     :show-inheritance:
 
-Adeft Discover
---------------
+Discover Longforms
+------------------
 
 .. automodule:: adeft.discover
    :members:
    :show-inheritance:
 
-Adeft Recognize
----------------
+Recognize Defining Patterns
+---------------------------
 
 .. automodule:: adeft.recognize
     :members:
     :show-inheritance:
 
-Adeft Corpora
--------------
 
-.. automodule:: adeft.modeling.corpora
+Learn Models
+------------
+
+.. automodule:: adeft.modeling
     :members:
     :show-inheritance:
 
-Adeft Classify
---------------
+Label Corpora
+~~~~~~~~~~~~~
+
+.. automodule:: adeft.modeling.label
+    :members:
+    :show-inheritance:
+
+Classify
+~~~~~~~~
 
 .. automodule:: adeft.modeling.classify
    :members:
    :show-inheritance:
 
 
-Adeft NLP
----------
+NLP
+---
 
 .. automodule:: adeft.nlp
     :members:
     :show-inheritance:
 
-Adeft Util
-----------
+Util
+----
 
 .. automodule:: adeft.util
    :members:
