@@ -1,5 +1,5 @@
 ---
-title: 'Adeft: Acromine-based Disambiguation of Entities from Text with applications to the biomedical literature
+title: 'Adeft: Acromine-based Disambiguation of Entities from Text with applications to the biomedical literature'
 tags:
   - Python
   - natural language processing
