@@ -51,8 +51,8 @@ Documentation is available at
 
 Jupyter notebooks illustrating Adeft workflows are available under `notebooks`:
 - [Introduction](notebooks/introduction.ipynb)
-- [Model building](notebooks/model_building.ipynb).
-    
+- [Model building](notebooks/model_building.ipynb)
+
 
 ## Testing
 
