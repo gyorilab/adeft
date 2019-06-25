@@ -1,3 +1,6 @@
+"""Utility functions used by Adeft internally.
+
+"""
 import re
 from unicodedata import category
 

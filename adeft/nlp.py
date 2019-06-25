@@ -1,3 +1,8 @@
+"""Implements a set of natural language processing tools used to pre-process
+text used for finding candidate longforms, recognizing defining patterns,
+and learning classification models.
+
+"""
 import re
 from collections import defaultdict
 

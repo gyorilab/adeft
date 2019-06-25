@@ -1,3 +1,5 @@
+"""Discover candidate longforms from a given corpus using the Acromine
+algorithm."""
 from collections import deque
 import logging
 

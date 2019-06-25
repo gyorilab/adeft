@@ -1,10 +1,3 @@
-"""
-Allows models to be downloaded from the command line with
-python -m adeft.download
-
-Use python -m adeft.download --update
-to update existing models if models have changed on S3
-"""
 import os
 import argparse
 

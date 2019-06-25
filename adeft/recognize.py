@@ -1,3 +1,6 @@
+"""Implements the disambiguation of shortforms based on recognizing an
+explicit defining pattern in text."""
+
 import re
 import string
 import logging

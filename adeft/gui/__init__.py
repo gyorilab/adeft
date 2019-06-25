@@ -1,3 +1,6 @@
+"""Provides a graphical user interface to select the grounding for a
+set of longforms.
+"""
 import os
 import json
 import time
