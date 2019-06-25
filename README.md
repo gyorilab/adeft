@@ -1,4 +1,3 @@
-
 # Adeft
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
 [![Build](https://travis-ci.org/indralab/adeft.svg)](https://travis-ci.org/indralab/adeft)
@@ -59,8 +58,8 @@ to install the test-specific requirements listed in setup.py as
 
 ```bash
 pip install adeft[test]
-
 ```
+
 and download all pre-trained models as shown above.
 Then run `nosetests` in the top-level `adeft` folder.
 
