@@ -21,6 +21,7 @@ models are publically available to download through Adeft.
    :maxdepth: 3
 
    modules/index
+   tutorials
 
 
 
