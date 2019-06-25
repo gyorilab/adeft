@@ -16,25 +16,21 @@ class AdeftDisambiguator(object):
     Parameters
     ----------
     classifier :  py:class:`adeft.modeling.classify.AdeftClassifier`
-       machine learning model for disambiguating shortforms based upon context
-
+        Machine learning model for disambiguating shortforms based upon context
     grounding_dict : dict
         Dictionary mapping shortforms to grounding_map dictionaries mapping
         longforms to groundings
-
     names : dict
-        dictionary mapping groundings to canonical names
+        Dictionary mapping groundings to canonical names
 
     Attributes
     ----------
     shortform : str
-        shortform to disambiguate
-
+        Shortform to disambiguate
     recognizer : py:class:`adeft.recognize.AdeftRecognizer`
-        recognizer to disambiguate by searching for a defining pattern
-
+        Recognizer to disambiguate by searching for a defining pattern
     labels : set
-        set of labels classifier is able to predict
+        Set of labels classifier is able to predict
     """
     def __init__(self, classifier, grounding_dict, names):
         self.classifier = classifier
@@ -255,9 +251,14 @@ class AdeftDisambiguator(object):
         crossvalidated F1 score, precision, and recall on training data.
         Classification metrics are given by the weighted average of these
         metrics over positive labels, weighted by number of examples in
-        each class in test data. Positive labels are appended with *s in
+        each class in test data. Positive labels are appended with \*s in
         the displayed info. Classification metrics may not be available
         depending upon how model was trained.
+
+        Returns
+        -------
+        str
+            A string representing the information about the disambigutor.
         """
         if len(self.shortforms) > 1:
             readable_shortforms = (','.join(self.shortforms[:-1]) + ', and ' +
