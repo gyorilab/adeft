@@ -9,7 +9,7 @@ from adeft.gui.ground.ground import _convert_grounding_data
 
 def create_app(longforms, scores,
                grounding_map, names_map, labels, pos_labels, outpath,
-               verbose, port, test=False):
+               verbose, test=False):
     """Create and configure grounding assistant app.
 
     Takes same arguments as adeft.gui.ground_with_gui.

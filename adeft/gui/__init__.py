@@ -97,10 +97,10 @@ def ground_with_gui(longforms, scores, grounding_map=None,
     # initialize flask app
     app = create_app(longforms, scores, grounding_map,
                      names_map, labels, pos_labels, outpath,
-                     verbose, port, test=test)
+                     verbose, test=test)
 
     # Run flask server in new process
-    flask_server = Process(target=app.run)
+    flask_server = Process(target=lambda: app.run(port=port))
     flask_server.start()
     # Open app in browser unless a test is being run
     if not test:
