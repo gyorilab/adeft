@@ -48,6 +48,10 @@ for more info.
 
 Documentation is available at
 [https://adeft.readthedocs.io](http://adeft.readthedocs.io)
+
+Jupyter notebooks illustrating Adeft workflows are available under `notebooks`:
+- [Introduction](notebooks/introduction.ipynb)
+- [Model building](notebooks/model_building.ipynb).
     
 
 ## Testing
