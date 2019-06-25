@@ -268,7 +268,7 @@ class AdeftDisambiguator(object):
             readable_shortforms = self.shortforms[0]
         output = 'Disambiguation model for %s\n\n' % readable_shortforms
         output += 'Produces the disambiguations:\n'
-        for grounding, name in self.names.items():
+        for grounding, name in sorted(self.names.items(), key=lambda x: x[1]):
             pos = '*' if grounding in self.pos_labels else ''
             output += '\t%s%s\t%s\n' % (name, pos, grounding)
         output += '\n'
