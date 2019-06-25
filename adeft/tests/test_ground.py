@@ -21,9 +21,8 @@ class GroundingTestCase1(unittest.TestCase):
         labels = []
         outpath = os.path.join(TEST_RESOURCES_PATH, 'scratch')
         verbose = False
-        port = 5000
         app = create_app(longforms, scores, grounding_map, names_map,
-                         labels, pos_labels, outpath, verbose, port)
+                         labels, pos_labels, outpath, verbose)
         app.testing = True
         self.longforms = longforms
         self.grounding_map = grounding_map

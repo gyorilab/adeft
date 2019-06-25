@@ -57,7 +57,7 @@ class MockApp(object):
         self.pos_labels = pos_labels
         self.labels = labels
 
-    def run(self):
+    def run(self, port=None):
         output = _convert_grounding_data(self.grounding_map,
                                          self.names_map,
                                          self.labels,
