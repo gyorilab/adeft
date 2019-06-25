@@ -10,7 +10,7 @@ is a utility for building models to disambiguate acronyms and other abbreviation
 by the [NaCTeM](http://www.nactem.ac.uk/index.php) at the University of Manchester
 to identify possible longform expansions for shortforms in a text corpus.
 It allows users to build disambiguation models to disambiguate shortforms based
-on their text context. A growing number of pretrained disambiguation models are publically available to download through adeft.
+on their text context. A growing number of pretrained disambiguation models are publicly available to download through adeft.
 
 ## Installation
 
