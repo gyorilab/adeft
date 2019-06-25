@@ -85,8 +85,8 @@ grounding along with a dictionary including probabilities for all alternative
 groundings. Adeft has already been integrated into the Integrated Network and
 Dynamical Reasoning Assembler (INDRA), a system that assembles mechanistic
 information from multiple natural language processing systems [@indra]. INDRA
-uses Adeft in its ``grounding_mapper`` submodule to re-ground ambiguous
-entities from external NLP systems.
+uses Adeft in its [grounding_mapper](https://indra.readthedocs.io/en/latest/modules/preassembler/index.html#indra.preassembler.grounding_mapper.run_adeft_disambiguation)
+submodule to re-ground ambiguous entities from external NLP systems.
 
 In addition to the tools provided to build disambiguation models, Adeft also
 facilitates the use of pre-trained models for 46 ambiguous acronyms from the
