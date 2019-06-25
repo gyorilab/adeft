@@ -1,3 +1,5 @@
+"""Implements classes to disambiguate shortforms given text context."""
+
 import os
 import json
 import logging

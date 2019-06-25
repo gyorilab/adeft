@@ -1,6 +1,10 @@
 Download Trained Models
 -----------------------
 
+.. automodule:: adeft.download
+   :members:
+   :show-inheritance:
+
 .. automodule:: adeft.download.download
    :members:
    :show-inheritance:
