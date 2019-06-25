@@ -27,10 +27,9 @@ class AdeftClassifier(object):
 
     Parameters
     ----------
-    shortform : str | list of str
+    shortforms : str or list of str
         Shortform to disambiguate or list of shortforms to build models
-        for multiple synomous shortforms
-
+        for multiple synomous shortforms.
     pos_labels : list of str
         Labels for positive classes. These correspond to the longforms of
         interest in an application. For adeft pretrained models these are
@@ -41,7 +40,6 @@ class AdeftClassifier(object):
     estimator : py:class:`sklearn.pipeline.Pipeline`
         An sklearn pipeline that transforms text data with a TfidfVectorizer
         and fits a logistic regression.
-
     stats : str
        Statistics describing model performance. Only available after model is
        fit with crossvalidation
@@ -53,28 +51,27 @@ class AdeftClassifier(object):
         self.shortforms = shortforms
         self.pos_labels = pos_labels
         self.stats = None
+        self.estimator = None
+        self.best_score = None
+        self.grid_search = None
 
     def train(self, texts, y, C=1.0, ngram_range=(1, 2), max_features=1000):
         """Fits a disambiguation model
 
         Parameters
         ----------
-        tests : iterable of str
+        texts : iterable of str
             Training texts
-
         y : iterable of str
             True labels for training texts
-
         C : Optional[float]
              L1 regularization parameter logistic regression model. Follows
              convention of support vector machines with smaller values
              corresponding to stronger regularization. Default: 1.0
-
         ngram_range : Optional[tuple of int]
             Range of ngram features to use. Must be a tuple of ints of the
             form (a, b) with a <= b. When ngram_range is (1, 2), unigrams and
             bigrams will be used as features. Default: (1, 2)
-
         max_features : int
             Maximum number of tfidf-vectorized ngrams to use as features in
             model. Selects top_features by term frequency Default: 1000
@@ -102,14 +99,11 @@ class AdeftClassifier(object):
         ----------
         texts : iterable of str
              Training texts
-
         y : iterable of str
             True labels for the training texts
-
         param_grid : Optional[dict]
           Grid search parameters. Can contain all parameters from the train
           method.
-
         n_jobs : Optional[int]
             Number of jobs to use when performing grid_search
             Default: 1
@@ -212,7 +206,7 @@ class AdeftClassifier(object):
 
         Parameters
         ----------
-        filepath: str
+        filepath : str
            Path to output file
         """
         logit = self.estimator.named_steps['logit']
@@ -247,12 +241,13 @@ def load_model(filepath):
 
     Parameters
     ----------
-    filepath: str
+    filepath : str
        path to model file
 
     Returns
     -------
-    longform_model: py:class:`adeft.classify.AdeftClassifier`
+    longform_model : py:class:`adeft.classify.AdeftClassifier`
+        The classifier that was loaded from the given path.
     """
     with gzip.GzipFile(filepath, 'r') as fin:
         json_bytes = fin.read()

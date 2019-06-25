@@ -25,12 +25,13 @@ class AdeftDisambiguator(object):
 
     Attributes
     ----------
-    shortform : str
-        Shortform to disambiguate
-    recognizer : py:class:`adeft.recognize.AdeftRecognizer`
-        Recognizer to disambiguate by searching for a defining pattern
+    shortforms : list of str
+        Shortforms to disambiguate
+    recognizers : list of py:class:`adeft.recognize.AdeftRecognizer`
+        A list of recognizers, one for each shortform, to disambiguate by
+        searching for a defining pattern.
     labels : set
-        Set of labels classifier is able to predict
+        Set of labels that the classifier is able to predict.
     """
     def __init__(self, classifier, grounding_dict, names):
         self.classifier = classifier
@@ -130,10 +131,9 @@ class AdeftDisambiguator(object):
         """Update groundings and standardized names
 
         Modify groundings and standard names for the disambiguator without
-        retraining. Cannot cause two previously separate groundings to map
-        to a single new grounding. Cannot map two existing groundings to a
-        single new grounding, as this leads to a nontrivial change in the
-        model rather than just a relabeling.
+        retraining. Cannot map two existing groundings to a single new
+        grounding, as this leads to a nontrivial change in the model rather
+        than just a relabeling.
 
         Parameters
         ----------
@@ -216,9 +216,8 @@ class AdeftDisambiguator(object):
         ----------
         model_name : str
             Model files will be saved in directory with this name.
-
         path : Optional[str]
-            Path to where model is to be stored. Defaults to current directory.
+            Path where model is to be stored. Defaults to current directory.
             Default: None
         """
         if path is None:
@@ -306,8 +305,8 @@ def load_disambiguator(shortform, path=ADEFT_MODELS_PATH):
 
     Parameters
     ----------
-    model_name : str
-        Model_Name to disambiguate
+    shortform : str
+        Shortform to disambiguate.
     path : Optional[str]
         Path to models directory. Defaults to adeft's pretrained models.
         Users have the option to specify a path to another directory to use
@@ -316,6 +315,7 @@ def load_disambiguator(shortform, path=ADEFT_MODELS_PATH):
     Returns
     -------
     py:class:`adeft.disambiguate.AdeftDisambiguator`
+        A disambiguator that was loaded from a file.
     """
     available = get_available_models(path=path)
     try:

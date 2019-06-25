@@ -143,8 +143,8 @@ def get_s3_models():
 def _remove_if_exists(path):
     """Remove file if it exists, otherwise do nothing
 
-    Paramteters
-    -----------
+    Parameters
+    ----------
     path : str
         file to attempt to remove
     """

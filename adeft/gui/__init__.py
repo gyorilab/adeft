@@ -13,37 +13,30 @@ logger = logging.getLogger(__name__)
 def ground_with_gui(longforms, scores, grounding_map=None,
                     names=None, pos_labels=None, verbose=False, port=5000,
                     test=False):
-    """Opens grounding gui in browser. Returns output upon user submission
+    """Opens grounding GUI in browser. Returns output upon user submission.
 
     Parameters
     ----------
     longforms : list of str
         List of longforms to ground
-
     scores : list of float
         List of scores associated to each longform
-
     grounding_map : Optional[dict]
         Dictionary mapping longforms to groundings. Intended for initial
         groundings that must be manually reviewed by user, such as those
         created by an imperfect grounding function. Default: None
-
     names : Optional[dict]
         Dictionary map groundings from grounding_map to standardized names.
         This is ignored if grounding_map is set to None. Default: None
-
     pos_labels : Optional[list]
         List of groundings to be considered as positive labels.
         This is ignored if grounding_map is set to None. Default: None
-
     verbose : Optional[bool]
         When true, display logging from flask's werkzeug server.
         Default: False
-
     port : Optional[int]
         Port where flask is served. Defaults to flask's default.
         Default: 5000
-
     test : Optional[bool]
         If True the Flask app is replaced with a mock version for testing.
         Default: False

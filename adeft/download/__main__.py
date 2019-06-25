@@ -1,11 +1,3 @@
-import os
-import argparse
-
-from adeft.download import download_models, setup_test_resource_folders, \
-    download_test_resources
-from adeft.locations import ADEFT_PATH, ADEFT_MODELS_PATH
-
-
 """
 Allows models to be downloaded from the command line with
 python -m adeft.download
@@ -13,6 +5,12 @@ python -m adeft.download
 Use python -m adeft.download --update
 to update existing models if models have changed on S3
 """
+import os
+import argparse
+
+from adeft.download import download_models, setup_test_resource_folders, \
+    download_test_resources
+from adeft.locations import ADEFT_PATH, ADEFT_MODELS_PATH
 
 parser = argparse.ArgumentParser(description='Download models from S3')
 parser.add_argument('--update', action='store_true',

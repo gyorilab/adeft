@@ -8,9 +8,7 @@ logger = logging.getLogger(__file__)
 
 
 class _TrieNode(object):
-    __slots__ = ['longform', 'count', 'sum_ft', 'sum_ft2', 'score',
-                 'parent', 'children', 'best_ancestor_score', 'best_ancestor']
-    """ Node in Trie associated to a candidate longform
+    """Node in Trie associated to a candidate longform
 
     The children of a node associated to a candidate longform c are all
     observed candidates t that can be obtained by prepending a single token
@@ -71,6 +69,9 @@ class _TrieNode(object):
     best_ancestor : :py:class:`adeft.discover._TrieNode`
         ancestor of node with best score
     """
+    __slots__ = ['longform', 'count', 'sum_ft', 'sum_ft2', 'score',
+                 'parent', 'children', 'best_ancestor_score', 'best_ancestor']
+
     def __init__(self, longform=(), parent=None):
         self.longform = longform
         if longform:
@@ -112,10 +113,11 @@ class _TrieNode(object):
 
 
 class AdeftMiner(object):
-    """Finds possible longforms corresponding to an abbreviation in a text corpus
+    """Finds possible longforms corresponding to an abbreviation in a text
+    corpus.
 
     Makes use of the `Acromine <http://www.chokkan.org/research/acromine/>`_
-    algorithm developed by Okazaki and Ananiadou
+    algorithm developed by Okazaki and Ananiadou.
 
     [Okazaki06] Naoaki Okazaki and Sophia Ananiadou. "Building an
     abbreviation dicationary using a term recognition approach".
@@ -157,7 +159,7 @@ class AdeftMiner(object):
         self._stemmer = WatchfulStemmer()
         self.window = window
         if exclude is None:
-            self.exclude = set([])
+            self.exclude = set()
         else:
             self.exclude = exclude
 

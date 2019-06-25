@@ -63,11 +63,11 @@ class AdeftLabeler(object):
         Parameters
         ----------
         text : str
-            fulltext to build datapoint from if possible
+            Fulltext to build datapoint from, if possible.
 
         Returns
         -------
-        datapoints : list of tuple | None
+        datapoints : list of tuple or None
             Returns None if no label can be found by matching the standard
             pattern. Otherwise, returns a list of pairs containing the training
             text and a label for each label appearing in the input text
