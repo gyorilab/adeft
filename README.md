@@ -1,4 +1,10 @@
+
 # Adeft
+[![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
+[![Build](https://travis-ci.org/indralab/adeft.svg)](https://travis-ci.org/indralab/adeft)
+[![Documentation](https://readthedocs.org/projects/adeft/badge/?version=latest)](https://adeft.readthedocs.io/en/latest/?badge=latest)
+[![PyPI version](https://badge.fury.io/py/adeft.svg)](https://badge.fury.io/py/adeft)
+[![Python 3](https://img.shields.io/badge/python-3-blue.svg)](https://www.python.org/downloads/release/python-357/)
 
 Adeft (Acromine based Disambiguation of Entities From Text context)
 is a utility for building models to disambiguate acronyms and other abbreviations of biological terms in the scientific literature. It makes use of an implementation of the [Acromine](http://www.chokkan.org/research/acromine/) algorithm developed
