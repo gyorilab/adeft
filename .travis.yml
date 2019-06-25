@@ -11,5 +11,3 @@ install:
  - python -m adeft.download
 script:
  - nosetests adeft -v --with-coverage --cover-inclusive --cover-package=adeft
-after_success:
- - coveralls
