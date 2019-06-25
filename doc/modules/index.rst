@@ -1,7 +1,7 @@
 .. _adeft_modules_ref:
 
-adeft modules reference
-----------------------
+Adeft modules reference
+-----------------------
 
 .. toctree::
   :maxdepth: 4
