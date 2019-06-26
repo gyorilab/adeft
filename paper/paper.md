@@ -42,19 +42,19 @@ interpreting these ambiguities is rarely a problem for human readers given the
 context of the whole document, it remains a challenge for text mining tools,
 many of which process text one sentence at a time.
 
-``Adeft`` (Acromine-based Disambiguation of Entities From Text) is a Python
-package for training and using statistical models to disambiguate named
-entities in text using document context. It is based on Acromine, a
-previously-published algorithm that assembles a training corpus for the
-different senses of an acronym by searching the text for defining patterns
-(DPs) [@acromine2006; @acromine2010]. Defining patterns typically take the form of
-parenthetical expressions, e.g. ``long form (shortform)``, which can be
-identified systematically with regular expressions (for example, in the
-preceding sentence, ``defining patterns (DPs)`` is a defining pattern).
+Adeft (Acromine-based Disambiguation of Entities From Text) is a Python package
+for training and using statistical models to disambiguate named entities in
+text using document context. It is based on Acromine, a previously-published
+algorithm that assembles a training corpus for the different senses of an
+acronym by searching the text for defining patterns (DPs) [@acromine2006;
+@acromine2010]. Defining patterns typically take the form of parenthetical
+expressions, e.g. "long form (shortform)", which can be identified
+systematically with regular expressions (for example, in the preceding
+sentence, "defining patterns (DPs)" is a defining pattern).
 
 Given a named entity shortform (e.g., "IR") and a set of texts containing the
 shortform, Adeft first uses the Acromine algorithm to identify candidate
-longforms (e.g., ``insulin receptor``, ``ionizing radiation``, etc.) by
+longforms (e.g., "insulin receptor", "ionizing radiation", etc.) by
 searching for defining patterns. Second, the user selects the subset of
 longforms relevant to their text mining use case and maps them to uniform
 identifiers either manually or programmatically (e.g., "insulin receptor" is
