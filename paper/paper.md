@@ -47,7 +47,7 @@ package for training and using statistical models to disambiguate named
 entities in text using document context. It is based on Acromine, a
 previously-published algorithm that assembles a training corpus for the
 different senses of an acronym by searching the text for defining patterns
-(DPs) [@acromine1; @acromine2]. Defining patterns typically take the form of
+(DPs) [@acromine2006; @acromine2010]. Defining patterns typically take the form of
 parenthetical expressions, e.g. ``long form (shortform)``, which can be
 identified systematically with regular expressions (for example, in the
 preceding sentence, ``defining patterns (DPs)`` is a defining pattern).
