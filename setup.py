@@ -1,11 +1,17 @@
 from os import path
 from setuptools import setup, find_packages
+from setuptools.extension import Extension
+from Cython.Build import cythonize
 
 
 here = path.abspath(path.dirname(__file__))
 
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
+
+extensions = [
+    Extension('adeft.score.score_util', ['adeft/score/score_util.pyx'])
+    ]
 
 
 setup(name='adeft',
@@ -28,5 +34,7 @@ setup(name='adeft',
       install_requires=['nltk', 'scikit-learn>=0.20.0', 'wget',
                         'requests', 'flask'],
       extras_require={'test': ['nose', 'coverage']},
-      keywords=['nlp', 'biology', 'disambiguation']
+      keywords=['nlp', 'biology', 'disambiguation'],
+      ext_modules=cythonize(extensions,
+                            compiler_directives={'language_level': 3})
       )
