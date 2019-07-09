@@ -27,6 +27,40 @@ cdef struct results:
 
 cdef results optimize(long[:] x, long[:] y,
                     double[:] prizes, double[:] penalties):
+    """Subsequence match optimization algorithm for longform scoring
+
+    Uses a dynamic programming algorithm to find optimal instance of
+    y as a subsequence in x where elements of x each have a corresponding
+    prize. Wildcard characters are allowed in x that match any element of y
+    and penalties may be given for when an element of y matches a wildcard
+    instead of a regular element of x.
+
+    Paramters
+    ---------
+    x : TypedMemoryView of long
+        Contains nonnegative long ints for supersequence in which we seek
+        a subsequence match. May also contain the value -1 which corresponds to a
+        wildcard that matches any nonnegative int.
+
+    y : TypedMemoryView of long
+        Sequence we seek an optimal subsequence match of in x
+
+    prizes : TypedMemoryView of double
+        Must be the same length as x. Prize gained for matching an element
+        of y to the corresponding element of x
+
+    penalties : TypedMemoryView of double
+        Must the the same length as y. Penalty lost if the corresponding
+        element of y matches a wildcard.
+
+    Returns
+    -------
+    output : struct results
+        Contains three entries. The score of optimal match, a c array of
+        indices matched in x in reverse order, and the number of characters
+        in y that were matched in x. 
+    """
+    # Check once that input shapes are valid.
     if x.shape[0] != prizes.shape[0] or y.shape[0] != penalties.shape[0]:
         raise ValueError
     cdef:
@@ -36,9 +70,8 @@ cdef results optimize(long[:] x, long[:] y,
         unsigned int i, j, k
         results output
 
-    if n != prizes.shape[0] or m != penalties.shape[0]:
-        raise ValueError
-
+    # Dynamic initialization of score_lookup array and traceback pointer
+    # array
     cdef:
         double **score_lookup = (<double **>
                                  PyMem_Malloc((n+1) * sizeof(double *)))
@@ -49,6 +82,7 @@ cdef results optimize(long[:] x, long[:] y,
         if i != n:
             pointers[i] = <int *> PyMem_Malloc(m * sizeof(int))
 
+    # Hold on to your butts
     with boundscheck(False), wraparound(False):
         score_lookup[0][0] = 0
         for j in range(1, m+1):
@@ -58,6 +92,9 @@ cdef results optimize(long[:] x, long[:] y,
                 score_lookup[i][j] = 0
         for i in range(1, n+1):
             for j in range(1, m+1):
+                # Case where element of x in current position matches
+                # element of y in current position. Algorithm considers
+                # either accepting or rejecting this match
                 if x[i-1] == y[j-1]:
                     possibility1 = score_lookup[i-1][j]
                     possibility2 = score_lookup[i-1][j-1] + prizes[i-1]
@@ -67,6 +104,8 @@ cdef results optimize(long[:] x, long[:] y,
                     else:
                         score_lookup[i][j] = possibility1
                         pointers[i-1][j-1] = 0
+                # Case where element of x in current position is a wildcard.
+                # May either accept or reject this match
                 elif x[i-1] == -1:
                     possibility1 = score_lookup[i-1][j]
                     possibility2 = score_lookup[i-1][j-1] - penalties[j-1]
@@ -76,15 +115,25 @@ cdef results optimize(long[:] x, long[:] y,
                     else:
                         score_lookup[i][j] = possibility1
                         pointers[i-1][j-1] = 0
+                # No match is possible. There is only one option to fill
+                # current entry of dynamic programming lookup array.
                 else:
                     score_lookup[i][j] = score_lookup[i-1][j]
                     pointers[i-1][j-1] = 0
+    # Optimal score is in bottom right corner of lookup array
     score = score_lookup[n][m]
+    # Free the memory used by the lookup array
     PyMem_Free(score_lookup)
 
+    # Set score in output
     output.score = score
+    # Initialize indices array in output. Max possible length is the length
+    # of y
     output.indices = <int *> PyMem_Malloc(m * sizeof(int))
 
+    # Trace backwards through pointer array to discover which elements of x
+    # were matched and add the corresponding indices to the index array in
+    # reverse order
     i, j, k = n-1, m-1, 0
     while i > 0:
         if pointers[i][j]:
@@ -94,6 +143,8 @@ cdef results optimize(long[:] x, long[:] y,
             k += 1
         else:
             i -= 1
+    # Free pointer array
     PyMem_Free(pointers)
+    # Set the number of chars in y that were matched
     output.chars_matched = k
     return output
