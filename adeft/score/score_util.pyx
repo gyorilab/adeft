@@ -178,6 +178,13 @@ cdef candidates_array convert_input(list encoded_candidates):
             candidates.array[i].array[j] = encoded_candidates[i][j]
     return candidates
 
+
+cdef free_candidates_array(candidates_array candidates):
+    cdef:
+        int i, j
+    for i in range(candidates.length):
+        PyMem_Free(candidates.array[i].array)
+    PyMem_Free(candidates.array)
     print(candidates.array[0].array[0])
     print(candidates.array[1].array[0])
     print(candidates.array[0].length)
