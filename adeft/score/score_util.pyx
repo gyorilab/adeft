@@ -157,10 +157,11 @@ cdef struct candidates_array:
     int_array *array
     int total_length
     
-def longform_scorer(encoded_shortform, encoded_candidates, n=4):
+cdef candidates_array convert_input(list encoded_candidates):
     cdef:
-        int i, j, num_candidates, m 
+        int i, j, num_candidates, m, n
         candidates_array candidates
+    n = len(encoded_candidates)
     candidates.array = <int_array *> PyMem_Malloc(n * sizeof(int_array))
     candidates.total_length = 0
     i = 0
@@ -173,6 +174,7 @@ def longform_scorer(encoded_shortform, encoded_candidates, n=4):
         candidates.total_length += m
         for j in range(m):
             candidates.array[i].array[j] = encoded_candidates[i][j]
+    return candidates
 
     print(candidates.array[0].array[0])
     print(candidates.array[1].array[0])
