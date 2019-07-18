@@ -155,6 +155,7 @@ cdef struct int_array:
 
 cdef struct candidates_array:
     int_array *array
+    int length
     int total_length
     
 cdef candidates_array convert_input(list encoded_candidates):
@@ -163,6 +164,7 @@ cdef candidates_array convert_input(list encoded_candidates):
         candidates_array candidates
     n = len(encoded_candidates)
     candidates.array = <int_array *> PyMem_Malloc(n * sizeof(int_array))
+    candidates.length = n
     candidates.total_length = 0
     i = 0
     num_candidates = len(encoded_candidates)
