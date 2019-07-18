@@ -148,3 +148,42 @@ cdef results optimize(long[:] x, long[:] y,
     # Set the number of chars in y that were matched
     output.chars_matched = k
     return output
+
+cdef struct int_array:
+    int *array
+    int length
+
+cdef struct candidates_array:
+    int_array *array
+    int total_length
+    
+def longform_scorer(encoded_shortform, encoded_candidates, n=4):
+    cdef:
+        int i, j, num_candidates, m 
+        candidates_array candidates
+    candidates.array = <int_array *> PyMem_Malloc(n * sizeof(int_array))
+    candidates.total_length = 0
+    i = 0
+    num_candidates = len(encoded_candidates)
+    for i in range(num_candidates):
+        m = len(encoded_candidates[i])
+        candidates.array[i].array = <int *> PyMem_Malloc(m * sizeof(int))
+        j = 0
+        candidates.array[i].length = m
+        candidates.total_length += m
+        for j in range(m):
+            candidates.array[i].array[j] = encoded_candidates[i][j]
+
+    print(candidates.array[0].array[0])
+    print(candidates.array[1].array[0])
+    print(candidates.array[0].length)
+    print(candidates.array[1].length)
+    print(candidates.total_length)
+        
+    # for i in range(1, n):
+    #     perms = permutations(i)
+    #     for perm in perms:
+            
+
+
+
