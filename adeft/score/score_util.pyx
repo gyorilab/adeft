@@ -210,30 +210,18 @@ cdef int *stitch(candidates_array *candidates, int *permutation, int len_perm):
 
 def check_convert():
     cdef:
-        list b = [[0, 1], [0]]
-        int perm1[2]
-        int perm2[2]
-        int *output1
-        int *output2
+        list b = [[0, 1, 0], [0, 1], [1]]
+        int perm[3]
+        int *output
 
-    perm1[0] = 0
-    perm1[1] = 1
-
-    perm2[0] = 1
-    perm2[1] = 0
+    perm[0], perm[1], perm[2] = 2, 0, 1
 
     candidates = convert_input(b)
-    print(candidates.array[0].array[0])
-    print(candidates.array[1].array[0])
-    print(candidates.array[0].length)
-    print(candidates.array[1].length)
-    print(candidates.cum_lengths[0])
+    output = stitch(&candidates, perm, 3)
 
-    output1 = stitch(&candidates, perm1, 2)
-    output2 = stitch(&candidates, perm2, 2)
+    print(output[0], output[1], output[2], output[3], output[4],
+          output[5])
 
-    print(output1[0], output1[1], output1[2])
-    print(output2[0], output2[1], output2[2])
     free_candidates_array(&candidates)            
 
 
