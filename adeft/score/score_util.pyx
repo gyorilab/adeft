@@ -162,7 +162,7 @@ cdef struct candidates_array:
     int *cum_lengths
     int length
     
-cdef candidates_array convert_input(list encoded_candidates):
+cdef candidates_array *convert_input(list encoded_candidates):
     cdef:
         int i, j, num_candidates, m, n, cum_length
         candidates_array candidates
@@ -180,7 +180,7 @@ cdef candidates_array convert_input(list encoded_candidates):
         candidates.cum_lengths[i] = cum_length
         for j in range(m):
             candidates.array[i].array[j] = encoded_candidates[i][j]
-    return candidates
+    return &candidates
 
 
 cdef free_candidates_array(candidates_array *candidates):
