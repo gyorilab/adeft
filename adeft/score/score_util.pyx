@@ -159,25 +159,25 @@ cdef struct int_array:
 
 cdef struct candidates_array:
     int_array *array
+    int *cum_lengths
     int length
-    int total_length
     
 cdef candidates_array convert_input(list encoded_candidates):
     cdef:
-        int i, j, num_candidates, m, n
+        int i, j, num_candidates, m, n, cum_length
         candidates_array candidates
     n = len(encoded_candidates)
     candidates.array = <int_array *> PyMem_Malloc(n * sizeof(int_array))
+    candidates.cum_lengths = <int *> PyMem_Malloc(n * sizeof(int))
     candidates.length = n
-    candidates.total_length = 0
-    i = 0
     num_candidates = len(encoded_candidates)
+    cum_length = 0
     for i in range(num_candidates):
         m = len(encoded_candidates[i])
         candidates.array[i].array = <int *> PyMem_Malloc(m * sizeof(int))
-        j = 0
         candidates.array[i].length = m
-        candidates.total_length += m
+        cum_length += m
+        candidates.cum_lengths[i] = cum_length
         for j in range(m):
             candidates.array[i].array[j] = encoded_candidates[i][j]
     return candidates
