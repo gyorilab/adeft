@@ -189,6 +189,19 @@ cdef free_candidates_array(candidates_array candidates):
     for i in range(candidates.length):
         PyMem_Free(candidates.array[i].array)
     PyMem_Free(candidates.array)
+
+
+cdef int *stitch(candidates_array candidates, int *permutation, int len_perm)
+    cdef:
+        int i, total_length, current_length
+        int *output
+        int_array temp
+    total_length = candidates.cum_lengths[len_perm - 1]
+    output = <int *> PyMem_Malloc(total_length * sizeof(int))
+    for i in range(len_perm):
+        temp = candidates.array[permutation[i]].array
+        current_length = candidates.array[permutation[i]].length
+        
     print(candidates.array[0].array[0])
     print(candidates.array[1].array[0])
     print(candidates.array[0].length)
