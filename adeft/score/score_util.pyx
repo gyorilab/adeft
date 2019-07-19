@@ -220,17 +220,18 @@ def check_convert():
         list b = [[0, 1, 0], [0, 1], [1]]
         int perm[3]
         int_array *output
+        candidates_array *candidates
 
     perm[0], perm[1], perm[2] = 2, 0, 1
 
     candidates = convert_input(b)
-    output = stitch(&candidates, perm, 3)
+    output = stitch(candidates, perm, 3)
 
     length = output.length
     for i in range(length):
         print(output.array[i])
 
-    free_candidates_array(&candidates)
+    free_candidates_array(candidates)
     PyMem_Free(output.array)
 
 
