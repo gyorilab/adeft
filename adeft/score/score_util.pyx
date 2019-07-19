@@ -231,6 +231,7 @@ def check_convert():
         print(output.array[i])
 
     free_candidates_array(&candidates)
+    PyMem_Free(output.array)
 
 
 
