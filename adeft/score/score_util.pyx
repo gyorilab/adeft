@@ -191,25 +191,28 @@ cdef free_candidates_array(candidates_array *candidates):
     PyMem_Free(candidates.array)
 
 
-cdef int *stitch(candidates_array *candidates, int *permutation, int len_perm):
+cdef int_array *stitch(candidates_array *candidates,
+                       int *permutation,
+                       int len_perm):
     cdef:
         int i, j, k, total_length, current_length
-        int *output
+        int_array output
         int *temp
     total_length = candidates.cum_lengths[len_perm - 1]
-    output = <int *> PyMem_Malloc((2*total_length + 1) * sizeof(int))
+    output.array = <int *> PyMem_Malloc((2*total_length + 1) * sizeof(int))
+    output.length = 2*total_length + 1
     # stitched output begins with wildcard represented by -1
-    output[0] = -1
+    output.array[0] = -1
     j = 1
     for i in range(len_perm):
         temp = candidates.array[permutation[i]].array
         current_length = candidates.array[permutation[i]].length
         for k in range(current_length):
-            output[j] = temp[k]
+            output.array[j] = temp[k]
             # insert wildcard after each element from input
-            output[j+1] = -1
+            output.array[j+1] = -1
             j += 2
-    return output
+    return &output
         
 
 def check_convert():
