@@ -219,18 +219,18 @@ def check_convert():
     cdef:
         list b = [[0, 1, 0], [0, 1], [1]]
         int perm[3]
-        int *output
+        int_array *output
 
     perm[0], perm[1], perm[2] = 2, 0, 1
 
     candidates = convert_input(b)
     output = stitch(&candidates, perm, 3)
 
-    print(output[0], output[1], output[2], output[3], output[4],
-          output[5], output[6], output[7], output[8], output[9],
-          output[10], output[12])
+    length = output.length
+    for i in range(length):
+        print(output.array[i])
 
-    free_candidates_array(&candidates)            
+    free_candidates_array(&candidates)
 
 
 
