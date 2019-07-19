@@ -197,14 +197,18 @@ cdef int *stitch(candidates_array *candidates, int *permutation, int len_perm):
         int *output
         int *temp
     total_length = candidates.cum_lengths[len_perm - 1]
-    output = <int *> PyMem_Malloc(total_length * sizeof(int))
-    j = 0
+    output = <int *> PyMem_Malloc((2*total_length + 1) * sizeof(int))
+    # stitched output begins with wildcard represented by -1
+    output[0] = -1
+    j = 1
     for i in range(len_perm):
         temp = candidates.array[permutation[i]].array
         current_length = candidates.array[permutation[i]].length
         for k in range(current_length):
             output[j] = temp[k]
-            j += 1
+            # insert wildcard after each element from input
+            output[j+1] = -1
+            j += 2
     return output
         
 
