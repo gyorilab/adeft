@@ -123,6 +123,8 @@ cdef results optimize(long[:] x, long[:] y,
     # Optimal score is in bottom right corner of lookup array
     score = score_lookup[n][m]
     # Free the memory used by the lookup array
+    for i in range(n+1):
+        PyMem_Free(score_lookup[i])
     PyMem_Free(score_lookup)
 
     # Set score in output
@@ -144,6 +146,8 @@ cdef results optimize(long[:] x, long[:] y,
         else:
             i -= 1
     # Free pointer array
+    for i in range(n):
+        PyMem_Free(pointers[i])
     PyMem_Free(pointers)
     # Set the number of chars in y that were matched
     output.chars_matched = k
