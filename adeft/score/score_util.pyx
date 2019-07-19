@@ -183,7 +183,7 @@ cdef candidates_array convert_input(list encoded_candidates):
     return candidates
 
 
-cdef free_candidates_array(candidates_array candidates):
+cdef free_candidates_array(candidates_array *candidates):
     cdef:
         int i, j
     for i in range(candidates.length):
@@ -191,7 +191,7 @@ cdef free_candidates_array(candidates_array candidates):
     PyMem_Free(candidates.array)
 
 
-cdef int *stitch(candidates_array candidates, int *permutation, int len_perm)
+cdef int *stitch(candidates_array *candidates, int *permutation, int len_perm):
     cdef:
         int i, total_length, current_length
         int *output
