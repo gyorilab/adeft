@@ -67,3 +67,8 @@ pip install adeft[test]
 and download all pre-trained models as shown above.
 Then run `nosetests` in the top-level `adeft` folder.
 
+## Funding
+
+Development of this software was supported by the Defense Advanced Research
+Projects Agency under award W911NF018-1-0124 and the National Cancer Institute
+under award U54-CA225088.
