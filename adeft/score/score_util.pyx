@@ -4,12 +4,27 @@ from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
 
 def check_optimize():
+    cdef:
+        int x[10]
+        int y[2]
+        double prizes[10]
+        double penalties[2]
+
     a = np.array([-1, 0, -1, 1, -1, 0, -1, 1, -1, 0], dtype=np.int)
     b = np.array([0, 1], dtype=np.int)
     c = np.array([0.0, 1.0, 0.0, 1.0, 0.0, 0.8, 0.0, 0.6, 0.0, 0.7],
                  dtype=np.double)
     d = np.array([0.4, 0.2], dtype=np.double)
-    output = optimize(a, b, c, d)
+
+    for i in range(10):
+        x[i] = a[i]
+        prizes[i] = c[i]
+
+    for i in range(2):
+        y[i] = b[i]
+        penalties[i] = d[i]
+
+    output = optimize(x, y, prizes, penalties, 10, 2)
     score = output.score
     indices = output.indices
     chars_matched = output.chars_matched
@@ -25,8 +40,9 @@ cdef struct results:
     int chars_matched
 
 
-cdef results optimize(long[:] x, long[:] y,
-                    double[:] prizes, double[:] penalties):
+cdef results *optimize(int *x, int *y,
+                       double *prizes, double *penalties,
+                       int len_x, int len_y):
     """Subsequence match optimization algorithm for longform scoring
 
     Uses a dynamic programming algorithm to find optimal instance of
@@ -37,35 +53,32 @@ cdef results optimize(long[:] x, long[:] y,
 
     Paramters
     ---------
-    x : TypedMemoryView of long
+    x : C array of int
         Contains nonnegative long ints for supersequence in which we seek
         a subsequence match. May also contain the value -1 which corresponds to a
         wildcard that matches any nonnegative int.
 
-    y : TypedMemoryView of long
+    y : C array of int
         Sequence we seek an optimal subsequence match of in x
 
-    prizes : TypedMemoryView of double
+    prizes : C array of double
         Must be the same length as x. Prize gained for matching an element
         of y to the corresponding element of x
 
-    penalties : TypedMemoryView of double
+    penalties : C array of double
         Must the the same length as y. Penalty lost if the corresponding
         element of y matches a wildcard.
 
     Returns
     -------
-    output : struct results
+    output : pointer to struct results
         Contains three entries. The score of optimal match, a c array of
         indices matched in x in reverse order, and the number of characters
         in y that were matched in x. 
     """
-    # Check once that input shapes are valid.
-    if x.shape[0] != prizes.shape[0] or y.shape[0] != penalties.shape[0]:
-        raise ValueError
     cdef:
-        unsigned int n = x.shape[0]
-        unsigned int m = y.shape[0]
+        unsigned int n = len_x
+        unsigned int m = len_y
         double possibility1, possibility
         unsigned int i, j, k
         results output
@@ -151,7 +164,7 @@ cdef results optimize(long[:] x, long[:] y,
     PyMem_Free(pointers)
     # Set the number of chars in y that were matched
     output.chars_matched = k
-    return output
+    return &output
 
 cdef struct int_array:
     int *array
