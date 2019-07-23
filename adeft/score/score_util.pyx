@@ -258,21 +258,26 @@ cdef opt_input *stitch(candidates_array *candidates,
 def check_convert():
     cdef:
         list b = [[0, 1, 0], [0, 1], [1]]
+        list prizes = [[0.4, 0.8, 1.0], [0.8, 1.0], [1.0]]
         int perm[3]
-        int_array *output
+        opt_input *output
         candidates_array *candidates
 
     perm[0], perm[1], perm[2] = 2, 0, 1
 
-    candidates = convert_input(b)
+    candidates = convert_input(b, prizes)
     output = stitch(candidates, perm, 3)
 
-    length = output.length
+    length = output.x.length
     for i in range(length):
-        print(output.array[i])
+        print('x')
+        print(output.x.array[i])
+        print('prize')
+        print(output.prizes.array[i])
 
     free_candidates_array(candidates)
-    PyMem_Free(output.array)
+    PyMem_Free(output.x.array)
+    PyMem_Free(output.prizes.array)
 
 
 
