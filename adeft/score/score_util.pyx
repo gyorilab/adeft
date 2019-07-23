@@ -326,6 +326,14 @@ cdef perm_out *perm_search(candidates_array *candidates, int n):
     PyMem_Free(Pinv)
     PyMem_Free(D)
     PyMem_Free(T)
+    
+def longform_score(encoded_shortform, encoded_candidates, prizes):
+    cdef:
+        candidates_array *candidates
+
+    candidates = convert_input(encoded_candidates, prizes)
+    
+    return
         
 
 def check_convert():
