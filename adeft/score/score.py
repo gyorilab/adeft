@@ -21,19 +21,15 @@ def encode(shortform, candidates):
 
 
 def evens_speedup(n):
-    output = []
     m = n-1
-    P = list(range(n)) + [n+1]
+    P = list(range(n))
     Pinv = list(range(n))
     D = [-1]*n
-    T = [0]*n
-    T[-1] = -1
+    T = [-1]*n
+    inversions = 0
 
-    i = 0
-    while m != 0 and i < 10:
-        i += 1
-        print('T', T, 'm', m)
-        output.append(P[:-1])
+    yield P.copy(), inversions
+    while m != 0:
         X = Pinv[m]
         Y = X + D[m]
         Z = P[Y]
@@ -41,36 +37,31 @@ def evens_speedup(n):
         P[X] = Z
         Pinv[Z] = X
         Pinv[m] = Y
-        if P[Y + D[m]] > m:
+        if D[m] < 0:
+            inversions += 1
+        else:
+            inversions -= 1
+        W = Y + D[m]
+        if W == -1 or W == n or P[W] > m:
             D[m] = -D[m]
             if m == n - 1:
                 if T[n-1] < 0:
                     m = n - 2
-                    if -T[n-1] == n - 2:
-                        continue
-                    else:
+                    if -T[n-1] != n - 1:
                         T[n-2] = T[n-1]
                 else:
-                    m = T[n-1]
+                    m = T[n-1] - 1
             else:
-                T[n-1] = -(m+1)
+                T[n-1] = -(m+2)
                 if T[m] > 0:
                     T[m+1] = T[m]
-                    m = n-1
-                    continue
+                else:
+                    T[m+1] = m
+                    if -T[m] != m:
+                        T[m-1] = T[m]
+                m = n - 1
         else:
-            if m == n-1:
-                continue
-            else:
-                T[n-1] = -m
+            if m != n-1:
+                T[n-1] = -m - 1
                 m = n-1
-                continue
-    return output
-                    
-        
-        
-    
-
-
-# def longform_score(shortform, candidates, cutoff=0.4)
-#     encoded_shortform, encoded_candidates = encode(shortform, candidates):
+        yield P.copy(), inversions
