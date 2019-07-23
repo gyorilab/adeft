@@ -176,19 +176,19 @@ cdef struct double_array:
 
 cdef struct candidates_array:
     int_array *array
-    double_array *penalties
+    double_array *prizes
     int *cum_lengths
     int length
 
     
 cdef candidates_array *convert_input(list encoded_candidates,
-                                     list penalties):
+                                     list prizes):
     cdef:
         int i, j, num_candidates, m, n, cum_length
         candidates_array candidates
     n = len(encoded_candidates)
     candidates.array = <int_array *> PyMem_Malloc(n * sizeof(int_array))
-    penalties.array = <double_array *> PyMem_Malloc(n * sizeof(double_array))
+    candidates.prizes = <double_array *> PyMem_Malloc(n * sizeof(double_array))
     candidates.cum_lengths = <int *> PyMem_Malloc(n * sizeof(int))
     candidates.length = n
     num_candidates = len(encoded_candidates)
@@ -197,14 +197,14 @@ cdef candidates_array *convert_input(list encoded_candidates,
         m = len(encoded_candidates[i])
         candidates.array[i].array = <int *> PyMem_Malloc(m * sizeof(int))
         candidates.array[i].length = m
-        candidates.penalties[i].array = <double *> \
+        candidates.prizes[i].array = <double *> \
             PyMem_Malloc(m * sizeof(double))
-        candidates.penalties[i].length = m
+        candidates.prizes[i].length = m
         cum_length += m
         candidates.cum_lengths[i] = cum_length
         for j in range(m):
             candidates.array[i].array[j] = encoded_candidates[i][j]
-            candidates.penalties[i].array[j] = penalties[i][j]
+            candidates.prizes[i].array[j] = prizes[i][j]
     return &candidates
 
 
@@ -213,29 +213,44 @@ cdef free_candidates_array(candidates_array *candidates):
         int i, j
     for i in range(candidates.length):
         PyMem_Free(candidates.array[i].array)
+        PyMem_Free(candidates.prizes[i].array)
     PyMem_Free(candidates.array)
+    PyMem_Free(candidates.prizes)
 
+    
+cdef struct opt_input:
+    int_array x
+    double_array prizes
+    
 
-cdef int_array *stitch(candidates_array *candidates,
+cdef opt_input *stitch(candidates_array *candidates,
                        int *permutation,
                        int len_perm):
     cdef:
         int i, j, k, total_length, current_length
-        int_array output
+        opt_input output
         int *temp
     total_length = candidates.cum_lengths[len_perm - 1]
-    output.array = <int *> PyMem_Malloc((2*total_length + 1) * sizeof(int))
-    output.length = 2*total_length + 1
+    output.x.array = \
+        <int *> PyMem_Malloc((2*total_length + 1) * sizeof(int))
+    output.x.length = 2*total_length + 1
     # stitched output begins with wildcard represented by -1
-    output.array[0] = -1
+    output.x.array[0] = -1
+    output.prizes.array = \
+        <double *> PyMem_Malloc((2*total_length + 1) * sizeof(double))
+    output.prizes.length = 2*total_length + 1
+    output.prizes.array[0] = 0
     j = 1
     for i in range(len_perm):
-        temp = candidates.array[permutation[i]].array
         current_length = candidates.array[permutation[i]].length
         for k in range(current_length):
-            output.array[j] = temp[k]
+            output.x.array[j] = \
+                candidates.array[permutation[i]].array[k]
             # insert wildcard after each element from input
-            output.array[j+1] = -1
+            output.x.array[j+1] = -1
+            output.prizes.array[j] = \
+                candidates.prizes[permutation[i]].array[k]
+            output.prizes.array[j+1] = 0
             j += 2
     return &output
         
