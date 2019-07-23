@@ -170,17 +170,25 @@ cdef struct int_array:
     int *array
     int length
 
+cdef struct double_array:
+    double *array
+    int length
+
 cdef struct candidates_array:
     int_array *array
+    double_array *penalties
     int *cum_lengths
     int length
+
     
-cdef candidates_array *convert_input(list encoded_candidates):
+cdef candidates_array *convert_input(list encoded_candidates,
+                                     list penalties):
     cdef:
         int i, j, num_candidates, m, n, cum_length
         candidates_array candidates
     n = len(encoded_candidates)
     candidates.array = <int_array *> PyMem_Malloc(n * sizeof(int_array))
+    penalties.array = <double_array *> PyMem_Malloc(n * sizeof(double_array))
     candidates.cum_lengths = <int *> PyMem_Malloc(n * sizeof(int))
     candidates.length = n
     num_candidates = len(encoded_candidates)
@@ -189,10 +197,14 @@ cdef candidates_array *convert_input(list encoded_candidates):
         m = len(encoded_candidates[i])
         candidates.array[i].array = <int *> PyMem_Malloc(m * sizeof(int))
         candidates.array[i].length = m
+        candidates.penalties[i].array = <double *> \
+            PyMem_Malloc(m * sizeof(double))
+        candidates.penalties[i].length = m
         cum_length += m
         candidates.cum_lengths[i] = cum_length
         for j in range(m):
             candidates.array[i].array[j] = encoded_candidates[i][j]
+            candidates.penalties[i].array[j] = penalties[i][j]
     return &candidates
 
 
