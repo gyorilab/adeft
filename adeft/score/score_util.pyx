@@ -5,35 +5,36 @@ from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
 def check_optimize():
     cdef:
-        int x_0[10]
+        int x_0[5]
         int y_0[2]
-        double prizes_0[10]
+        double prizes_0[5]
         double penalties_0[2]
         int_array x, y
         double_array prizes, penalties
 
+    penalties.length = 2
+
+    a = np.array([-1, 1, -1, 0, -1], dtype=np.int)
+    b = np.array([1, 0], dtype=np.int)
+    c = np.array([0.0, 1.0, 0.0, 1.0, 0.0],
+                 dtype=np.double)
+    d = np.array([0.2, 0.4], dtype=np.double)
+
+    for i in range(5):
+        x_0[i] = a[i]
+        prizes_0[i] = c[i]
+
+    for i in range(2):
+        y_0[i] = b[i]
+        penalties_0[i] = d[i]
+
     x.array = x_0
-    x.length = 10
+    x.length = 5
     y.array = y_0
     y.length = 2
     prizes.array = prizes_0
-    prizes.length = 10
+    prizes.length = 5
     penalties.array = penalties_0
-    penalties.length = 2
-
-    a = np.array([-1, 0, -1, 1, -1, 0, -1, 1, -1, 0], dtype=np.int)
-    b = np.array([0, 1], dtype=np.int)
-    c = np.array([0.0, 1.0, 0.0, 1.0, 0.0, 0.8, 0.0, 0.6, 0.0, 0.7],
-                 dtype=np.double)
-    d = np.array([0.4, 0.2], dtype=np.double)
-
-    for i in range(10):
-        x[i] = a[i]
-        prizes[i] = c[i]
-
-    for i in range(2):
-        y[i] = b[i]
-        penalties[i] = d[i]
 
     output = optimize(&x, &y, &prizes, &penalties)
     score = output.score
@@ -320,14 +321,10 @@ cdef double perm_search(candidates_array *candidates, int n):
         Pinv[i] = i
         D[i] = -1
         T[i] = -1
-
     current = stitch(candidates, P, n)
     opt_results = optimize(current.x, candidates.y, current.prizes,
                            candidates.penalties)
     best = opt_results.score
-    print('best')
-    print(opt_results.score)
-    print('perm1:', [P[0], P[1]])
     while m != 0:
         X = Pinv[m]
         Y = X + D[m]
@@ -368,10 +365,6 @@ cdef double perm_search(candidates_array *candidates, int n):
                                candidates.penalties)
         if opt_results.score > best:
             best = opt_results.score
-        print('perm2:', [P[0], P[1]])
-        print('best')
-        print(best)
-        print(opt_results.score)
     PyMem_Free(P)
     PyMem_Free(Pinv)
     PyMem_Free(D)
@@ -386,7 +379,8 @@ cdef double perm_search(candidates_array *candidates, int n):
 #     candidates = convert_input(encoded_candidates, prizes)
     
 #     return
-        
+
+
 
 def check_convert():
     cdef:
@@ -420,13 +414,13 @@ def check_convert():
 def check_perm_search():
     cdef:
         list sf = [1, 0]
-        list ca = [[0], [1]]
-        list prizes = [[1.0], [1.0]]
+        list ca = [[1], [0, 1], [1, 1, 0]]
+        list prizes = [[1.0], [0.5, 1.0], [0.25, 0.5, 1.0]]
         list penalties = [0.2, 0.4]
         candidates_array *candidates
 
     candidates = convert_input(sf, ca,  prizes, penalties)
-    score = perm_search(candidates, 2)
+    score = perm_search(candidates, 3)
     free_candidates_array(candidates)
     return score
 
