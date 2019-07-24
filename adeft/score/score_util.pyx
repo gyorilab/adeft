@@ -150,6 +150,7 @@ cdef results *optimize(int_array *x, int_array *y,
         PyMem_Free(score_lookup[i])
     PyMem_Free(score_lookup)
 
+    output = <results *> PyMem_Malloc(sizeof(results))
     # Set score in output
     output.score = score
     # Initialize indices array in output. Max possible length is the length
