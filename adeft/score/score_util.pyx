@@ -118,9 +118,9 @@ cdef results *optimize(int_array *x, int_array *y,
                 # Case where element of x in current position matches
                 # element of y in current position. Algorithm considers
                 # either accepting or rejecting this match
-                if x[i-1] == y[j-1]:
+                if x.array[i-1] == y.array[j-1]:
                     possibility1 = score_lookup[i-1][j]
-                    possibility2 = score_lookup[i-1][j-1] + prizes[i-1]
+                    possibility2 = score_lookup[i-1][j-1] + prizes.array[i-1]
                     if possibility2 >= possibility1:
                         score_lookup[i][j] = possibility2
                         pointers[i-1][j-1] = 1
@@ -129,9 +129,9 @@ cdef results *optimize(int_array *x, int_array *y,
                         pointers[i-1][j-1] = 0
                 # Case where element of x in current position is a wildcard.
                 # May either accept or reject this match
-                elif x[i-1] == -1:
+                elif x.array[i-1] == -1:
                     possibility1 = score_lookup[i-1][j]
-                    possibility2 = score_lookup[i-1][j-1] - penalties[j-1]
+                    possibility2 = score_lookup[i-1][j-1] - penalties.array[j-1]
                     if possibility2 >= possibility1:
                         score_lookup[i][j] = possibility2
                         pointers[i-1][j-1] = 1
