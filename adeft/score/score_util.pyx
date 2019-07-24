@@ -1,4 +1,5 @@
 import numpy as np
+from libc.math cimport pow as cpow
 from cython cimport boundscheck, wraparound
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
@@ -193,12 +194,14 @@ cdef struct candidates_array:
     double_array *penalties
     int *cum_lengths
     int length
+    double inv_penalty
 
-    
+
 cdef candidates_array *convert_input(list encoded_shortform,
                                      list encoded_candidates,
                                      list prizes,
-                                     list penalties):
+                                     list penalties,
+                                     double inv_penalty):
     cdef:
         int i, j, num_candidates, m, n, cum_length, k
         candidates_array *candidates
@@ -210,6 +213,7 @@ cdef candidates_array *convert_input(list encoded_shortform,
     candidates.penalties = <double_array *> PyMem_Malloc(sizeof(double_array))
     candidates.cum_lengths = <int *> PyMem_Malloc(n * sizeof(int))
     candidates.length = n
+    candidates.inv_penalty = inv_penalty
 
     candidates.y = <int_array *> PyMem_Malloc(sizeof(int_array))
     candidates.y.array = <int *> PyMem_Malloc(k * sizeof(int))
@@ -306,7 +310,7 @@ cdef double perm_search(candidates_array *candidates, int n):
         int *D
         int *T
         int X, Y, Z, W
-        double best
+        double best, current_score
         opt_input *current
         results *opt_results
 
@@ -363,8 +367,10 @@ cdef double perm_search(candidates_array *candidates, int n):
         current = stitch(candidates, P, n)
         opt_results = optimize(current.x, candidates.y, current.prizes,
                                candidates.penalties)
-        if opt_results.score > best:
-            best = opt_results.score
+        current_score = opt_results.score * cpow(candidates.inv_penalty,
+                                                 inversions)
+        if current_score > best:
+            best = current_score
     PyMem_Free(P)
     PyMem_Free(Pinv)
     PyMem_Free(D)
@@ -396,7 +402,7 @@ def check_convert():
 
     perm[0], perm[1] = 1, 0
 
-    candidates = convert_input(sf, ca,  prizes, penalties)
+    candidates = convert_input(sf, ca,  prizes, penalties, 0.9)
     output = stitch(candidates, perm, 2)
 
     length = output.x.length
@@ -419,7 +425,7 @@ def check_perm_search():
         list penalties = [0.2, 0.4]
         candidates_array *candidates
 
-    candidates = convert_input(sf, ca,  prizes, penalties)
+    candidates = convert_input(sf, ca,  prizes, penalties, 0.9)
     score = perm_search(candidates, 3)
     free_candidates_array(candidates)
     return score
