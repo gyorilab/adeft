@@ -1,11 +1,10 @@
-import numpy as np
-
-
 def encode(shortform, candidates):
     n = len(shortform)
     char_map = {}
-    encoded_shortform = np.empty(n)
+    encoded_shortform = [None]*n
     encoded_candidates = []
+    char_indices = []
+    used_tokens = []
     
     i = j = 0
     for i in range(n):
@@ -13,11 +12,21 @@ def encode(shortform, candidates):
             char_map[shortform[i]] = j
             j += 1
         encoded_shortform[n-1-i] = char_map[shortform[i]]
-    for candidate in candidates[::-1]:
+    for index, candidate in enumerate(candidates[::-1]):
         if set(shortform) & set(candidate):
-            encoded_candidates.append([char_map[c] for c in candidate[::-1]
-                                      if c in char_map])
-    return encoded_shortform, encoded_candidates
+            m = len(candidate)
+            coded = []
+            indices = []
+            for j in range(m):
+                c = candidate[m-j-1]
+                if c in char_map:
+                    coded.append(char_map[c])
+                    indices.append(m-j-1)
+            encoded_candidates.append([coded])
+            char_indices.append(indices)
+            used_tokens.append(index)
+            
+    return encoded_shortform, encoded_candidates, char_indices, used_tokens
 
 
 def evens_speedup(n):
