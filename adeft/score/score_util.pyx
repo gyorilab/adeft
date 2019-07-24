@@ -218,6 +218,7 @@ cdef candidates_array *convert_input(list encoded_shortform,
         PyMem_Malloc(k * sizeof(double))
     for i in range(k):
         candidates.penalties.array[i] = penalties[i]
+        candidates.y.array[i] = encoded_shortform[i]
     cum_length = 0
     for i in range(n):
         m = len(encoded_candidates[i])
