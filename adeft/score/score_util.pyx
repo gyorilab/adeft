@@ -109,7 +109,7 @@ cdef results *optimize(int_array *x, int_array *y,
     with boundscheck(False), wraparound(False):
         score_lookup[0][0] = 0
         for j in range(1, m+1):
-            score_lookup[0][j] = np.double('-inf')
+            score_lookup[0][j] = -1e20
         for i in range(1, n+1):
             for j in range(0, m+1):
                 score_lookup[i][j] = 0
