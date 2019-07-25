@@ -303,15 +303,15 @@ cdef void *optimize(int_array *x, int_array *y,
     # Trace backwards through pointer array to discover which elements of x
     # were matched and add the corresponding indices to the index array in
     # reverse order
-    i, j, k = m-1, n-1, 0
-    while i > 0:
-        if pointers[i][j]:
+    i, j, k = n, m, 0
+    while j > 0:
+        if pointers[i - 1][j - 1]:
             i -= 1
             j -= 1
             output.indices[k] = i
             k += 1
         else:
-            j -= 1
+            i -= 1
     # Free pointer array
     for i in range(n):
         PyMem_Free(pointers[i])
