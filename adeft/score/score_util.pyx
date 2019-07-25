@@ -15,6 +15,7 @@ def check_optimize():
         double penalties_0[2]
         int_array x, y
         double_array prizes, penalties
+        opt_results *output
 
     penalties.length = 2
 
@@ -40,31 +41,216 @@ def check_optimize():
     prizes.length = 5
     penalties.array = penalties_0
 
-    output = optimize(&x, &y, &prizes, &penalties)
+    output = make_opt_results(2)
+    optimize(&x, &y, &prizes, &penalties, output)
     score = output.score
     indices = output.indices
     chars_matched = output.chars_matched
     ind = np.empty(chars_matched, dtype=np.int)
     for i in range(chars_matched):
         ind[i] = indices[i]
+    free_opt_results(output)
     return score, ind
 
 
-cdef struct results:
+cdef struct opt_results:
     double score
     int *indices
     int chars_matched
 
 
-cdef results *optimize(int_array *x, int_array *y,
-                       double_array *prizes, double_array *penalties):
+cdef opt_results *make_opt_results(int len_y):
+    cdef opt_results *results
+    results = <opt_results *> PyMem_Malloc(sizeof(opt_results))
+    results.indices = <int *> PyMem_Malloc(len_y * sizeof(int))
+    return results
+
+
+cdef void free_opt_results(opt_results *results):
+    PyMem_Free(results.indices)
+    PyMem_Free(results)
+    return
+
+cdef struct int_array:
+    int *array
+    int length
+
+
+cdef int_array *make_int_array(int length):
+    cdef int_array *output
+    output = <int_array *> PyMem_Malloc(sizeof(int_array))
+    output.array = <int *> PyMem_Malloc(length * sizeof(int))
+    output.length = length
+    return output
+
+
+cdef void free_int_array(int_array *x):
+    PyMem_Free(x.array)
+    PyMem_Free(x)
+    return
+
+
+cdef struct double_array:
+    double *array
+    int length
+
+    
+cdef double_array *make_double_array(int length):
+    cdef double_array *output
+    output = <double_array *> PyMem_Malloc(sizeof(int_array))
+    output.array = <double *> PyMem_Malloc(length * sizeof(double))
+    output.length = length
+    return output
+
+
+cdef void free_double_array(double_array *x):
+    PyMem_Free(x.array)
+    PyMem_Free(x)
+    return
+
+
+cdef struct candidates_array:
+    int_array **array
+    int_array *y
+    double_array **prizes
+    double_array *penalties
+    int *cum_lengths
+    int length
+    double inv_penalty
+
+
+cdef candidates_array *make_candidates_array(list encoded_shortform,
+                                             list encoded_candidates,
+                                             list prizes,
+                                             list penalties,
+                                             double inv_penalty):
+    cdef:
+        int i, j, num_candidates, m, n, cum_length, k
+        candidates_array *candidates
+    n = len(encoded_candidates)
+    k = len(encoded_shortform)
+    candidates = <candidates_array *> PyMem_Malloc(sizeof(candidates_array))
+    candidates.array = <int_array **> PyMem_Malloc(n * sizeof(int_array*))
+    candidates.prizes = <double_array **> \
+        PyMem_Malloc(n * sizeof(double_array*))
+    candidates.penalties = make_double_array(k)
+    candidates.cum_lengths = <int *> PyMem_Malloc(n * sizeof(int))
+    candidates.length = n
+    candidates.inv_penalty = inv_penalty
+    candidates.y = make_int_array(k)
+    for i in range(k):
+        candidates.penalties.array[i] = penalties[i]
+        candidates.y.array[i] = encoded_shortform[i]
+    cum_length = 0
+    for i in range(n):
+        m = len(encoded_candidates[i])
+        candidates.array[i] = make_int_array(m)
+        candidates.prizes[i] = make_double_array(m)
+        cum_length += m
+        candidates.cum_lengths[i] = cum_length
+        for j in range(m):
+            candidates.array[i].array[j] = encoded_candidates[i][j]
+            candidates.prizes[i].array[j] = prizes[i][j]
+    return candidates
+
+
+cdef free_candidates_array(candidates_array *candidates):
+    cdef:
+        int i, j
+    for i in range(candidates.length):
+         free_int_array(candidates.array[i])
+         free_double_array(candidates.prizes[i])
+    free_int_array(candidates.y)
+    free_double_array(candidates.penalties)
+    PyMem_Free(candidates.prizes)
+    PyMem_Free(candidates.array)
+    PyMem_Free(candidates.cum_lengths)
+    PyMem_Free(candidates)
+
+
+cdef struct opt_input:
+    int_array *x
+    double_array *prizes
+
+
+cdef opt_input *make_opt_input(int n):
+    cdef opt_input *input_
+    input_ = <opt_input *> PyMem_Malloc(sizeof(opt_input))
+    input_.x = make_int_array(n)
+    input_.prizes = make_double_array(n)
+    return input_
+
+
+cdef void free_opt_input(opt_input *input_):
+    free_int_array(input_.x)
+    free_double_array(input_.prizes)
+    PyMem_Free(input_)
+    
+
+cdef double perm_search(candidates_array *candidates, int n):
+    cdef:
+        double best, current_score
+        permuter *perms
+        opt_input *current
+        opt_results *results
+
+    results = make_opt_results(candidates.y.length)
+    total_length = candidates.cum_lengths[n - 1]
+    current = make_opt_input(2*total_length + 1)
+    perms = make_permuter(n)
+    stitch(candidates, perms.P, n, current)
+    optimize(current.x, candidates.y, current.prizes,
+             candidates.penalties, results)
+    best = results.score
+    while perms.m != 0:
+        update_permuter(perms)
+        stitch(candidates, perms.P, n, current)
+        optimize(current.x, candidates.y, current.prizes,
+                 candidates.penalties, results)
+        current_score = results.score * cpow(candidates.inv_penalty,
+                                             perms.inversions)
+        if current_score > best:
+            best = current_score
+    free_permuter(perms)
+    free_opt_results(results)
+    free_opt_input(current)
+    return best
+
+
+cdef void *stitch(candidates_array *candidates, int *permutation,
+                  int len_perm, opt_input *result):
+    cdef int i, j, k, total_length, current_length
+    
+    
+
+    # stitched output begins with wildcard represented by -1
+    result.x.array[0] = -1
+    result.prizes.array[0] = 0
+    j = 1
+    for i in range(len_perm):
+        current_length = candidates.array[permutation[i]].length
+        for k in range(current_length):
+            result.x.array[j] = \
+                candidates.array[permutation[i]].array[k]
+            # insert wildcard after each element from input
+            result.x.array[j+1] = -1
+            result.prizes.array[j] = \
+                candidates.prizes[permutation[i]].array[k]
+            result.prizes.array[j+1] = 0
+            j += 2
+    return result
+
+    
+cdef void *optimize(int_array *x, int_array *y,
+                           double_array *prizes, double_array *penalties,
+                           opt_results *output):
     """Subsequence match optimization algorithm for longform scoring
 
     Uses a dynamic programming algorithm to find optimal instance of
     y as a subsequence in x where elements of x each have a corresponding
     prize. Wildcard characters are allowed in x that match any element of y
     and penalties may be given for when an element of y matches a wildcard
-    instead of a regular element of x.
+    instead of a regular element of x. Results are updated in place.
 
     Paramters
     ---------
@@ -84,19 +270,14 @@ cdef results *optimize(int_array *x, int_array *y,
         Must the the same length as y. Penalty lost if the corresponding
         element of y matches a wildcard.
 
-    Returns
-    -------
-    output : pointer to struct results
-        Contains three entries. The score of optimal match, a c array of
-        indices matched in x in reverse order, and the number of characters
-        in y that were matched in x. 
+    results : struct opt_results
+        opt_results structure to where output is to be placed
     """
     cdef:
         unsigned int n = x.length
         unsigned int m = y.length
         double possibility1, possibility
         unsigned int i, j, k
-        results *output
 
     # Dynamic initialization of score_lookup array and traceback pointer
     # array
@@ -155,12 +336,8 @@ cdef results *optimize(int_array *x, int_array *y,
         PyMem_Free(score_lookup[i])
     PyMem_Free(score_lookup)
 
-    output = <results *> PyMem_Malloc(sizeof(results))
     # Set score in output
     output.score = score
-    # Initialize indices array in output. Max possible length is the length
-    # of y
-    output.indices = <int *> PyMem_Malloc(m * sizeof(int))
 
     # Trace backwards through pointer array to discover which elements of x
     # were matched and add the corresponding indices to the index array in
@@ -182,153 +359,11 @@ cdef results *optimize(int_array *x, int_array *y,
     output.chars_matched = k
     return output
 
-cdef struct int_array:
-    int *array
-    int length
-
-cdef struct double_array:
-    double *array
-    int length
-
-cdef struct candidates_array:
-    int_array *array
-    int_array *y
-    double_array *prizes
-    double_array *penalties
-    int *cum_lengths
-    int length
-    double inv_penalty
-
-
-cdef candidates_array *convert_input(list encoded_shortform,
-                                     list encoded_candidates,
-                                     list prizes,
-                                     list penalties,
-                                     double inv_penalty):
-    cdef:
-        int i, j, num_candidates, m, n, cum_length, k
-        candidates_array *candidates
-    n = len(encoded_candidates)
-    k = len(encoded_shortform)
-    candidates = <candidates_array *> PyMem_Malloc(sizeof(candidates_array))
-    candidates.array = <int_array *> PyMem_Malloc(n * sizeof(int_array))
-    candidates.prizes = <double_array *> PyMem_Malloc(n * sizeof(double_array))
-    candidates.penalties = <double_array *> PyMem_Malloc(sizeof(double_array))
-    candidates.cum_lengths = <int *> PyMem_Malloc(n * sizeof(int))
-    candidates.length = n
-    candidates.inv_penalty = inv_penalty
-
-    candidates.y = <int_array *> PyMem_Malloc(sizeof(int_array))
-    candidates.y.array = <int *> PyMem_Malloc(k * sizeof(int))
-    candidates.y.length = k
-
-    candidates.penalties.length = k
-    candidates.penalties.array = <double *> \
-        PyMem_Malloc(k * sizeof(double))
-    for i in range(k):
-        candidates.penalties.array[i] = penalties[i]
-        candidates.y.array[i] = encoded_shortform[i]
-    cum_length = 0
-    for i in range(n):
-        m = len(encoded_candidates[i])
-        candidates.array[i].array = <int *> PyMem_Malloc(m * sizeof(int))
-        candidates.array[i].length = m
-        candidates.prizes[i].array = <double *> \
-            PyMem_Malloc(m * sizeof(double))
-        candidates.prizes[i].length = m
-        cum_length += m
-        candidates.cum_lengths[i] = cum_length
-        for j in range(m):
-            candidates.array[i].array[j] = encoded_candidates[i][j]
-            candidates.prizes[i].array[j] = prizes[i][j]
-    return candidates
-
-
-cdef free_candidates_array(candidates_array *candidates):
-    cdef:
-        int i, j
-    for i in range(candidates.length):
-         PyMem_Free(candidates.array[i].array)
-         PyMem_Free(candidates.prizes[i].array)
-    PyMem_Free(candidates.prizes)
-    PyMem_Free(candidates.array)
-    PyMem_Free(candidates.cum_lengths)
-    PyMem_Free(candidates.y.array)
-    PyMem_Free(candidates.y)
-    PyMem_Free(candidates.penalties.array)
-    PyMem_Free(candidates.penalties)
-    PyMem_Free(candidates)
-
-
-cdef struct opt_input:
-    int_array *x
-    double_array *prizes
-    
-
-cdef opt_input *stitch(candidates_array *candidates,
-                       int *permutation,
-                       int len_perm):
-    cdef:
-        int i, j, k, total_length, current_length
-        opt_input *output
-        int *temp
-    output = <opt_input *> PyMem_Malloc(sizeof(opt_input))
-    total_length = candidates.cum_lengths[len_perm - 1]
-    output.x = <int_array *> PyMem_Malloc(sizeof(int_array))
-    output.prizes = <double_array *> PyMem_Malloc(sizeof(double_array))
-    output.x.array = \
-        <int *> PyMem_Malloc((2*total_length + 1) * sizeof(int))
-    output.x.length = 2*total_length + 1
-    # stitched output begins with wildcard represented by -1
-    output.x.array[0] = -1
-    output.prizes.array = \
-        <double *> PyMem_Malloc((2*total_length + 1) * sizeof(double))
-    output.prizes.length = 2*total_length + 1
-    output.prizes.array[0] = 0
-    j = 1
-    for i in range(len_perm):
-        current_length = candidates.array[permutation[i]].length
-        for k in range(current_length):
-            output.x.array[j] = \
-                candidates.array[permutation[i]].array[k]
-            # insert wildcard after each element from input
-            output.x.array[j+1] = -1
-            output.prizes.array[j] = \
-                candidates.prizes[permutation[i]].array[k]
-            output.prizes.array[j+1] = 0
-            j += 2
-    return output
-
 
 cdef struct perm_out:
     double score
 
     
-cdef double perm_search(candidates_array *candidates, int n):
-    cdef:
-        permuter *perms
-        double best, current_score
-        opt_input *current
-        results *opt_results
-
-    perms = make_permuter(n)
-    current = stitch(candidates, perms.P, n)
-    opt_results = optimize(current.x, candidates.y, current.prizes,
-                           candidates.penalties)
-    best = opt_results.score
-    while perms.m != 0:
-        update_permuter(perms)
-        current = stitch(candidates, perms.P, n)
-        opt_results = optimize(current.x, candidates.y, current.prizes,
-                               candidates.penalties)
-        current_score = opt_results.score * cpow(candidates.inv_penalty,
-                                                 perms.inversions)
-        if current_score > best:
-            best = current_score
-    free_permuter(perms)
-    return best
-
-
 def check_convert():
     cdef:
         list sf = [1, 0]
@@ -336,25 +371,24 @@ def check_convert():
         list prizes = [[1.0], [1.0]]
         list penalties = [0.2, 0.4]
         int perm[2]
-        opt_input *output
+        opt_input *input_
         candidates_array *candidates
         list x = []
         list p = []
 
     perm[0], perm[1] = 1, 0
 
-    candidates = convert_input(sf, ca,  prizes, penalties, 0.9)
-    output = stitch(candidates, perm, 2)
+    candidates = make_candidates_array(sf, ca,  prizes, penalties, 0.9)
+    input_ = make_opt_input(candidates.y.length)
+    stitch(candidates, perm, 2, input_)
 
-    length = output.x.length
+    length = input_.x.length
     
     for i in range(length):
-        x.append(output.x.array[i])
-        p.append(output.prizes.array[i])
+        x.append(input_.x.array[i])
+        p.append(input_.prizes.array[i])
     free_candidates_array(candidates)
-    PyMem_Free(output.x.array)
-    PyMem_Free(output.prizes.array)
-    PyMem_Free(output)
+    free_opt_input(input_)
     return (x, p)
 
 
@@ -366,7 +400,7 @@ def check_perm_search():
         list penalties = [0.2, 0.4]
         candidates_array *candidates
 
-    candidates = convert_input(sf, ca,  prizes, penalties, 0.9)
+    candidates = make_candidates_array(sf, ca,  prizes, penalties, 0.9)
     score = perm_search(candidates, 3)
     free_candidates_array(candidates)
     return score
