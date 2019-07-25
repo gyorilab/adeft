@@ -7,52 +7,6 @@ from adeft.score.permutations cimport permuter, make_permuter, \
     free_permuter, update_permuter
 
 
-def check_optimize():
-    cdef:
-        int x_0[5]
-        int y_0[2]
-        double prizes_0[5]
-        double penalties_0[2]
-        int_array x, y
-        double_array prizes, penalties
-        opt_results *output
-
-    penalties.length = 2
-
-    a = np.array([-1, 1, -1, 0, -1], dtype=np.int)
-    b = np.array([1, 0], dtype=np.int)
-    c = np.array([0.0, 1.0, 0.0, 1.0, 0.0],
-                 dtype=np.double)
-    d = np.array([0.2, 0.4], dtype=np.double)
-
-    for i in range(5):
-        x_0[i] = a[i]
-        prizes_0[i] = c[i]
-
-    for i in range(2):
-        y_0[i] = b[i]
-        penalties_0[i] = d[i]
-
-    x.array = x_0
-    x.length = 5
-    y.array = y_0
-    y.length = 2
-    prizes.array = prizes_0
-    prizes.length = 5
-    penalties.array = penalties_0
-
-    output = make_opt_results(2)
-    optimize(&x, &y, &prizes, &penalties, output)
-    score = output.score
-    indices = output.indices
-    chars_matched = output.chars_matched
-    ind = np.empty(chars_matched, dtype=np.int)
-    for i in range(chars_matched):
-        ind[i] = indices[i]
-    free_opt_results(output)
-    return score, ind
-
-
 cdef struct opt_results:
     double score
     int *indices
@@ -370,27 +324,32 @@ cdef void *optimize(int_array *x, int_array *y,
 cdef struct perm_out:
     double score
 
-    
-def check_convert():
+
+# These functions are for use in nosetests for C functions in this
+# module
+
+def check_make_candidates_array():
     cdef:
-        list sf = [1, 0]
-        list ca = [[0], [1]]
-        list prizes = [[1.0], [1.0]]
-        list penalties = [0.2, 0.4]
-        int perm[2]
+        int perm[5]
         opt_input *input_
         candidates_array *candidates
-        list x = []
-        list p = []
+        
+    sf = [1, 0]
+    ca = [[0], [0, 1], [1, 1, 0], [0, 0], [1]]
+    prizes = [[1.0], [0.5, 1.0], [0.25, 0.5, 1.0],
+              [0.5, 1.0], [1.0]]
+    penalties = [0.2, 0.4]
 
-    perm[0], perm[1] = 1, 0
+    P = [2, 0, 1, 3, 4]
+    for i in range(5):
+        perm[i] = P[i]
 
     candidates = make_candidates_array(sf, ca,  prizes, penalties, 0.9)
-    input_ = make_opt_input(candidates.y.length)
-    stitch(candidates, perm, 2, input_)
-
+    total_length = candidates.cum_lengths[4]
+    input_ = make_opt_input(2*total_length + 1)
+    stitch(candidates, perm, 5, input_)
+    x, p = [], []
     length = input_.x.length
-    
     for i in range(length):
         x.append(input_.x.array[i])
         p.append(input_.prizes.array[i])
@@ -402,15 +361,62 @@ def check_convert():
 def check_perm_search():
     cdef:
         list sf = [1, 0]
-        list ca = [[1], [0, 1], [1, 1, 0]]
-        list prizes = [[1.0], [0.5, 1.0], [0.25, 0.5, 1.0]]
+        list ca = [[0], [0, 1], [1, 1, 0], [0, 0], [1]]
+        list prizes = [[1.0], [0.5, 1.0], [0.25, 0.5, 1.0],
+                       [0.5, 1.0], [1.0]]
         list penalties = [0.2, 0.4]
         candidates_array *candidates
 
     candidates = make_candidates_array(sf, ca,  prizes, penalties, 0.9)
-    score = perm_search(candidates, 3)
+    score = perm_search(candidates, 5)
     free_candidates_array(candidates)
     return score
+
+
+def check_optimize():
+    cdef:
+        int x_0[5]
+        int y_0[2]
+        double prizes_0[5]
+        double penalties_0[2]
+        int_array x, y
+        double_array prizes, penalties
+        opt_results *output
+
+    penalties.length = 2
+
+    a = np.array([-1, 1, -1, 0, -1], dtype=np.int)
+    b = np.array([1, 0], dtype=np.int)
+    c = np.array([0.0, 1.0, 0.0, 1.0, 0.0],
+                 dtype=np.double)
+    d = np.array([0.2, 0.4], dtype=np.double)
+
+    for i in range(5):
+        x_0[i] = a[i]
+        prizes_0[i] = c[i]
+
+    for i in range(2):
+        y_0[i] = b[i]
+        penalties_0[i] = d[i]
+
+    x.array = x_0
+    x.length = 5
+    y.array = y_0
+    y.length = 2
+    prizes.array = prizes_0
+    prizes.length = 5
+    penalties.array = penalties_0
+
+    output = make_opt_results(2)
+    optimize(&x, &y, &prizes, &penalties, output)
+    score = output.score
+    indices = output.indices
+    chars_matched = output.chars_matched
+    ind = []
+    for i in range(chars_matched):
+        ind.append(indices[i])
+    free_opt_results(output)
+    return score, ind
 
 
 
