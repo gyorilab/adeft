@@ -30,6 +30,8 @@ cdef void free_permuter(permuter *perms):
     return
 
 
+@boundscheck(False)
+@wraparound(False)
 cdef void update_permuter(permuter *perms):
     cdef int X, Y, Z, W
     X = perms.Pinv[perms.m]

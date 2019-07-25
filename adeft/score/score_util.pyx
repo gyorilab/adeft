@@ -119,6 +119,8 @@ cdef struct candidates_array:
     double inv_penalty
 
 
+@boundscheck(False)
+@wraparound(False)
 cdef candidates_array *make_candidates_array(list encoded_shortform,
                                              list encoded_candidates,
                                              list prizes,
@@ -187,6 +189,8 @@ cdef void free_opt_input(opt_input *input_):
     PyMem_Free(input_)
     
 
+@boundscheck(False)
+@wraparound(False)
 cdef double perm_search(candidates_array *candidates, int n):
     cdef:
         double best, current_score
@@ -217,6 +221,8 @@ cdef double perm_search(candidates_array *candidates, int n):
     return best
 
 
+@boundscheck(False)
+@wraparound(False)
 cdef void *stitch(candidates_array *candidates, int *permutation,
                   int len_perm, opt_input *result):
     cdef int i, j, k, total_length, current_length
@@ -240,7 +246,9 @@ cdef void *stitch(candidates_array *candidates, int *permutation,
             j += 2
     return result
 
-    
+
+@boundscheck(False)
+@wraparound(False)
 cdef void *optimize(int_array *x, int_array *y,
                            double_array *prizes, double_array *penalties,
                            opt_results *output):
@@ -290,45 +298,44 @@ cdef void *optimize(int_array *x, int_array *y,
         score_lookup[i] = <double *> PyMem_Malloc((m+1) * sizeof(double))
         if i != n:
             pointers[i] = <int *> PyMem_Malloc(m * sizeof(int))
-
-    # Hold on to your butts
-    with boundscheck(False), wraparound(False):
-        score_lookup[0][0] = 0
+    # Initialize lookup array
+    score_lookup[0][0] = 0
+    for j in range(1, m+1):
+        score_lookup[0][j] = -1e20
+    for i in range(1, n+1):
+        for j in range(0, m+1):
+            score_lookup[i][j] = 0
+    # Main loop
+    for i in range(1, n+1):
         for j in range(1, m+1):
-            score_lookup[0][j] = -1e20
-        for i in range(1, n+1):
-            for j in range(0, m+1):
-                score_lookup[i][j] = 0
-        for i in range(1, n+1):
-            for j in range(1, m+1):
-                # Case where element of x in current position matches
-                # element of y in current position. Algorithm considers
-                # either accepting or rejecting this match
-                if x.array[i-1] == y.array[j-1]:
-                    possibility1 = score_lookup[i-1][j]
-                    possibility2 = score_lookup[i-1][j-1] + prizes.array[i-1]
-                    if possibility2 >= possibility1:
-                        score_lookup[i][j] = possibility2
-                        pointers[i-1][j-1] = 1
-                    else:
-                        score_lookup[i][j] = possibility1
-                        pointers[i-1][j-1] = 0
-                # Case where element of x in current position is a wildcard.
-                # May either accept or reject this match
-                elif x.array[i-1] == -1:
-                    possibility1 = score_lookup[i-1][j]
-                    possibility2 = score_lookup[i-1][j-1] - penalties.array[j-1]
-                    if possibility2 >= possibility1:
-                        score_lookup[i][j] = possibility2
-                        pointers[i-1][j-1] = 1
-                    else:
-                        score_lookup[i][j] = possibility1
-                        pointers[i-1][j-1] = 0
-                # No match is possible. There is only one option to fill
-                # current entry of dynamic programming lookup array.
+            # Case where element of x in current position matches
+            # element of y in current position. Algorithm considers
+            # either accepting or rejecting this match
+            if x.array[i-1] == y.array[j-1]:
+                possibility1 = score_lookup[i-1][j]
+                possibility2 = score_lookup[i-1][j-1] + prizes.array[i-1]
+                if possibility2 >= possibility1:
+                    score_lookup[i][j] = possibility2
+                    pointers[i-1][j-1] = 1
                 else:
-                    score_lookup[i][j] = score_lookup[i-1][j]
+                    score_lookup[i][j] = possibility1
                     pointers[i-1][j-1] = 0
+            # Case where element of x in current position is a wildcard.
+            # May either accept or reject this match
+            elif x.array[i-1] == -1:
+                possibility1 = score_lookup[i-1][j]
+                possibility2 = score_lookup[i-1][j-1] - penalties.array[j-1]
+                if possibility2 >= possibility1:
+                    score_lookup[i][j] = possibility2
+                    pointers[i-1][j-1] = 1
+                else:
+                    score_lookup[i][j] = possibility1
+                    pointers[i-1][j-1] = 0
+            # No match is possible. There is only one option to fill
+            # current entry of dynamic programming lookup array.
+            else:
+                score_lookup[i][j] = score_lookup[i-1][j]
+                pointers[i-1][j-1] = 0
     # Optimal score is in bottom right corner of lookup array
     score = score_lookup[n][m]
     # Free the memory used by the lookup array
