@@ -1,7 +1,7 @@
 from os import path
 from setuptools import setup, find_packages
 from setuptools.extension import Extension
-from Cython.Build import cythonize
+from Cython.Build import cythonize, build_ext
 
 
 here = path.abspath(path.dirname(__file__))
@@ -10,7 +10,8 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 extensions = [
-    Extension('adeft.score.score_util', ['adeft/score/score_util.pyx'])
+    Extension('adeft.score.score_util', ['adeft/score/score_util.pyx']),
+    Extension('adeft.score.permutations', ['adeft/score/permutations.pyx'])
     ]
 
 
@@ -36,5 +37,7 @@ setup(name='adeft',
       extras_require={'test': ['nose', 'coverage']},
       keywords=['nlp', 'biology', 'disambiguation'],
       ext_modules=cythonize(extensions,
-                            compiler_directives={'language_level': 3})
+                            compiler_directives={'language_level': 3}),
+      cmdclass={'build_ext': build_ext},
+      zip_safe=False
       )

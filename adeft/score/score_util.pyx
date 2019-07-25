@@ -3,6 +3,9 @@ from libc.math cimport pow as cpow
 from cython cimport boundscheck, wraparound
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
+from adeft.score.permutations cimport permuter, make_permuter, \
+    free_permuter, update_permuter
+
 
 def check_optimize():
     cdef:
@@ -303,89 +306,27 @@ cdef struct perm_out:
     
 cdef double perm_search(candidates_array *candidates, int n):
     cdef:
-        int m = n - 1
-        int inversions = 0
-        int *P
-        int *Pinv
-        int *D
-        int *T
-        int X, Y, Z, W
+        permuter *perms
         double best, current_score
         opt_input *current
         results *opt_results
 
-    P = <int *> PyMem_Malloc(n * sizeof(int))
-    Pinv = <int *> PyMem_Malloc(n * sizeof(int))
-    D = <int *> PyMem_Malloc(n * sizeof(int))
-    T = <int *> PyMem_Malloc(n * sizeof(int))
-
-    cdef int i = 0
-    for i in range(n):
-        P[i] = i
-        Pinv[i] = i
-        D[i] = -1
-        T[i] = -1
-    current = stitch(candidates, P, n)
+    perms = make_permuter(n)
+    current = stitch(candidates, perms.P, n)
     opt_results = optimize(current.x, candidates.y, current.prizes,
                            candidates.penalties)
     best = opt_results.score
-    while m != 0:
-        X = Pinv[m]
-        Y = X + D[m]
-        Z = P[Y]
-        P[Y] = m
-        P[X] = Z
-        Pinv[Z] = X
-        Pinv[m] = Y
-        if D[m] < 0:
-            inversions += 1
-        else:
-            inversions -= 1
-        W = Y + D[m]
-        if W == -1 or W == n or P[W] > m:
-            D[m] = -D[m]
-            if m == n - 1:
-                if T[n-1] < 0:
-                    m = n - 2
-                    if -T[n-1] != n - 1:
-                        T[n-2] = T[n-1]
-                else:
-                    m = T[n-1] - 1
-            else:
-                T[n-1] = -(m+2)
-                if T[m] > 0:
-                    T[m+1] = T[m]
-                else:
-                    T[m+1] = m
-                    if -T[m] != m:
-                        T[m-1] = T[m]
-                m = n - 1
-        else:
-            if m != n-1:
-                T[n-1] = -m - 1
-                m = n-1
-        current = stitch(candidates, P, n)
+    while perms.m != 0:
+        update_permuter(perms)
+        current = stitch(candidates, perms.P, n)
         opt_results = optimize(current.x, candidates.y, current.prizes,
                                candidates.penalties)
         current_score = opt_results.score * cpow(candidates.inv_penalty,
-                                                 inversions)
+                                                 perms.inversions)
         if current_score > best:
             best = current_score
-    PyMem_Free(P)
-    PyMem_Free(Pinv)
-    PyMem_Free(D)
-    PyMem_Free(T)
+    free_permuter(perms)
     return best
-
-
-# def longform_score(encoded_shortform, encoded_candidates, prizes):
-#     cdef:
-#         candidates_array *candidates
-
-#     candidates = convert_input(encoded_candidates, prizes)
-    
-#     return
-
 
 
 def check_convert():
