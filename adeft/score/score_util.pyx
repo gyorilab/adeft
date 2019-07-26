@@ -191,9 +191,6 @@ cdef double perm_search(candidates_array *candidates, int n):
 cdef void *stitch(candidates_array *candidates, int *permutation,
                   int len_perm, opt_input *result):
     cdef int i, j, k, total_length, current_length
-    
-    
-
     # stitched output begins with wildcard represented by -1
     result.x.array[0] = -1
     result.prizes.array[0] = 0
@@ -209,6 +206,8 @@ cdef void *stitch(candidates_array *candidates, int *permutation,
                 candidates.prizes[permutation[i]].array[k]
             result.prizes.array[j+1] = 0
             j += 2
+        result.word_prizes[i] = candidates.word_prizes[i]
+        result.word_boundaries.array[i] = j - 1
     return result
 
 
