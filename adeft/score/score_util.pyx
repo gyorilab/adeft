@@ -214,8 +214,9 @@ cdef void *stitch(candidates_array *candidates, int *permutation,
 @boundscheck(False)
 @wraparound(False)
 cdef void *optimize(int_array *x, int_array *y,
-                           double_array *prizes, double_array *penalties,
-                           opt_results *output):
+                    double_array *prizes, double_array *penalties,
+                    int_array *word_boundaries, double *word_prizes,
+                    opt_results *output):
     """Subsequence match optimization algorithm for longform scoring
 
     Uses a dynamic programming algorithm to find optimal instance of
@@ -258,10 +259,13 @@ cdef void *optimize(int_array *x, int_array *y,
                                  PyMem_Malloc((n+1) * sizeof(double *)))
         int **pointers = <int **> PyMem_Malloc(n * sizeof(int *))
 
+        int **words_captured = <int **> PyMem_Malloc(n * sizeof(int *))
+
     for i in range(n+1):
         score_lookup[i] = <double *> PyMem_Malloc((m+1) * sizeof(double))
         if i != n:
             pointers[i] = <int *> PyMem_Malloc(m * sizeof(int))
+            words_captured[i] = <int *> PyMem_Malloc(m * sizeof(int))
     # Initialize lookup array
     score_lookup[0][0] = 0
     for j in range(1, m+1):
