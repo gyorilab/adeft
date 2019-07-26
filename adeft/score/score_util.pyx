@@ -68,6 +68,7 @@ cdef struct candidates_array:
     int_array *y
     double_array **prizes
     double_array *penalties
+    double *word_prizes
     int *cum_lengths
     int length
     double inv_penalty
@@ -79,6 +80,7 @@ cdef candidates_array *make_candidates_array(list encoded_shortform,
                                              list encoded_candidates,
                                              list prizes,
                                              list penalties,
+                                             list word_prizes,
                                              double inv_penalty):
     cdef:
         int i, j, num_candidates, m, n, cum_length, k
@@ -90,6 +92,7 @@ cdef candidates_array *make_candidates_array(list encoded_shortform,
     candidates.prizes = <double_array **> \
         PyMem_Malloc(n * sizeof(double_array*))
     candidates.penalties = make_double_array(k)
+    candidates.word_prizes = <double *> PyMem_Malloc(n * sizeof(double))
     candidates.cum_lengths = <int *> PyMem_Malloc(n * sizeof(int))
     candidates.length = n
     candidates.inv_penalty = inv_penalty
@@ -104,6 +107,7 @@ cdef candidates_array *make_candidates_array(list encoded_shortform,
         candidates.prizes[i] = make_double_array(m)
         cum_length += m
         candidates.cum_lengths[i] = cum_length
+        candidates.word_prizes[i] = word_prizes[i]
         for j in range(m):
             candidates.array[i].array[j] = encoded_candidates[i][j]
             candidates.prizes[i].array[j] = prizes[i][j]
@@ -118,6 +122,7 @@ cdef free_candidates_array(candidates_array *candidates):
          free_double_array(candidates.prizes[i])
     free_int_array(candidates.y)
     free_double_array(candidates.penalties)
+    PyMem_Free(candidates.word_prizes)
     PyMem_Free(candidates.prizes)
     PyMem_Free(candidates.array)
     PyMem_Free(candidates.cum_lengths)
@@ -127,19 +132,25 @@ cdef free_candidates_array(candidates_array *candidates):
 cdef struct opt_input:
     int_array *x
     double_array *prizes
+    int_array *word_boundaries
+    double *word_prizes
 
 
-cdef opt_input *make_opt_input(int n):
+cdef opt_input *make_opt_input(int n, int num_words):
     cdef opt_input *input_
     input_ = <opt_input *> PyMem_Malloc(sizeof(opt_input))
     input_.x = make_int_array(n)
     input_.prizes = make_double_array(n)
+    input_.word_boundaries = make_int_array(num_words)
+    input_.word_prizes = <double *> PyMem_Malloc(num_words * sizeof(double))
     return input_
 
 
 cdef void free_opt_input(opt_input *input_):
     free_int_array(input_.x)
     free_double_array(input_.prizes)
+    PyMem_Free(input_.word_boundaries)
+    PyMem_Free(input_.word_prizes)
     PyMem_Free(input_)
     
 
@@ -154,7 +165,7 @@ cdef double perm_search(candidates_array *candidates, int n):
 
     results = make_opt_results(candidates.y.length)
     total_length = candidates.cum_lengths[n - 1]
-    current = make_opt_input(2*total_length + 1)
+    current = make_opt_input(2*total_length + 1, n)
     perms = make_permuter(n)
     stitch(candidates, perms.P, n, current)
     optimize(current.x, candidates.y, current.prizes,
