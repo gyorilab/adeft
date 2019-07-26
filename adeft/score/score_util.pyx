@@ -349,23 +349,28 @@ def check_make_candidates_array():
     prizes = [[1.0], [0.5, 1.0], [0.25, 0.5, 1.0],
               [0.5, 1.0], [1.0]]
     penalties = [0.2, 0.4]
+    word_prizes = [1.0, 1.0, 1.0, 1.0, 1.0]
 
     P = [2, 0, 1, 3, 4]
     for i in range(5):
         perm[i] = P[i]
 
-    candidates = make_candidates_array(sf, ca,  prizes, penalties, 0.9)
+    candidates = make_candidates_array(sf, ca,  prizes, penalties,
+                                       word_prizes, 0.9)
     total_length = candidates.cum_lengths[4]
-    input_ = make_opt_input(2*total_length + 1)
+    input_ = make_opt_input(2*total_length + 1, len(ca))
     stitch(candidates, perm, 5, input_)
-    x, p = [], []
+    x, p, wp, wb = [], [], [], []
     length = input_.x.length
     for i in range(length):
         x.append(input_.x.array[i])
         p.append(input_.prizes.array[i])
+    for j in range(input_.word_boundaries.length):
+        wp.append(input_.word_prizes[j])
+        wb.append(input_.word_boundaries.array[j])
     free_candidates_array(candidates)
     free_opt_input(input_)
-    return (x, p)
+    return (x, p, wp, wb)
 
 
 def check_perm_search():
@@ -375,9 +380,11 @@ def check_perm_search():
         list prizes = [[1.0], [0.5, 1.0], [0.25, 0.5, 1.0],
                        [0.5, 1.0], [1.0]]
         list penalties = [0.2, 0.4]
+        list word_prizes = [1.0, 1.0, 1.0, 1.0, 1.0]
         candidates_array *candidates
 
-    candidates = make_candidates_array(sf, ca,  prizes, penalties, 0.9)
+    candidates = make_candidates_array(sf, ca,  prizes, penalties,
+                                       word_prizes, 0.9)
     score = perm_search(candidates, 5)
     free_candidates_array(candidates)
     return score
