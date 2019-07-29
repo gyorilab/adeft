@@ -249,7 +249,7 @@ cdef void *optimize(int_array *x, int_array *y,
     cdef:
         unsigned int n = x.length
         unsigned int m = y.length
-        double possibility1, possibility
+        double possibility1, possibility, capture_prize
         unsigned int i, j, k
 
     # Dynamic initialization of score_lookup array and traceback pointer
@@ -259,34 +259,44 @@ cdef void *optimize(int_array *x, int_array *y,
                                  PyMem_Malloc((n+1) * sizeof(double *)))
         int **pointers = <int **> PyMem_Malloc(n * sizeof(int *))
 
-        int **words_captured = <int **> PyMem_Malloc(n * sizeof(int *))
+        int **word_use = <int **> PyMem_Malloc(n * sizeof(int *))
 
     for i in range(n+1):
         score_lookup[i] = <double *> PyMem_Malloc((m+1) * sizeof(double))
         if i != n:
             pointers[i] = <int *> PyMem_Malloc(m * sizeof(int))
-            words_captured[i] = <int *> PyMem_Malloc(m * sizeof(int))
+            word_use[i] = <int *> PyMem_Malloc(m * sizeof(int))
     # Initialize lookup array
     score_lookup[0][0] = 0
+    word_use[0][0] = 0
     for j in range(1, m+1):
         score_lookup[0][j] = -1e20
     for i in range(1, n+1):
         for j in range(0, m+1):
             score_lookup[i][j] = 0
+            word_use[i][j] = 0
     # Main loop
+    k = 0
     for i in range(1, n+1):
         for j in range(1, m+1):
             # Case where element of x in current position matches
             # element of y in current position. Algorithm considers
             # either accepting or rejecting this match
             if x.array[i-1] == y.array[j-1]:
+                if word_use[i-1][j-1] == 0:
+                    capture_prize = word_prizes[k]
+                else:
+                    capture_prize = 0
                 possibility1 = score_lookup[i-1][j]
-                possibility2 = score_lookup[i-1][j-1] + prizes.array[i-1]
+                possibility2 = (score_lookup[i-1][j-1] + prizes.array[i-1] + 
+                                capture_prize)
                 if possibility2 >= possibility1:
                     score_lookup[i][j] = possibility2
+                    word_use[i][j] = word_use[i-1][j-1] + 1
                     pointers[i-1][j-1] = 1
                 else:
                     score_lookup[i][j] = possibility1
+                    word_use[i][j] = word_use[i-1][j]
                     pointers[i-1][j-1] = 0
             # Case where element of x in current position is a wildcard.
             # May either accept or reject this match
@@ -295,15 +305,21 @@ cdef void *optimize(int_array *x, int_array *y,
                 possibility2 = score_lookup[i-1][j-1] - penalties.array[j-1]
                 if possibility2 >= possibility1:
                     score_lookup[i][j] = possibility2
+                    word_use[i][j] = word_use[i-1][j-1]
                     pointers[i-1][j-1] = 1
                 else:
                     score_lookup[i][j] = possibility1
                     pointers[i-1][j-1] = 0
+                    word_use[i][j] = word_use[i-1][j]
             # No match is possible. There is only one option to fill
             # current entry of dynamic programming lookup array.
             else:
                 score_lookup[i][j] = score_lookup[i-1][j]
+                word_use[i][j] = word_use[i-1][j]
                 pointers[i-1][j-1] = 0
+            if i == word_boundaries.array[k]:
+                word_use[i][j] = 0
+                k += 1
     # Optimal score is in bottom right corner of lookup array
     score = score_lookup[n][m]
     # Free the memory used by the lookup array
