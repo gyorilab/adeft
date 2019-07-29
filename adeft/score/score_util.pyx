@@ -72,6 +72,7 @@ cdef struct candidates_array:
     int *cum_lengths
     int length
     double inv_penalty
+    double alpha
 
 
 @boundscheck(False)
@@ -81,7 +82,8 @@ cdef candidates_array *make_candidates_array(list encoded_shortform,
                                              list prizes,
                                              list penalties,
                                              list word_prizes,
-                                             double inv_penalty):
+                                             double inv_penalty,
+                                             double alpha):
     cdef:
         int i, j, num_candidates, m, n, cum_length, k
         candidates_array *candidates
@@ -96,6 +98,7 @@ cdef candidates_array *make_candidates_array(list encoded_shortform,
     candidates.cum_lengths = <int *> PyMem_Malloc(n * sizeof(int))
     candidates.length = n
     candidates.inv_penalty = inv_penalty
+    candidates.alpha = alpha
     candidates.y = make_int_array(k)
     for i in range(k):
         candidates.penalties.array[i] = penalties[i]
@@ -132,8 +135,8 @@ cdef free_candidates_array(candidates_array *candidates):
 cdef struct opt_input:
     int_array *x
     double_array *prizes
-    int_array *word_boundaries
-    double *word_prizes
+    unsigned int *word_boundaries
+    double_array *word_prizes
 
 
 cdef opt_input *make_opt_input(int n, int num_words):
@@ -141,8 +144,9 @@ cdef opt_input *make_opt_input(int n, int num_words):
     input_ = <opt_input *> PyMem_Malloc(sizeof(opt_input))
     input_.x = make_int_array(n)
     input_.prizes = make_double_array(n)
-    input_.word_boundaries = make_int_array(num_words)
-    input_.word_prizes = <double *> PyMem_Malloc(num_words * sizeof(double))
+    input_.word_boundaries = <unsigned int *> \
+        PyMem_Malloc(num_words * sizeof(unsigned int))
+    input_.word_prizes = make_double_array(num_words)
     return input_
 
 
@@ -169,13 +173,15 @@ cdef double perm_search(candidates_array *candidates, int n):
     perms = make_permuter(n)
     stitch(candidates, perms.P, n, current)
     optimize(current.x, candidates.y, current.prizes,
-             candidates.penalties, results)
+             candidates.penalties, current.word_boundaries,
+             current.word_prizes.array, candidates.alpha, results)
     best = results.score
     while perms.m != 0:
         update_permuter(perms)
         stitch(candidates, perms.P, n, current)
         optimize(current.x, candidates.y, current.prizes,
-                 candidates.penalties, results)
+                 candidates.penalties, current.word_boundaries,
+                 current.word_prizes.array, candidates.alpha, results)
         current_score = results.score * cpow(candidates.inv_penalty,
                                              perms.inversions)
         if current_score > best:
@@ -206,8 +212,8 @@ cdef void *stitch(candidates_array *candidates, int *permutation,
                 candidates.prizes[permutation[i]].array[k]
             result.prizes.array[j+1] = 0
             j += 2
-        result.word_prizes[i] = candidates.word_prizes[i]
-        result.word_boundaries.array[i] = j - 1
+        result.word_prizes.array[i] = candidates.word_prizes[i]
+        result.word_boundaries[i] = j - 1
     return result
 
 
@@ -215,7 +221,8 @@ cdef void *stitch(candidates_array *candidates, int *permutation,
 @wraparound(False)
 cdef void *optimize(int_array *x, int_array *y,
                     double_array *prizes, double_array *penalties,
-                    int_array *word_boundaries, double *word_prizes,
+                    unsigned int *word_boundaries, double *word_prizes,
+                    double alpha,
                     opt_results *output):
     """Subsequence match optimization algorithm for longform scoring
 
@@ -288,7 +295,9 @@ cdef void *optimize(int_array *x, int_array *y,
                 else:
                     capture_prize = 0
                 possibility1 = score_lookup[i-1][j]
-                possibility2 = (score_lookup[i-1][j-1] + prizes.array[i-1] + 
+                possibility2 = (score_lookup[i-1][j-1] +
+                                prizes.array[i-1]/cpow(alpha,
+                                                       word_use[i-1][j-1]) +
                                 capture_prize)
                 if possibility2 >= possibility1:
                     score_lookup[i][j] = possibility2
@@ -317,7 +326,7 @@ cdef void *optimize(int_array *x, int_array *y,
                 score_lookup[i][j] = score_lookup[i-1][j]
                 word_use[i][j] = word_use[i-1][j]
                 pointers[i-1][j-1] = 0
-            if i == word_boundaries.array[k]:
+            if i == word_boundaries[k]:
                 word_use[i][j] = 0
                 k += 1
     # Optimal score is in bottom right corner of lookup array
@@ -364,19 +373,20 @@ def check_make_candidates_array():
         opt_input *input_
         candidates_array *candidates
         
-    sf = [1, 0]
+    sf = [0, 1]
     ca = [[0], [0, 1], [1, 1, 0], [0, 0], [1]]
-    prizes = [[1.0], [0.5, 1.0], [0.25, 0.5, 1.0],
-              [0.5, 1.0], [1.0]]
-    penalties = [0.2, 0.4]
+    prizes = [[1.0], [1.0, 0.5], [1.0, 0.5, 0.25],
+              [1.0, 0.5], [1.0]]
+    penalties = [0.4, 0.2]
     word_prizes = [1.0, 1.0, 1.0, 1.0, 1.0]
+    alpha = 0.5
 
     P = [2, 0, 1, 3, 4]
     for i in range(5):
         perm[i] = P[i]
 
     candidates = make_candidates_array(sf, ca,  prizes, penalties,
-                                       word_prizes, 0.9)
+                                       word_prizes, 0.9, 0.5)
     total_length = candidates.cum_lengths[4]
     input_ = make_opt_input(2*total_length + 1, len(ca))
     stitch(candidates, perm, 5, input_)
@@ -385,9 +395,9 @@ def check_make_candidates_array():
     for i in range(length):
         x.append(input_.x.array[i])
         p.append(input_.prizes.array[i])
-    for j in range(input_.word_boundaries.length):
-        wp.append(input_.word_prizes[j])
-        wb.append(input_.word_boundaries.array[j])
+    for j in range(input_.word_prizes.length):
+        wp.append(input_.word_prizes.array[j])
+        wb.append(input_.word_boundaries[j])
     free_candidates_array(candidates)
     free_opt_input(input_)
     return (x, p, wp, wb)
@@ -404,7 +414,7 @@ def check_perm_search():
         candidates_array *candidates
 
     candidates = make_candidates_array(sf, ca,  prizes, penalties,
-                                       word_prizes, 0.9)
+                                       word_prizes, 0.9, 0.5)
     score = perm_search(candidates, 5)
     free_candidates_array(candidates)
     return score
@@ -416,14 +426,17 @@ def check_optimize():
         int y_0[2]
         double prizes_0[5]
         double penalties_0[2]
+        double word_prizes[2]
+        unsigned int word_boundaries[2]
+        double alpha = 0.5
         int_array x, y
         double_array prizes, penalties
         opt_results *output
 
     penalties.length = 2
 
-    a = np.array([-1, 1, -1, 0, -1], dtype=np.int)
-    b = np.array([1, 0], dtype=np.int)
+    a = np.array([-1, 0, -1, 1, -1], dtype=np.int)
+    b = np.array([0, 1], dtype=np.int)
     c = np.array([0.0, 1.0, 0.0, 1.0, 0.0],
                  dtype=np.double)
     d = np.array([0.2, 0.4], dtype=np.double)
@@ -436,6 +449,12 @@ def check_optimize():
         y_0[i] = b[i]
         penalties_0[i] = d[i]
 
+    word_prizes[0] = 1.
+    word_prizes[1] = 1.
+
+    word_boundaries[0] = 2
+    word_boundaries[1] = 4
+
     x.array = x_0
     x.length = 5
     y.array = y_0
@@ -445,7 +464,9 @@ def check_optimize():
     penalties.array = penalties_0
 
     output = make_opt_results(2)
-    optimize(&x, &y, &prizes, &penalties, output)
+    optimize(&x, &y, &prizes, &penalties, word_boundaries,
+             word_prizes,
+             alpha, output)
     score = output.score
     indices = output.indices
     chars_matched = output.chars_matched
