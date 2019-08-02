@@ -324,7 +324,7 @@ cdef void *optimize(int_array *x, int_array *y,
                 score_lookup[i][j] = score_lookup[i-1][j]
                 word_use[i][j] = word_use[i-1][j]
                 pointers[i-1][j-1] = 0
-            if i == word_boundaries[k]:
+            if i == word_boundaries[k] + 1:
                 word_use[i][j] = 0
                 k += 1
     # Optimal score is in bottom right corner of lookup array
