@@ -166,7 +166,6 @@ cdef double perm_search(candidates_array *candidates, int n):
         permuter *perms
         opt_input *current
         opt_results *results
-
     results = make_opt_results(candidates.y.length)
     total_length = candidates.cum_lengths[n - 1]
     current = make_opt_input(2*total_length + 1, n)
@@ -266,13 +265,12 @@ cdef void *optimize(int_array *x, int_array *y,
                                  PyMem_Malloc((n+1) * sizeof(double *)))
         int **pointers = <int **> PyMem_Malloc(n * sizeof(int *))
 
-        int **word_use = <int **> PyMem_Malloc(n * sizeof(int *))
-
+        int **word_use = <int **> PyMem_Malloc((n+1) * sizeof(int *))
     for i in range(n+1):
         score_lookup[i] = <double *> PyMem_Malloc((m+1) * sizeof(double))
+        word_use[i] = <int *> PyMem_Malloc((m+1) * sizeof(int))
         if i != n:
             pointers[i] = <int *> PyMem_Malloc(m * sizeof(int))
-            word_use[i] = <int *> PyMem_Malloc(m * sizeof(int))
     # Initialize lookup array
     score_lookup[0][0] = 0
     word_use[0][0] = 0
@@ -335,10 +333,8 @@ cdef void *optimize(int_array *x, int_array *y,
     for i in range(n+1):
         PyMem_Free(score_lookup[i])
     PyMem_Free(score_lookup)
-
     # Set score in output
     output.score = score
-
     # Trace backwards through pointer array to discover which elements of x
     # were matched and add the corresponding indices to the index array in
     # reverse order
@@ -372,7 +368,7 @@ def check_make_candidates_array():
         int perm[5]
         opt_input *input_
         candidates_array *candidates
-        
+
     sf = [0, 1]
     ca = [[0], [0, 1], [1, 1, 0], [0, 0], [1]]
     prizes = [[1.0], [1.0, 0.5], [1.0, 0.5, 0.25],
@@ -384,7 +380,6 @@ def check_make_candidates_array():
     P = [2, 0, 1, 3, 4]
     for i in range(5):
         perm[i] = P[i]
-
     candidates = make_candidates_array(sf, ca,  prizes, penalties,
                                        word_prizes, 0.9, 0.5)
     total_length = candidates.cum_lengths[4]
@@ -412,7 +407,6 @@ def check_perm_search():
         list penalties = [0.2, 0.4]
         list word_prizes = [1.0, 1.0, 1.0, 1.0, 1.0]
         candidates_array *candidates
-
     candidates = make_candidates_array(sf, ca,  prizes, penalties,
                                        word_prizes, 0.9, 0.5)
     score = perm_search(candidates, 5)
@@ -434,27 +428,22 @@ def check_optimize():
         opt_results *output
 
     penalties.length = 2
-
     a = np.array([-1, 0, -1, 1, -1], dtype=np.int)
     b = np.array([0, 1], dtype=np.int)
     c = np.array([0.0, 1.0, 0.0, 1.0, 0.0],
                  dtype=np.double)
     d = np.array([0.2, 0.4], dtype=np.double)
-
     for i in range(5):
         x_0[i] = a[i]
         prizes_0[i] = c[i]
-
     for i in range(2):
         y_0[i] = b[i]
         penalties_0[i] = d[i]
-
     word_prizes[0] = 1.
     word_prizes[1] = 1.
 
     word_boundaries[0] = 2
     word_boundaries[1] = 4
-
     x.array = x_0
     x.length = 5
     y.array = y_0
@@ -462,7 +451,6 @@ def check_optimize():
     prizes.array = prizes_0
     prizes.length = 5
     penalties.array = penalties_0
-
     output = make_opt_results(2)
     optimize(&x, &y, &prizes, &penalties, word_boundaries,
              word_prizes,
