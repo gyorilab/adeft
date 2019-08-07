@@ -332,7 +332,9 @@ cdef void *optimize(int_array *x, int_array *y,
     # Free the memory used by the lookup array
     for i in range(n+1):
         PyMem_Free(score_lookup[i])
+        PyMem_Free(word_use[i])
     PyMem_Free(score_lookup)
+    PyMem_Free(word_use)
     # Set score in output
     output.score = score
     # Trace backwards through pointer array to discover which elements of x
