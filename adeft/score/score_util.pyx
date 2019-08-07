@@ -416,47 +416,35 @@ def check_perm_search():
     return score
 
 
-def check_optimize():
+def check_optimize(test_case):
+    """This function is used for testing the optimize function"""
+    n, m, num_words = test_case.n, test_case.m, test_case.num_words
+
     cdef:
-        int x_0[5]
-        int y_0[2]
-        double prizes_0[5]
-        double penalties_0[2]
-        double word_prizes[2]
-        unsigned int word_boundaries[2]
-        double alpha = 0.5
-        int_array x, y
-        double_array prizes, penalties
-        opt_results *output
+        int_array *x = make_int_array(n)
+        int_array *y = make_int_array(m)
+        double_array *prizes = make_double_array(n)
+        double_array *penalties = make_double_array(m)
+        unsigned int *word_boundaries
+        double *word_prizes
+        opt_results *output = make_opt_results(m)
 
-    penalties.length = 2
-    a = np.array([-1, 0, -1, 1, -1], dtype=np.int)
-    b = np.array([0, 1], dtype=np.int)
-    c = np.array([0.0, 1.0, 0.0, 1.0, 0.0],
-                 dtype=np.double)
-    d = np.array([0.2, 0.4], dtype=np.double)
-    for i in range(5):
-        x_0[i] = a[i]
-        prizes_0[i] = c[i]
-    for i in range(2):
-        y_0[i] = b[i]
-        penalties_0[i] = d[i]
-    word_prizes[0] = 1.
-    word_prizes[1] = 1.
+    word_boundaries = <unsigned int*> \
+                    PyMem_Malloc(num_words*sizeof(unsigned int))
+    word_prizes = <double *> PyMem_Malloc(num_words*sizeof(double))
+    for i in range(n):
+        x.array[i] = test_case.x[i]
+        prizes.array[i] = test_case.prizes[i]
+    for i in range(m):
+        y.array[i] = test_case.y[i]
+        penalties.array[i] = test_case.penalties[i]
+    for i in range(num_words):
+        word_boundaries[i] = test_case.word_boundaries[i]
+        word_prizes[i] = test_case.word_prizes[i]
 
-    word_boundaries[0] = 2
-    word_boundaries[1] = 4
-    x.array = x_0
-    x.length = 5
-    y.array = y_0
-    y.length = 2
-    prizes.array = prizes_0
-    prizes.length = 5
-    penalties.array = penalties_0
-    output = make_opt_results(2)
-    optimize(&x, &y, &prizes, &penalties, word_boundaries,
+    optimize(x, y, prizes, penalties, word_boundaries,
              word_prizes,
-             alpha, output)
+             test_case.alpha, output)
     score = output.score
     indices = output.indices
     chars_matched = output.chars_matched
@@ -464,6 +452,12 @@ def check_optimize():
     for i in range(chars_matched):
         ind.append(indices[i])
     free_opt_results(output)
+    free_int_array(x)
+    free_int_array(y)
+    free_double_array(prizes)
+    free_double_array(penalties)
+    PyMem_Free(word_boundaries)
+    PyMem_Free(word_prizes)
     return score, ind
 
 
