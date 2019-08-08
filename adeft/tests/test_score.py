@@ -25,10 +25,8 @@ def test_optimize():
 
     test_cases = [case1]
     for case in test_cases:
-        case.check()
-        score, ind = check_optimize(case1)
-        assert score == case1.result_score
-        assert ind == case1.result_indices
+        case.check_assertions()
+        case.run_test()
 
 
 def test_perm_search():
@@ -54,11 +52,16 @@ class OptimizationTestCase(object):
         self.result_score=result_score
         self.result_indices=result_indices
 
-    def check(self):
+    def check_assertions(self):
         assert len(self.prizes) == self.n
         assert len(self.penalties) == self.m
         assert len(self.word_prizes) == self.num_words
         assert self.word_boundaries[-1] == len(self.x) - 1
         assert self.word_boundaries == sorted(self.word_boundaries)
+
+    def run_test(self):
+        score, ind = check_optimize(self)
+        assert score == self.result_score
+        assert ind == self.result_indices
                    
         
