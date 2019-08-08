@@ -297,7 +297,7 @@ cdef void *optimize(int_array *x, int_array *y,
                                 prizes.array[i-1]/cpow(alpha,
                                                        word_use[i-1][j-1]) +
                                 capture_prize)
-                if possibility2 >= possibility1:
+                if possibility2 > possibility1:
                     score_lookup[i][j] = possibility2
                     word_use[i][j] = word_use[i-1][j-1] + 1
                     pointers[i-1][j-1] = 1
@@ -310,7 +310,7 @@ cdef void *optimize(int_array *x, int_array *y,
             elif x.array[i-1] == -1:
                 possibility1 = score_lookup[i-1][j]
                 possibility2 = score_lookup[i-1][j-1] - penalties.array[j-1]
-                if possibility2 >= possibility1:
+                if possibility2 > possibility1:
                     score_lookup[i][j] = possibility2
                     word_use[i][j] = word_use[i-1][j-1]
                     pointers[i-1][j-1] = 1
