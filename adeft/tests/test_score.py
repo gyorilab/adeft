@@ -1,5 +1,4 @@
-from adeft.score.score_util import check_optimize, check_perm_search, \
-    check_make_candidates_array
+from adeft.score.score_util import check_optimize, StitchTestCase
 
 
 def test_make_candidates_array():
@@ -90,33 +89,6 @@ def test_optimize():
     for case in test_cases:
         case.check_assertions()
         case.run_test()
-
-
-class StitchTestCase(object):
-    def __init__(self, shortform=None, candidates=None,
-                 prizes=None, penalties=None, word_prizes=None,
-                 permutation=None, result_x=None, result_prizes=None,
-                 result_word_prizes=None, result_word_boundaries=None,
-                 inv_penalty=0.9, alpha=0.5):
-        self.shortform = shortform
-        self.candidates = candidates
-        self.prizes = prizes
-        self.penalties = penalties
-        self.word_prizes = word_prizes
-        self.permutation = permutation
-        self.result_x = result_x
-        self.result_prizes = result_prizes
-        self.result_word_prizes = result_word_prizes
-        self.result_word_boundaries = result_word_boundaries
-        self.inv_penalty = inv_penalty
-        self.alpha = alpha
-
-    def run_test(self):
-        x, p, wp, wb = check_make_candidates_array(self)
-        assert x == self.result_x
-        assert p == self.result_prizes
-        assert wp == self.result_word_prizes
-        assert wb == self.result_word_boundaries
 
 
 class OptimizationTestCase(object):

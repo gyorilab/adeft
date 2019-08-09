@@ -365,45 +365,66 @@ cdef struct perm_out:
     double score
 
 
-# These functions are for use in nosetests for C functions in this
-# module
-
-def check_make_candidates_array(test_case):
+cdef class StitchTestCase:
+    """Test construction of candidates array and stitching"""
     cdef:
-        int_array *perm
-        opt_input *input_
-        candidates_array *candidates
+        list shortform, candidates, prizes, penalties, word_prizes
+        list permutation, result_x, result_prizes, result_word_prizes
+        list result_word_boundaries
+        double inv_penalty, alpha
+    def __init__(self, shortform=None, candidates=None,
+                 prizes=None, penalties=None, word_prizes=None,
+                 permutation=None, result_x=None, result_prizes=None,
+                 result_word_prizes=None, result_word_boundaries=None,
+                 inv_penalty=0.9, alpha=0.5):
+        self.shortform = shortform
+        self.candidates = candidates
+        self.prizes = prizes
+        self.penalties = penalties
+        self.word_prizes = word_prizes
+        self.permutation = permutation
+        self.result_x = result_x
+        self.result_prizes = result_prizes
+        self.result_word_prizes = result_word_prizes
+        self.result_word_boundaries = result_word_boundaries
+        self.inv_penalty = inv_penalty
+        self.alpha = alpha
 
-    n = len(test_case.permutation)
-    perm = make_int_array(n)
+    def run_test(self):
+        cdef:
+            int_array *perm
+            opt_input *input_
+            candidates_array *candidates
 
-    sf = test_case.shortform
-    ca = test_case.candidates
-    prizes = test_case.prizes
-    penalties = test_case.penalties
-    word_prizes = test_case.word_prizes
-    inv_penalty = test_case.inv_penalty
-    alpha = test_case.alpha
-   
-    for i in range(n):
-        perm.array[i] = test_case.permutation[i]
-    candidates = make_candidates_array(sf, ca,  prizes, penalties,
-                                       word_prizes, inv_penalty, alpha)
-    total_length = candidates.cum_lengths[n - 1]
-    input_ = make_opt_input(2*total_length + 1, n)
-    stitch(candidates, perm.array, n, input_)
-    x, p, wp, wb = [], [], [], []
-    length = input_.x.length
-    for i in range(length):
-        x.append(input_.x.array[i])
-        p.append(input_.prizes.array[i])
-    for j in range(input_.word_prizes.length):
-        wp.append(input_.word_prizes.array[j])
-        wb.append(input_.word_boundaries[j])
-    free_candidates_array(candidates)
-    free_opt_input(input_)
-    free_int_array(perm)
-    return (x, p, wp, wb)
+        candidates = make_candidates_array(self.shortform,
+                                           self.candidates,
+                                           self.prizes,
+                                           self.penalties,
+                                           self.word_prizes,
+                                           self.inv_penalty,
+                                           self.alpha)
+        n = len(self.permutation)
+        perm = make_int_array(n)
+        for i in range(n):
+            perm.array[i] = self.permutation[i]
+        total_length = candidates.cum_lengths[n - 1]
+        input_ = make_opt_input(2*total_length + 1, n)
+        stitch(candidates, perm.array, n, input_)
+        x, p, wp, wb = [], [], [], []
+        length = input_.x.length
+        for i in range(length):
+            x.append(input_.x.array[i])
+            p.append(input_.prizes.array[i])
+        for j in range(input_.word_prizes.length):
+            wp.append(input_.word_prizes.array[j])
+            wb.append(input_.word_boundaries[j])
+        free_candidates_array(candidates)
+        free_opt_input(input_)
+        free_int_array(perm)
+        assert x == self.result_x
+        assert p == self.result_prizes
+        assert wp == self.result_word_prizes
+        assert wb == self.result_word_boundaries
 
 
 def check_perm_search():
