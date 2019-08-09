@@ -85,7 +85,7 @@ cdef candidates_array *make_candidates_array(list encoded_shortform,
                                              double inv_penalty,
                                              double alpha):
     cdef:
-        int i, j, num_candidates, m, n, cum_length, k
+        int i, j, num_candidates, m1,m2, n, cum_length, k
         candidates_array *candidates
     n = len(encoded_candidates)
     k = len(encoded_shortform)
@@ -105,13 +105,14 @@ cdef candidates_array *make_candidates_array(list encoded_shortform,
         candidates.y.array[i] = encoded_shortform[i]
     cum_length = 0
     for i in range(n):
-        m = len(encoded_candidates[i])
-        candidates.array[i] = make_int_array(m)
-        candidates.prizes[i] = make_double_array(m)
-        cum_length += m
+        m1 = len(encoded_candidates[i])
+        m2 = len(encoded_candidates[n-i-1])
+        candidates.array[i] = make_int_array(m1)
+        candidates.prizes[i] = make_double_array(m1)
+        cum_length += m2
         candidates.cum_lengths[i] = cum_length
         candidates.word_prizes[i] = word_prizes[i]
-        for j in range(m):
+        for j in range(m1):
             candidates.array[i].array[j] = encoded_candidates[i][j]
             candidates.prizes[i].array[j] = prizes[i][j]
     return candidates
