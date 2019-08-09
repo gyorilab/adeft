@@ -368,28 +368,30 @@ cdef struct perm_out:
 # These functions are for use in nosetests for C functions in this
 # module
 
-def check_make_candidates_array():
+def check_make_candidates_array(test_case):
     cdef:
-        int perm[5]
+        int_array *perm
         opt_input *input_
         candidates_array *candidates
 
-    sf = [0, 1]
-    ca = [[0], [0, 1], [1, 1, 0], [0, 0], [1]]
-    prizes = [[1.0], [1.0, 0.5], [1.0, 0.5, 0.25],
-              [1.0, 0.5], [1.0]]
-    penalties = [0.4, 0.2]
-    word_prizes = [1.0, 1.0, 1.0, 1.0, 1.0]
-    alpha = 0.5
+    n = len(test_case.permutation)
+    perm = make_int_array(n)
 
-    P = [2, 0, 1, 3, 4]
-    for i in range(5):
-        perm[i] = P[i]
+    sf = test_case.shortform
+    ca = test_case.candidates
+    prizes = test_case.prizes
+    penalties = test_case.penalties
+    word_prizes = test_case.word_prizes
+    inv_penalty = test_case.inv_penalty
+    alpha = test_case.alpha
+   
+    for i in range(n):
+        perm.array[i] = test_case.permutation[i]
     candidates = make_candidates_array(sf, ca,  prizes, penalties,
-                                       word_prizes, 0.9, 0.5)
-    total_length = candidates.cum_lengths[4]
-    input_ = make_opt_input(2*total_length + 1, len(ca))
-    stitch(candidates, perm, 5, input_)
+                                       word_prizes, inv_penalty, alpha)
+    total_length = candidates.cum_lengths[n - 1]
+    input_ = make_opt_input(2*total_length + 1, n)
+    stitch(candidates, perm.array, n, input_)
     x, p, wp, wb = [], [], [], []
     length = input_.x.length
     for i in range(length):
@@ -400,6 +402,7 @@ def check_make_candidates_array():
         wb.append(input_.word_boundaries[j])
     free_candidates_array(candidates)
     free_opt_input(input_)
+    free_int_array(perm)
     return (x, p, wp, wb)
 
 

@@ -3,13 +3,24 @@ from adeft.score.score_util import check_optimize, check_perm_search, \
 
 
 def test_make_candidates_array():
-    x, p, wp, wb = check_make_candidates_array()
-    assert x == [-1, 1, -1, 1, -1, 0, -1, 0, -1, 0, -1, 1, -1, 0,
-                 -1, 0, -1, 1, -1]
-    assert p == [0., 1., 0., 0.5, 0., 0.25, 0., 1., 0., 1., 0.,
-                 0.5, 0., 1., 0., 0.5, 0., 1., 0.]
-    assert wp == [1.0, 1.0, 1.0, 1.0, 1.0]
-    assert wb == [6, 8, 12, 16, 18]
+    case1 = StitchTestCase(shortform=[0, 1],
+                           candidates=[[0], [0, 1], [1, 1, 0], [0, 0], [1]],
+                           prizes=[[1.], [1., 0.5], [1., 0.5, 0.25],
+                                   [1., 0.5], [1.]],
+                           penalties=[0.4, 0.2],
+                           word_prizes=[1., 0.9, 0.8, 0.7, 0.6],
+                           permutation=[2, 0, 1, 3, 4],
+                           result_x=[-1, 1, -1, 1, -1, 0, -1, 0, -1, 0,
+                                     -1, 1, -1, 0, -1, 0, -1, 1, -1],
+                           result_prizes=[0., 1., 0., 0.5, 0., 0.25,
+                                          0., 1., 0., 1., 0., 0.5, 0.,
+                                          1., 0., 0.5, 0., 1., 0.],
+                           result_word_prizes=[0.8, 1., 0.9, 0.7, 0.6],
+                           result_word_boundaries=[6, 8, 12, 16, 18])
+
+    cases = [case1]
+    for case in cases:
+        case.run_test()
 
 
 def test_optimize():
@@ -84,6 +95,37 @@ def test_optimize():
 def test_perm_search():
     score = check_perm_search()
     assert score == 4
+
+
+class StitchTestCase(object):
+    def __init__(self, shortform=None, candidates=None,
+                 prizes=None, penalties=None, word_prizes=None,
+                 permutation=None, result_x=None, result_prizes=None,
+                 result_word_prizes=None, result_word_boundaries=None,
+                 inv_penalty=0.9, alpha=0.5):
+        self.shortform = shortform
+        self.candidates = candidates
+        self.prizes = prizes
+        self.penalties = penalties
+        self.word_prizes = word_prizes
+        self.permutation = permutation
+        self.result_x = result_x
+        self.result_prizes = result_prizes
+        self.result_word_prizes = result_word_prizes
+        self.result_word_boundaries = result_word_boundaries
+        self.inv_penalty = inv_penalty
+        self.alpha = alpha
+
+    def run_test(self):
+        x, p, wp, wb = check_make_candidates_array(self)
+        print('x:', x)
+        print('p:', p)
+        print('wp:', wp)
+        print('wb:', wb)
+        assert x == self.result_x
+        assert p == self.result_prizes
+        assert wp == self.result_word_prizes
+        assert wb == self.result_word_boundaries
 
 
 class OptimizationTestCase(object):
