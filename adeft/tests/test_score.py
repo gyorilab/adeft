@@ -75,7 +75,6 @@ def test_optimize():
                                  result_score=3.,
                                  result_indices=[3, 1])
 
-
     test_cases = [case1, case2, case3, case4, case5]
     for case in test_cases:
         case.check_assertions()
@@ -102,8 +101,8 @@ class OptimizationTestCase(object):
         self.n = len(x)
         self.m = len(y)
         self.num_words = len(word_boundaries)
-        self.result_score=result_score
-        self.result_indices=result_indices
+        self.result_score = result_score
+        self.result_indices = result_indices
 
     def check_assertions(self):
         assert len(self.prizes) == self.n
