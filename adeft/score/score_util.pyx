@@ -443,49 +443,76 @@ def check_perm_search():
     return score
 
 
-def check_optimize(test_case):
-    """This function is used for testing the optimize function"""
-    n, m, num_words = test_case.n, test_case.m, test_case.num_words
-
+cdef class OptimizationTestCase:
     cdef:
-        int_array *x = make_int_array(n)
-        int_array *y = make_int_array(m)
-        double_array *prizes = make_double_array(n)
-        double_array *penalties = make_double_array(m)
-        unsigned int *word_boundaries
-        double *word_prizes
-        opt_results *output = make_opt_results(m)
+        list x, y, prizes, penalties, word_boundaries, word_prizes
+        list result_indices
+        double alpha, result_score
+        int n, m, num_words
+    def __init__(self, x=None, y=None,
+                 prizes=None, penalties=None,
+                 word_boundaries=None, word_prizes=None, alpha=None,
+                 result_score=None, result_indices=None):
+        self.x = x
+        self.y = y
+        self.prizes = prizes
+        self.penalties = penalties
+        self.word_boundaries = word_boundaries
+        self.word_prizes = word_prizes
+        self.alpha = alpha
+        self.n = len(x)
+        self.m = len(y)
+        self.num_words = len(word_boundaries)
+        self.result_score = result_score
+        self.result_indices = result_indices
 
-    word_boundaries = <unsigned int*> \
-                    PyMem_Malloc(num_words*sizeof(unsigned int))
-    word_prizes = <double *> PyMem_Malloc(num_words*sizeof(double))
-    for i in range(n):
-        x.array[i] = test_case.x[i]
-        prizes.array[i] = test_case.prizes[i]
-    for i in range(m):
-        y.array[i] = test_case.y[i]
-        penalties.array[i] = test_case.penalties[i]
-    for i in range(num_words):
-        word_boundaries[i] = test_case.word_boundaries[i]
-        word_prizes[i] = test_case.word_prizes[i]
+    def check_assertions(self):
+        assert len(self.prizes) == self.n
+        assert len(self.penalties) == self.m
+        assert len(self.word_prizes) == self.num_words
+        assert self.word_boundaries[-1] == len(self.x) - 1
+        assert self.word_boundaries == sorted(self.word_boundaries)
 
-    optimize(x, y, prizes, penalties, word_boundaries,
-             word_prizes,
-             test_case.alpha, output)
-    score = output.score
-    indices = output.indices
-    chars_matched = output.chars_matched
-    ind = []
-    for i in range(chars_matched):
-        ind.append(indices[i])
-    free_opt_results(output)
-    free_int_array(x)
-    free_int_array(y)
-    free_double_array(prizes)
-    free_double_array(penalties)
-    PyMem_Free(word_boundaries)
-    PyMem_Free(word_prizes)
-    return score, ind
+    def run_test(self):
+        cdef:
+            int_array *x = make_int_array(self.n)
+            int_array *y = make_int_array(self.m)
+            double_array *prizes = make_double_array(self.n)
+            double_array *penalties = make_double_array(self.m)
+            unsigned int *word_boundaries
+            double *word_prizes
+            opt_results *output = make_opt_results(self.m)
+
+        word_boundaries = <unsigned int*> \
+                        PyMem_Malloc(self.num_words*sizeof(unsigned int))
+        word_prizes = <double *> PyMem_Malloc(self.num_words*sizeof(double))
+        for i in range(self.n):
+            x.array[i] = self.x[i]
+            prizes.array[i] = self.prizes[i]
+        for i in range(self.m):
+            y.array[i] = self.y[i]
+            penalties.array[i] = self.penalties[i]
+        for i in range(self.num_words):
+            word_boundaries[i] = self.word_boundaries[i]
+            word_prizes[i] = self.word_prizes[i]
+
+        optimize(x, y, prizes, penalties, word_boundaries,
+                 word_prizes, self.alpha, output)
+        score = output.score
+        indices = output.indices
+        chars_matched = output.chars_matched
+        ind = []
+        for i in range(chars_matched):
+            ind.append(indices[i])
+        free_opt_results(output)
+        free_int_array(x)
+        free_int_array(y)
+        free_double_array(prizes)
+        free_double_array(penalties)
+        PyMem_Free(word_boundaries)
+        PyMem_Free(word_prizes)
+        assert score == self.result_score
+        assert ind == self.result_indices
 
 
 
