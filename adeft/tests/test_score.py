@@ -17,7 +17,21 @@ def test_make_candidates_array():
                            result_word_prizes=[0.8, 1., 0.9, 0.7, 0.6],
                            result_word_boundaries=[6, 8, 12, 16, 18])
 
-    cases = [case1]
+    case2 = StitchTestCase(shortform=[0, 1],
+                           candidates=[[0], [0, 1], [1, 1, 0], [0, 0], [1]],
+                           prizes=[[1.], [1., 0.5], [1., 0.5, 0.25],
+                                   [1., 0.5], [1.]],
+                           penalties=[0.4, 0.2],
+                           word_prizes=[1., 0.9, 0.8, 0.7, 0.6],
+                           permutation=[2, 0, 1],
+                           result_x=[-1, 1, -1, 1, -1, 1, -1, 0, -1, 0,
+                                     -1, 0, -1],
+                           result_prizes=[0., 1., 0., 1., 0., 0.5,
+                                          0., 0.25, 0., 1., 0., 0.5, 0.],
+                           result_word_prizes=[0.6, 0.8, 0.7],
+                           result_word_boundaries=[2, 8, 12])
+
+    cases = [case1, case2]
     for case in cases:
         case.run_test()
 
