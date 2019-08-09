@@ -92,11 +92,6 @@ def test_optimize():
         case.run_test()
 
 
-def test_perm_search():
-    score = check_perm_search()
-    assert score == 4
-
-
 class StitchTestCase(object):
     def __init__(self, shortform=None, candidates=None,
                  prizes=None, penalties=None, word_prizes=None,
