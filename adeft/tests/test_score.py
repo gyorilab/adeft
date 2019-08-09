@@ -118,10 +118,6 @@ class StitchTestCase(object):
 
     def run_test(self):
         x, p, wp, wb = check_make_candidates_array(self)
-        print('x:', x)
-        print('p:', p)
-        print('wp:', wp)
-        print('wb:', wb)
         assert x == self.result_x
         assert p == self.result_prizes
         assert wp == self.result_word_prizes
