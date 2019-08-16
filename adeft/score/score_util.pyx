@@ -344,7 +344,7 @@ cdef void *optimize(int_array *x, int_array *y,
             i -= 1
             j -= 1
             if x.array[i] == -1:
-                output.char_scores[m-k-1] = -penalties.array[i]
+                output.char_scores[m-k-1] = -penalties.array[k+1]
             else:
                 output.char_scores[m-k-1] = prizes.array[i]/cpow(alpha,
                                                                  word_use[i][j])
