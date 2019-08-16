@@ -99,7 +99,18 @@ def test_optimize():
                                  result_score=3.,
                                  result_char_scores=[1., 1.])
 
-    test_cases = [case1, case2, case3, case4, case5]
+    # Two words. Only one character in shortform matches
+    case6 = OptimizationTestCase(x=[-1, 0, -1, 0, -1],
+                                 y=[0, 1],
+                                 prizes=[0., 1., 0., 1., 0.],
+                                 penalties=[0.4, 0.2],
+                                 word_boundaries=[2, 4],
+                                 word_prizes=[1., 0.5],
+                                 alpha=0.5,
+                                 result_score=1.8,
+                                 result_char_scores=[1., -0.2])
+
+    test_cases = [case1, case2, case3, case4, case5, case6]
     for case in test_cases:
         case.check_assertions()
         case.run_test()
