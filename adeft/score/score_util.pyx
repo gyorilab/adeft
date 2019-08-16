@@ -9,19 +9,18 @@ from adeft.score.permutations cimport permuter, make_permuter, \
 
 cdef struct opt_results:
     double score
-    int *indices
-    int chars_matched
+    double *char_scores
 
 
 cdef opt_results *make_opt_results(int len_y):
     cdef opt_results *results
     results = <opt_results *> PyMem_Malloc(sizeof(opt_results))
-    results.indices = <int *> PyMem_Malloc(len_y * sizeof(int))
+    results.char_scores = <double *> PyMem_Malloc(len_y * sizeof(double))
     return results
 
 
 cdef void free_opt_results(opt_results *results):
-    PyMem_Free(results.indices)
+    PyMem_Free(results.char_scores)
     PyMem_Free(results)
     return
 
@@ -333,31 +332,34 @@ cdef void *optimize(int_array *x, int_array *y,
     # Optimal score is in bottom right corner of lookup array
     score = score_lookup[n][m]
     # Free the memory used by the lookup array
-    for i in range(n+1):
-        PyMem_Free(score_lookup[i])
-        PyMem_Free(word_use[i])
-    PyMem_Free(score_lookup)
-    PyMem_Free(word_use)
+
     # Set score in output
     output.score = score
     # Trace backwards through pointer array to discover which elements of x
-    # were matched and add the corresponding indices to the index array in
-    # reverse order
+    # were matched and add the score associated to each character in the
+    # shortform into the char scores array.
     i, j, k = n, m, 0
     while j > 0:
         if pointers[i - 1][j - 1]:
             i -= 1
             j -= 1
-            output.indices[k] = i
+            if x.array[i] == -1:
+                output.char_scores[m-k-1] = -penalties.array[i]
+            else:
+                output.char_scores[m-k-1] = prizes.array[i]/cpow(alpha,
+                                                                 word_use[i][j])
             k += 1
         else:
             i -= 1
-    # Free pointer array
-    for i in range(n):
-        PyMem_Free(pointers[i])
+    # Free lookup arrays used by algorithm
+    for i in range(n+1):
+        PyMem_Free(score_lookup[i])
+        PyMem_Free(word_use[i])
+        if i < n:
+            PyMem_Free(pointers[i])
+    PyMem_Free(score_lookup)
+    PyMem_Free(word_use)
     PyMem_Free(pointers)
-    # Set the number of chars in y that were matched
-    output.chars_matched = k
     return output
 
 
@@ -446,13 +448,13 @@ def check_perm_search():
 cdef class OptimizationTestCase:
     cdef:
         list x, y, prizes, penalties, word_boundaries, word_prizes
-        list result_indices
+        list result_char_scores
         double alpha, result_score
         int n, m, num_words
     def __init__(self, x=None, y=None,
                  prizes=None, penalties=None,
                  word_boundaries=None, word_prizes=None, alpha=None,
-                 result_score=None, result_indices=None):
+                 result_score=None, result_char_scores=None):
         self.x = x
         self.y = y
         self.prizes = prizes
@@ -464,7 +466,7 @@ cdef class OptimizationTestCase:
         self.m = len(y)
         self.num_words = len(word_boundaries)
         self.result_score = result_score
-        self.result_indices = result_indices
+        self.result_char_scores = result_char_scores
 
     def check_assertions(self):
         assert len(self.prizes) == self.n
@@ -499,11 +501,10 @@ cdef class OptimizationTestCase:
         optimize(x, y, prizes, penalties, word_boundaries,
                  word_prizes, self.alpha, output)
         score = output.score
-        indices = output.indices
-        chars_matched = output.chars_matched
-        ind = []
-        for i in range(chars_matched):
-            ind.append(indices[i])
+        cs = output.char_scores
+        char_scores = []
+        for i in range(self.m):
+            char_scores.append(cs[i])
         free_opt_results(output)
         free_int_array(x)
         free_int_array(y)
@@ -512,7 +513,7 @@ cdef class OptimizationTestCase:
         PyMem_Free(word_boundaries)
         PyMem_Free(word_prizes)
         assert score == self.result_score
-        assert ind == self.result_indices
+        assert char_scores == self.result_char_scores
 
 
 

@@ -47,7 +47,7 @@ def test_optimize():
                                  word_prizes=[1, 1],
                                  alpha=0.5,
                                  result_score=4.0,
-                                 result_indices=[3, 1])
+                                 result_char_scores=[1., 1.])
 
     # Single word containing consecutive characters from shortform
     case2 = OptimizationTestCase(x=[-1, 0, -1, 0, -1, 1, -1, 1, -1],
@@ -59,7 +59,7 @@ def test_optimize():
                                  word_prizes=[1],
                                  alpha=0.5,
                                  result_score=2.5,
-                                 result_indices=[5, 1])
+                                 result_char_scores=[1.0, 0.5])
 
     # Three words, shortform matches in two places. Highest scoring match
     # has a larger word captured prize and smaller total letter prizes
@@ -72,7 +72,7 @@ def test_optimize():
                                  word_prizes=[0.5, 0.5, 1.75],
                                  alpha=0.5,
                                  result_score=3.25,
-                                 result_indices=[9, 5])
+                                 result_char_scores=[1.0, 0.5])
 
     # Three words, shortform matches in two places. Highest scoring match
     # has larger total letter prizes and smaller word captured prizes
@@ -85,7 +85,7 @@ def test_optimize():
                                  word_prizes=[0.5, 0.5, 1.25],
                                  alpha=0.5,
                                  result_score=3.,
-                                 result_indices=[3, 1])
+                                 result_char_scores=[1., 1.])
 
     # Three words, shortform matches in two places with equal scores
     case5 = OptimizationTestCase(x=[-1, 0, -1, 1, -1, 0, -1, 0, -1, 1, -1],
@@ -97,7 +97,7 @@ def test_optimize():
                                  word_prizes=[0.5, 0.5, 1.5],
                                  alpha=0.5,
                                  result_score=3.,
-                                 result_indices=[3, 1])
+                                 result_char_scores=[1., 1.])
 
     test_cases = [case1, case2, case3, case4, case5]
     for case in test_cases:
