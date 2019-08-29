@@ -515,12 +515,9 @@ cdef class OptimizationTestCase:
 
     def run_test(self):
         cdef:
-            int_array *x = make_int_array(self.n)
-            int_array *y = make_int_array(self.m)
-            double_array *prizes = make_double_array(self.n)
-            double_array *penalties = make_double_array(self.m)
-            unsigned int *word_boundaries
-            double *word_prizes
+            opt_input *input_
+            opt_shortform *shortform
+            opt_params *opt_params
             opt_results *output = make_opt_results(self.m)
 
         word_boundaries = <unsigned int*> \
