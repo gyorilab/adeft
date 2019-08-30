@@ -2,12 +2,11 @@ from adeft.score.score_util import OptimizationTestCase, StitchTestCase
 
 
 def test_make_candidates_array():
-    case1 = StitchTestCase(shortform=[0, 1],
-                           candidates=[[0], [0, 1], [1, 1, 0], [0, 0], [1]],
+    case1 = StitchTestCase(candidates=[[0], [0, 1], [1, 1, 0], [0, 0], [1]],
                            prizes=[[1.], [1., 0.5], [1., 0.5, 0.25],
                                    [1., 0.5], [1.]],
-                           penalties=[0.4, 0.2],
                            word_prizes=[1., 0.9, 0.8, 0.7, 0.6],
+                           W_array=[0.6, 1.3, 2.1, 3., 4.],
                            permutation=[2, 0, 1, 3, 4],
                            result_x=[-1, 1, -1, 1, -1, 0, -1, 0, -1, 0,
                                      -1, 1, -1, 0, -1, 0, -1, 1, -1],
@@ -17,12 +16,11 @@ def test_make_candidates_array():
                            result_word_prizes=[0.8, 1., 0.9, 0.7, 0.6],
                            result_word_boundaries=[6, 8, 12, 16, 18])
 
-    case2 = StitchTestCase(shortform=[0, 1],
-                           candidates=[[0], [0, 1], [1, 1, 0], [0, 0], [1]],
+    case2 = StitchTestCase(candidates=[[0], [0, 1], [1, 1, 0], [0, 0], [1]],
                            prizes=[[1.], [1., 0.5], [1., 0.5, 0.25],
                                    [1., 0.5], [1.]],
-                           penalties=[0.4, 0.2],
                            word_prizes=[1., 0.9, 0.8, 0.7, 0.6],
+                           W_array=[0.6, 1.3, 2.1, 3., 4.],
                            permutation=[2, 0, 1],
                            result_x=[-1, 1, -1, 1, -1, 1, -1, 0, -1, 0,
                                      -1, 0, -1],
@@ -45,7 +43,9 @@ def test_optimize():
                                  penalties=[0.4, 0.2],
                                  word_boundaries=[2, 6],
                                  word_prizes=[1, 1],
-                                 alpha=0.5,
+                                 beta=0.5,
+                                 rho=0.75,
+                                 W=2.,
                                  result_score=4.0,
                                  result_char_scores=[1., 1.])
 
@@ -57,7 +57,9 @@ def test_optimize():
                                  penalties=[0.4, 0.2],
                                  word_boundaries=[8],
                                  word_prizes=[1],
-                                 alpha=0.5,
+                                 beta=0.5,
+                                 rho=0.75,
+                                 W=1.,
                                  result_score=2.5,
                                  result_char_scores=[1.0, 0.5])
 
@@ -70,7 +72,9 @@ def test_optimize():
                                  penalties=[0.4, 0.2],
                                  word_boundaries=[2, 4, 10],
                                  word_prizes=[0.5, 0.5, 1.75],
-                                 alpha=0.5,
+                                 beta=0.5,
+                                 rho=0.75,
+                                 W=2.75,
                                  result_score=3.25,
                                  result_char_scores=[1.0, 0.5])
 
@@ -83,7 +87,9 @@ def test_optimize():
                                  penalties=[0.4, 0.2],
                                  word_boundaries=[2, 4, 10],
                                  word_prizes=[0.5, 0.5, 1.25],
-                                 alpha=0.5,
+                                 beta=0.5,
+                                 rho=0.75,
+                                 W=2.25,
                                  result_score=3.,
                                  result_char_scores=[1., 1.])
 
@@ -95,7 +101,9 @@ def test_optimize():
                                  penalties=[0.4, 0.2],
                                  word_boundaries=[2, 4, 10],
                                  word_prizes=[0.5, 0.5, 1.5],
-                                 alpha=0.5,
+                                 beta=0.5,
+                                 rho=0.75,
+                                 W=2.5,
                                  result_score=3.,
                                  result_char_scores=[1., 1.])
 
@@ -106,7 +114,9 @@ def test_optimize():
                                  penalties=[0.4, 0.2],
                                  word_boundaries=[2, 4],
                                  word_prizes=[1., 0.5],
-                                 alpha=0.5,
+                                 beta=0.5,
+                                 rho=0.75,
+                                 W=1.5,
                                  result_score=1.8,
                                  result_char_scores=[1., -0.2])
 
