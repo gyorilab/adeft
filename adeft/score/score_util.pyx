@@ -64,31 +64,31 @@ cdef void free_double_array(double_array *x):
 
 cdef struct candidates_array:
     int_array **array
-    int_array *y
     double_array **prizes
-    double_array *penalties
     double *word_prizes
+    double *W_array
     int *cum_lengths
     int length
-    double inv_penalty, beta
+
 
 @boundscheck(False)
 @wraparound(False)
 cdef candidates_array *make_candidates_array(list encoded_candidates,
                                              list prizes,
-                                             list penalties,
-                                             list word_prizes)
+                                             list word_prizes,
+                                             list W):
     cdef:
-        int i, j, num_candidates, m1,m2, n, cum_length, k
+        int i, j, num_candidates, m1,m2, n, cum_length
         candidates_array *candidates
+    print('***', W)
     n = len(encoded_candidates)
-    k = len(encoded_shortform)
     candidates = <candidates_array *> PyMem_Malloc(sizeof(candidates_array))
     candidates.array = <int_array **> PyMem_Malloc(n * sizeof(int_array*))
     candidates.prizes = <double_array **> \
         PyMem_Malloc(n * sizeof(double_array*))
     candidates.word_prizes = <double *> PyMem_Malloc(n * sizeof(double))
     candidates.cum_lengths = <int *> PyMem_Malloc(n * sizeof(int))
+    candidates.W_array = <double *> PyMem_Malloc(n * sizeof(double))
     candidates.length = n
     cum_length = 0
     for i in range(n):
@@ -99,6 +99,7 @@ cdef candidates_array *make_candidates_array(list encoded_candidates,
         cum_length += m2
         candidates.cum_lengths[i] = cum_length
         candidates.word_prizes[i] = word_prizes[i]
+        candidates.W_array[i] = W[i]
         for j in range(m1):
             candidates.array[i].array[j] = encoded_candidates[i][j]
             candidates.prizes[i].array[j] = prizes[i][j]
@@ -111,8 +112,6 @@ cdef free_candidates_array(candidates_array *candidates):
     for i in range(candidates.length):
          free_int_array(candidates.array[i])
          free_double_array(candidates.prizes[i])
-    free_int_array(candidates.y)
-    free_double_array(candidates.penalties)
     PyMem_Free(candidates.word_prizes)
     PyMem_Free(candidates.W_array)
     PyMem_Free(candidates.prizes)
@@ -126,6 +125,7 @@ cdef struct opt_input:
     double_array *prizes
     unsigned int *word_boundaries
     double_array *word_prizes
+    double W
 
 
 cdef opt_input *make_opt_input(int n, int num_words):
@@ -148,18 +148,14 @@ cdef void free_opt_input(opt_input *input_):
 
 
 cdef struct opt_params:
-    double beta, rho, W, C, inv_penalty
+    double beta, rho
 
 
-cdef opt_params *make_opt_params(double beta, double rho, double C, double W,
-                                 double inv_penalty):
+cdef opt_params *make_opt_params(double beta, double rho):
     cdef opt_params *params
     params = <opt_params *> PyMem_Malloc(sizeof(opt_params))
     params.beta = beta
     params.rho = rho
-    params.C = C
-    params.W = W
-    params.inv_penalty = inv_penalty
     return params
 
 
@@ -178,33 +174,39 @@ cdef opt_shortform *make_opt_shortform(list encoded_shortform,
         opt_shortform *shortform
         int i = 0
         int m = len(encoded_shortform)
-    shortform = PyMem_Malloc(sizeof(opt_shortform))
+    shortform = <opt_shortform *> PyMem_Malloc(sizeof(opt_shortform))
     shortform.y = make_int_array(m)
-    shortform.penalties = <double *> PyMem_Malloc(m*sizeof(double))
+    shortform.penalties = make_double_array(m)
     for i in range(m):
-        shortform.y[i] = encoded_shortform[i]
-        shortform.penalties[i] = penalties[i]
+        shortform.y.array[i] = encoded_shortform[i]
+        shortform.penalties.array[i] = penalties[i]
     return shortform
 
 
 cdef void free_opt_shortform(opt_shortform *shortform):
     free_int_array(shortform.y)
-    PyMem_Free(shortform.penalties)
+    free_double_array(shortform.penalties)
     PyMem_Free(shortform)
 
 
-@boundscheck(False)
+cdef class LongformScorer:
+    def __init__(self, shortform, penalties=None, alpha=0.5, beta=0.45,
+                 inv_penalty=0.9, rho=0.6, word_scores=None):
+        pass
+
+
 @wraparound(False)
 cdef double perm_search(candidates_array *candidates,
                         opt_shortform *shortform,
                         opt_params *params,
+                        float inv_penalty,
                         int n):
     cdef:
         double best, current_score
         permuter *perms
         opt_input *current
         opt_results *results
-    results = make_opt_results(candidates.y.length)
+    results = make_opt_results(shortform.y.length)
     total_length = candidates.cum_lengths[n - 1]
     current = make_opt_input(2*total_length + 1, n)
     perms = make_permuter(n)
@@ -214,8 +216,8 @@ cdef double perm_search(candidates_array *candidates,
     while perms.m != 0:
         update_permuter(perms)
         stitch(candidates, perms.P, n, current)
-        optimize(current, shortform, params, result)
-        current_score = results.score * cpow(params.inv_penalty,
+        optimize(current, shortform, params, results)
+        current_score = results.score * cpow(inv_penalty,
                                              perms.inversions)
         if current_score > best:
             best = current_score
@@ -249,6 +251,7 @@ cdef void *stitch(candidates_array *candidates, int *permutation,
             j += 2
         result.word_prizes.array[i] = candidates.word_prizes[n-len_perm+p]
         result.word_boundaries[i] = j - 1
+    result.W = candidates.W_array[len_perm - 1]
     return result
 
 
@@ -290,7 +293,7 @@ cdef void *optimize(opt_input *input_,
     cdef:
         unsigned int n = input_.x.length
         unsigned int m = shortform.y.length
-        double possibility1, possibility, c, w, delta
+        double possibility1, possibility2, c, w, delta
         unsigned int i, j, k
 
     # Dynamic initialization of score_lookup array and traceback pointer
@@ -324,7 +327,7 @@ cdef void *optimize(opt_input *input_,
             # either accepting or rejecting this match
             if input_.x.array[i-1] == shortform.y.array[j-1]:
                 if word_use[i-1][j-1] == 0:
-                    w = input_.word_prizes[k]
+                    w = input_.word_prizes.array[k]
                 else:
                     w = 0
                 possibility1 = score_lookup[i-1][j]
@@ -332,9 +335,9 @@ cdef void *optimize(opt_input *input_,
                 previous_score = score_lookup[i-1][j-1]
                 c = input_.prizes.array[i-1]/cpow(params.beta,
                                                   word_use[i-1][j-1])           
-                delta = params.rho * c/params.C + \
-                    (1 - params.rho) * w/params.W                  
-                possibility2 += previous_score + delta
+                delta = params.rho * c/m + \
+                    (1 - params.rho) * w/input_.W                  
+                possibility2 = previous_score + delta
                 if possibility2 > possibility1:
                     score_lookup[ i][j] = possibility2
                     word_use[i][j] = word_use[i-1][j-1] + 1
@@ -350,7 +353,7 @@ cdef void *optimize(opt_input *input_,
                 # Score if wildcard match is accepted, skipping current
                 # char in shortform
                 possibility2 = score_lookup[i-1][j-1] - \
-                    shortform.penalties.array[j-1]/C
+                    shortform.penalties.array[j-1]/m
                 if possibility2 > possibility1:
                     score_lookup[i][j] = possibility2
                     word_use[i][j] = word_use[i-1][j-1]
@@ -365,7 +368,7 @@ cdef void *optimize(opt_input *input_,
                 score_lookup[i][j] = score_lookup[i-1][j]
                 word_use[i][j] = word_use[i-1][j]
                 pointers[i-1][j-1] = 0
-            if i == word_boundaries[k] + 1:
+            if i == input_.word_boundaries[k] + 1:
                 word_use[i][j] = 0
                 k += 1
     # Optimal score is in bottom right corner of lookup array
@@ -382,11 +385,11 @@ cdef void *optimize(opt_input *input_,
         if pointers[i - 1][j - 1]:
             i -= 1
             j -= 1
-            if x.array[i] == -1:
-                output.char_scores[m-k-1] = -penalties.array[k+1]
+            if input_.x.array[i] == -1:
+                output.char_scores[m-k-1] = -shortform.penalties.array[k+1]
             else:
                 output.char_scores[m-k-1] = \
-                    input_.prizes.array[i]/cpow(beta, word_use[i][j])
+                    input_.prizes.array[i]/cpow(params.beta, word_use[i][j])
             k += 1
         else:
             i -= 1
@@ -409,19 +412,17 @@ cdef struct perm_out:
 cdef class StitchTestCase:
     """Test construction of candidates array and stitching"""
     cdef:
-        list shortform, candidates, prizes, penalties, word_prizes
+        list candidates, prizes, word_prizes
         list permutation, result_x, result_prizes, result_word_prizes
-        list result_word_boundaries
-    def __init__(self, shortform=None, candidates=None,
-                 prizes=None, penalties=None, word_prizes=None,
-                 permutation=None, result_x=None, result_prizes=None,
-                 result_word_prizes=None, result_word_boundaries=None,
-                 inv_penalty=0.9, alpha=0.5):
-        self.shortform = shortform
+        list result_word_boundaries, W_array
+    def __init__(self, candidates=None, prizes=None, word_prizes=None,
+                 permutation=None, W_array=None,
+                 result_x=None, result_prizes=None, result_word_prizes=None,
+                 result_word_boundaries=None):
         self.candidates = candidates
         self.prizes = prizes
-        self.penalties = penalties
         self.word_prizes = word_prizes
+        self.W_array = W_array
         self.permutation = permutation
         self.result_x = result_x
         self.result_prizes = result_prizes
@@ -430,15 +431,14 @@ cdef class StitchTestCase:
 
     def run_test(self):
         cdef:
-            int_array *perm
             opt_input *input_
-            opt_shortform *shortform
-            opt_params *params
+            int_array *perm
             candidates_array *candidates
 
         candidates = make_candidates_array(self.candidates,
                                            self.prizes,
-                                           self.word_prizes)
+                                           self.word_prizes,
+                                           self.W_array)
         n = len(self.permutation)
         perm = make_int_array(n)
         for i in range(n):
@@ -463,20 +463,20 @@ cdef class StitchTestCase:
         assert wb == self.result_word_boundaries
 
 
-def check_perm_search():
-    cdef:
-        list sf = [1, 0]
-        list ca = [[0], [0, 1], [1, 1, 0], [0, 0], [1]]
-        list prizes = [[1.0], [0.5, 1.0], [0.25, 0.5, 1.0],
-                       [0.5, 1.0], [1.0]]
-        list penalties = [0.2, 0.4]
-        list word_prizes = [1.0, 1.0, 1.0, 1.0, 1.0]
-        candidates_array *candidates
-    candidates = make_candidates_array(sf, ca,  prizes, penalties,
-                                       word_prizes, 0.9, 0.5)
-    score = perm_search(candidates, 5)
-    free_candidates_array(candidates)
-    return score
+# def check_perm_search():
+#     cdef:
+#         list sf = [1, 0]
+#         list ca = [[0], [0, 1], [1, 1, 0], [0, 0], [1]]
+#         list prizes = [[1.0], [0.5, 1.0], [0.25, 0.5, 1.0],
+#                        [0.5, 1.0], [1.0]]
+#         list penalties = [0.2, 0.4]
+#         list word_prizes = [1.0, 1.0, 1.0, 1.0, 1.0]
+#         candidates_array *candidates
+#     candidates = make_candidates_array(sf, ca,  prizes, penalties,
+#                                        word_prizes, 0.9, 0.5)
+#     score = perm_search(candidates, 5)
+#     free_candidates_array(candidates)
+#     return score
 
 
 cdef class OptimizationTestCase:
@@ -488,7 +488,7 @@ cdef class OptimizationTestCase:
     def __init__(self, x=None, y=None,
                  prizes=None, penalties=None,
                  word_boundaries=None, word_prizes=None, beta=None,
-                 rho=None, C=None, W=None, result_score=None,
+                 rho=None, W=None, result_score=None,
                  result_char_scores=None):
         self.x = x
         self.y = y
@@ -498,7 +498,6 @@ cdef class OptimizationTestCase:
         self.word_prizes = word_prizes
         self.beta = beta
         self.rho = rho
-        self.C = C
         self.W = W
         self.n = len(x)
         self.m = len(y)
@@ -518,35 +517,34 @@ cdef class OptimizationTestCase:
             opt_input *input_
             opt_shortform *shortform
             opt_params *opt_params
-            opt_results *output = make_opt_results(self.m)
+            opt_results *output
 
-        word_boundaries = <unsigned int*> \
-                        PyMem_Malloc(self.num_words*sizeof(unsigned int))
-        word_prizes = <double *> PyMem_Malloc(self.num_words*sizeof(double))
+        input_ = make_opt_input(self.n, self.num_words)
+        shortform = make_opt_shortform(self.y, self.penalties)
+        params = make_opt_params(self.beta, self.rho)
+        output = make_opt_results(self.m)
+
+        input_.W = self.W
         for i in range(self.n):
-            x.array[i] = self.x[i]
-            prizes.array[i] = self.prizes[i]
-        for i in range(self.m):
-            y.array[i] = self.y[i]
-            penalties.array[i] = self.penalties[i]
+            input_.x.array[i] = self.x[i]
+            input_.prizes.array[i] = self.prizes[i]
         for i in range(self.num_words):
-            word_boundaries[i] = self.word_boundaries[i]
-            word_prizes[i] = self.word_prizes[i]
+            input_.word_boundaries[i] = self.word_boundaries[i]
+            input_.word_prizes.array[i] = self.word_prizes[i]
+        for i in range(self.m):
+            shortform.y.array[i] = self.y[i]
+            shortform.penalties.array[i] = self.penalties[i]
 
-        optimize(x, y, prizes, penalties, word_boundaries,
-                 word_prizes, self.beta, self.rho, self.C, self.W, output)
+        optimize(input_, shortform, params, output)
         score = output.score
         cs = output.char_scores
         char_scores = []
         for i in range(self.m):
             char_scores.append(cs[i])
         free_opt_results(output)
-        free_int_array(x)
-        free_int_array(y)
-        free_double_array(prizes)
-        free_double_array(penalties)
-        PyMem_Free(word_boundaries)
-        PyMem_Free(word_prizes)
+        free_opt_shortform(shortform)
+        free_opt_params(params)
+        free_opt_input(input_)
         print(score)
         print(char_scores)
         # assert score == self.result_score
