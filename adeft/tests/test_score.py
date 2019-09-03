@@ -4,8 +4,7 @@ from adeft.score.score_util import OptimizationTestCase, StitchTestCase, \
 
 def test_perm_search():
     score = check_perm_search()
-    print('****')
-    print(score)
+    assert score == 0.85
 
 
 def test_make_candidates_array():
@@ -53,7 +52,7 @@ def test_optimize():
                                  beta=0.5,
                                  rho=0.75,
                                  W=2.,
-                                 result_score=4.0,
+                                 result_score=1.0,
                                  result_char_scores=[1., 1.])
 
     # Single word containing consecutive characters from shortform
@@ -67,7 +66,7 @@ def test_optimize():
                                  beta=0.5,
                                  rho=0.75,
                                  W=1.,
-                                 result_score=2.5,
+                                 result_score=0.8125,
                                  result_char_scores=[1.0, 0.5])
 
     # Three words, shortform matches in two places. Highest scoring match
@@ -82,8 +81,8 @@ def test_optimize():
                                  beta=0.5,
                                  rho=0.75,
                                  W=2.75,
-                                 result_score=3.25,
-                                 result_char_scores=[1.0, 0.5])
+                                 result_score=37/44,
+                                 result_char_scores=[1.0, 1.0])
 
     # Three words, shortform matches in two places. Highest scoring match
     # has larger total letter prizes and smaller word captured prizes
@@ -97,7 +96,7 @@ def test_optimize():
                                  beta=0.5,
                                  rho=0.75,
                                  W=2.25,
-                                 result_score=3.,
+                                 result_score=31/36,
                                  result_char_scores=[1., 1.])
 
     # Three words, shortform matches in two places with equal scores
@@ -111,7 +110,7 @@ def test_optimize():
                                  beta=0.5,
                                  rho=0.75,
                                  W=2.5,
-                                 result_score=3.,
+                                 result_score=0.85,
                                  result_char_scores=[1., 1.])
 
     # Two words. Only one character in shortform matches
@@ -124,7 +123,7 @@ def test_optimize():
                                  beta=0.5,
                                  rho=0.75,
                                  W=1.5,
-                                 result_score=1.8,
+                                 result_score=53/120,
                                  result_char_scores=[1., -0.2])
 
     test_cases = [case1, case2, case3, case4, case5, case6]

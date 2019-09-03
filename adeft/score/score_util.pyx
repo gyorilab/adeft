@@ -281,8 +281,7 @@ cdef void *optimize(opt_input *input_,
     prizes : C array of double
         Must be the same length as x. Prize gained for matching an element
         of y to the corresponding element of x
-
-    penalties : C array of double
+ : C array of double
         Must the the same length as y. Penalty lost if the corresponding
         element of y matches a wildcard.
 
@@ -546,7 +545,7 @@ cdef class OptimizationTestCase:
         free_opt_shortform(shortform)
         free_opt_params(params)
         free_opt_input(input_)
-        print(score)
-        print(char_scores)
-        # assert score == self.result_score
-        # assert char_scores == self.result_char_scores
+        print(score, self.result_score)
+        print(char_scores, self.result_char_scores)
+        assert score == self.result_score
+        assert char_scores == self.result_char_scores
