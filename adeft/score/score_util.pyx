@@ -461,22 +461,37 @@ cdef class StitchTestCase:
         assert wb == self.result_word_boundaries
 
 
-def check_perm_search():
+cdef class PermSearchTestCase:
     cdef:
-        list sf = [1, 0]
-        list ca = [[0], [0, 1], [0, 0, 1], [0, 0], [1]]
-        list prizes = [[1.0], [1.0, 0.5], [1.0, 0.5, 0.25],
-                       [1.0, 0.5], [1.0]]
-        list penalties = [0.4, 0.2]
-        list word_prizes = [1.0, 1.0, 1.0, 1.0, 1.0]
-        candidates_array *candidates
-    candidates = make_candidates_array(ca,  prizes, word_prizes,
-                                       [1., 2., 3., 4., 5.])
-    shortform = make_opt_shortform(sf, penalties)
-    params = make_opt_params(0.5, 0.75)
-    score = perm_search(candidates, shortform, params, 0.9, 5)
-    free_candidates_array(candidates)
-    return score
+        list shortform, candidates, prizes, penalties, word_prizes
+        list word_penalties
+        double beta, rho, inv_penalty, result_score
+        int len_perm
+    def __init__(self, shortform=None, candidates=None, prizes=None,
+                 penalties=None, word_prizes=None, word_penalties=None,
+                 beta=None, rho=None, inv_penalty=None, len_perm=None,
+                 result_score=None):
+        self.shortform = shortform
+        self.candidates = candidates
+        self.prizes = prizes
+        self.penalties = penalties
+        self.word_prizes = word_prizes
+        self.word_penalties = word_penalties
+        self.beta = beta
+        self.rho = rho
+        self.inv_penalty = inv_penalty
+        self.len_perm = len_perm
+        self.result_score = result_score
+
+    def run_test(self):
+        candidates = make_candidates_array(self.candidates, self.prizes,
+                                           self.word_prizes,
+                                           self.word_penalties)
+        shortform = make_opt_shortform(self.shortform, self.penalties)
+        params = make_opt_params(self.beta, self.rho)
+        score = perm_search(candidates, shortform, params, self.inv_penalty,
+                            self.len_perm)
+        assert (score - self.result_score) < 1e-16
 
 
 cdef class OptimizationTestCase:

@@ -1,10 +1,24 @@
 from adeft.score.score_util import OptimizationTestCase, StitchTestCase, \
-    check_perm_search
+    PermSearchTestCase
 
 
 def test_perm_search():
-    score = check_perm_search()
-    assert (score - 0.765) < 1e-16
+    case1 = PermSearchTestCase(candidates=[[0], [0, 1], [0, 0, 1], [0, 0],
+                                           [1]],
+                               shortform=[1, 0],
+                               prizes=[[1.0], [1.0, 0.5], [1.0, 0.5, 0.25],
+                                       [1.0, 0.5], [1.0]],
+                               penalties=[0.4, 0.2],
+                               word_prizes=[1.0]*5,
+                               word_penalties=[1.0, 2.0, 3.0, 4.0, 5.0],
+                               beta=0.5,
+                               rho=0.75,
+                               inv_penalty=0.9,
+                               len_perm=5,
+                               result_score=0.765)
+    for case in [case1]:
+        case.run_test()
+
 
 def test_make_candidates_array():
     case1 = StitchTestCase(candidates=[[0], [0, 1], [1, 1, 0], [0, 0], [1]],
