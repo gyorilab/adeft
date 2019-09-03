@@ -545,7 +545,5 @@ cdef class OptimizationTestCase:
         free_opt_shortform(shortform)
         free_opt_params(params)
         free_opt_input(input_)
-        print(score, self.result_score)
-        print(char_scores, self.result_char_scores)
         assert score == self.result_score
         assert char_scores == self.result_char_scores
