@@ -7,6 +7,32 @@ from adeft.score.permutations cimport permuter, make_permuter, \
     free_permuter, update_permuter
 
 
+cdef class LongformScorer:
+    cdef:
+        list shortform, penalties
+        double gamma, alpha, beta, inv_penalty, rho
+        dict word_scores
+    def __init__(self, shortform, penalties=None, gamma=0.5,
+                 alpha=0.5, beta=0.45, inv_penalty=0.9, rho=0.6,
+                 word_scores=None):
+        self.shortform = shortform
+        if penalties is not None:
+            penalties = self.penalties
+        else:
+            penalties = [gamma**i for i in range(len(shortform))]
+        self.alpha = alpha
+        self.beta = beta
+        self.inv_penalty = inv_penalty
+        self.rho = rho
+        if word_scores is None:
+            self.word_scores = {}
+        else:
+            self.word_scores = word_scores
+
+    def score(candidate):
+        return 1.0
+
+
 cdef opt_results *make_opt_results(int len_y):
     cdef opt_results *results
     results = <opt_results *> PyMem_Malloc(sizeof(opt_results))
@@ -146,12 +172,6 @@ cdef void free_opt_shortform(opt_shortform *shortform):
     free_int_array(shortform.y)
     free_double_array(shortform.penalties)
     PyMem_Free(shortform)
-
-
-cdef class LongformScorer:
-    def __init__(self, shortform, penalties=None, alpha=0.5, beta=0.45,
-                 inv_penalty=0.9, rho=0.6, word_scores=None):
-        pass
 
 
 @wraparound(False)
