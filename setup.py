@@ -11,7 +11,8 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 extensions = [
     Extension('adeft.score.score', ['adeft/score/score.pyx']),
-    Extension('adeft.score.permutations', ['adeft/score/permutations.pyx'])
+    Extension('adeft.score.permutations', ['adeft/score/permutations.pyx']),
+    Extension('adeft.tests.util', ['adeft/tests/util.pyx'])
     ]
 
 
