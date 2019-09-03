@@ -464,10 +464,10 @@ cdef class StitchTestCase:
 def check_perm_search():
     cdef:
         list sf = [1, 0]
-        list ca = [[0], [0, 1], [1, 1, 0], [0, 0], [1]]
-        list prizes = [[1.0], [0.5, 1.0], [0.25, 0.5, 1.0],
-                       [0.5, 1.0], [1.0]]
-        list penalties = [0.2, 0.4]
+        list ca = [[0], [0, 1], [0, 0, 1], [0, 0], [1]]
+        list prizes = [[1.0], [1.0, 0.5], [1.0, 0.5, 0.25],
+                       [1.0, 0.5], [1.0]]
+        list penalties = [0.4, 0.2]
         list word_prizes = [1.0, 1.0, 1.0, 1.0, 1.0]
         candidates_array *candidates
     candidates = make_candidates_array(ca,  prizes, word_prizes,
@@ -545,5 +545,5 @@ cdef class OptimizationTestCase:
         free_opt_shortform(shortform)
         free_opt_params(params)
         free_opt_input(input_)
-        assert score == self.result_score
+        assert (score - self.result_score) < 1e-12
         assert char_scores == self.result_char_scores
