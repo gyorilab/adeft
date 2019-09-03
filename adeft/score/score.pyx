@@ -9,28 +9,53 @@ from adeft.score.permutations cimport permuter, make_permuter, \
 
 cdef class LongformScorer:
     cdef:
-        list shortform, penalties
-        double gamma, alpha, beta, inv_penalty, rho
-        dict word_scores
-    def __init__(self, shortform, penalties=None, gamma=0.5,
-                 alpha=0.5, beta=0.45, inv_penalty=0.9, rho=0.6,
-                 word_scores=None):
+        public list shortform, penalties
+        public double alpha, beta, gamma, rho, inv_penalty
+        public dict word_scores
+        int len_shortform
+        dict char_map
+        opt_shortform *shortform_c
+        opt_params *params_c
+    def __init__(self, shortform, penalties=None, alpha=0.5, beta=0.45,
+                 gamma=0.5, rho=0.6, inv_penalty=0.9, word_scores=None):
         self.shortform = shortform
-        if penalties is not None:
-            penalties = self.penalties
-        else:
-            penalties = [gamma**i for i in range(len(shortform))]
+        self.len_shortform = len(shortform)
         self.alpha = alpha
         self.beta = beta
+        self.gamma = gamma
         self.inv_penalty = inv_penalty
         self.rho = rho
+        # Encode shortform chars as integers and build map for encoding
+        # longform candidates
+        self.char_map = {}
+        cdef list encoded_shortform = []
+        cdef int i = 0, j = 0
+        for i in range(self.len_shortform):
+            if shortform[i] not in self.char_map:
+                self.char_map[shortform[i]] = j
+                j += 1
+            encoded_shortform.append(self.char_map[shortform[i]])
+        if penalties is not None:
+            self.penalties = penalties
+        else:
+            self.penalties = [gamma**i for i in range(self.len_shortform)]
+        self.shortform_c = make_opt_shortform(encoded_shortform, penalties)
+        self.params_c = make_opt_params(beta, rho)
         if word_scores is None:
             self.word_scores = {}
         else:
             self.word_scores = word_scores
 
+    cdef candidates_array *process_candidate(self, list candidate):
+        cdef:
+            list encoded_candidates, prizes, word_prizes, W
+            int i = 0, j = 0
+
+        
+
     def score(candidate):
         return 1.0
+
 
 
 cdef opt_results *make_opt_results(int len_y):
