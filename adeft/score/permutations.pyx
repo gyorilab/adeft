@@ -60,6 +60,7 @@ cdef permuter *make_permuter(int n):
         perms.P[i] = i
         perms.Pinv[i] = i
         perms.D[i] = perms.T[i] = -1
+    perms.inversions = 0
     return perms
 
 
