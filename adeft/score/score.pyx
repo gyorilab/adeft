@@ -46,10 +46,16 @@ cdef class LongformScorer:
         else:
             self.word_scores = word_scores
 
+    cdef double get_word_score(self, token):
+        if token in self.char_map:
+            return self.char_map[token]
+        else:
+            return 1.0
+
     cdef candidates_array *process_candidate(self, list candidate):
         cdef:
             list encoded_candidates, prizes, word_prizes, W
-            int i = 0, j = 0
+            
 
         
 
