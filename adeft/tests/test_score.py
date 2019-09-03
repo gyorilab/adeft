@@ -1,4 +1,11 @@
-from adeft.score.score_util import OptimizationTestCase, StitchTestCase
+from adeft.score.score_util import OptimizationTestCase, StitchTestCase, \
+    check_perm_search
+
+
+def test_perm_search():
+    score = check_perm_search()
+    print('****')
+    print(score)
 
 
 def test_make_candidates_array():
