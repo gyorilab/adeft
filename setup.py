@@ -10,7 +10,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 extensions = [
-    Extension('adeft.score.score_util', ['adeft/score/score_util.pyx']),
+    Extension('adeft.score.score', ['adeft/score/score.pyx']),
     Extension('adeft.score.permutations', ['adeft/score/permutations.pyx'])
     ]
 

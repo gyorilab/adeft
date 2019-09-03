@@ -5,7 +5,7 @@ def encode(shortform, candidates):
     encoded_candidates = []
     char_indices = []
     used_tokens = []
-    
+
     i = j = 0
     for i in range(n):
         if shortform[i] not in char_map:
@@ -25,5 +25,5 @@ def encode(shortform, candidates):
             encoded_candidates.append([coded])
             char_indices.append(indices)
             used_tokens.append(index)
-            
+
     return encoded_shortform, encoded_candidates, char_indices, used_tokens
