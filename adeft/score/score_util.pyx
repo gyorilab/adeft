@@ -80,7 +80,6 @@ cdef candidates_array *make_candidates_array(list encoded_candidates,
     cdef:
         int i, j, num_candidates, m1,m2, n, cum_length
         candidates_array *candidates
-    print('***', W)
     n = len(encoded_candidates)
     candidates = <candidates_array *> PyMem_Malloc(sizeof(candidates_array))
     candidates.array = <int_array **> PyMem_Malloc(n * sizeof(int_array*))
@@ -463,20 +462,22 @@ cdef class StitchTestCase:
         assert wb == self.result_word_boundaries
 
 
-# def check_perm_search():
-#     cdef:
-#         list sf = [1, 0]
-#         list ca = [[0], [0, 1], [1, 1, 0], [0, 0], [1]]
-#         list prizes = [[1.0], [0.5, 1.0], [0.25, 0.5, 1.0],
-#                        [0.5, 1.0], [1.0]]
-#         list penalties = [0.2, 0.4]
-#         list word_prizes = [1.0, 1.0, 1.0, 1.0, 1.0]
-#         candidates_array *candidates
-#     candidates = make_candidates_array(sf, ca,  prizes, penalties,
-#                                        word_prizes, 0.9, 0.5)
-#     score = perm_search(candidates, 5)
-#     free_candidates_array(candidates)
-#     return score
+def check_perm_search():
+    cdef:
+        list sf = [1, 0]
+        list ca = [[0], [0, 1], [1, 1, 0], [0, 0], [1]]
+        list prizes = [[1.0], [0.5, 1.0], [0.25, 0.5, 1.0],
+                       [0.5, 1.0], [1.0]]
+        list penalties = [0.2, 0.4]
+        list word_prizes = [1.0, 1.0, 1.0, 1.0, 1.0]
+        candidates_array *candidates
+    candidates = make_candidates_array(ca,  prizes, word_prizes,
+                                       [1., 2., 3., 4., 5.])
+    shortform = make_opt_shortform(sf, penalties)
+    params = make_opt_params(0.5, 0.75)
+    score = perm_search(candidates, shortform, params, 0.9, 5)
+    free_candidates_array(candidates)
+    return score
 
 
 cdef class OptimizationTestCase:
