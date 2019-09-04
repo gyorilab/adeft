@@ -46,25 +46,45 @@ cdef class LongformScorer:
         else:
             self.word_scores = word_scores
 
-    cdef double get_word_score(self, token):
-        if token in self.char_map:
-            return self.char_map[token]
+    cdef double get_word_score(self, str token):
+        if token in self.word_scores:
+            return self.word_scores[token]
         else:
             return 1.0
 
     cdef candidates_array *process_candidates(self, list candidates):
         cdef:
-            list encoded_candidates, prizes, word_prizes, W
-            int i = 0, j = 0, m = len(candidates)
-        
-            
-        
-
-        
-
+            double word_score
+            list token, encoded_candidates, coded
+            list prizes, token_prizes, word_prizes, W
+            int m, n, i, j
+        encoded_candidates = []
+        prizes = []
+        word_prizes = []
+        n = len(candidates)
+        W = [0]*n
+        for i in range(n):
+            coded = []
+            token_prizes = []
+            token =  candidates[i]
+            m = len(token)
+            for j in range(m):
+                if token[j] in self.char_map:
+                    coded.append(self.char_map[token[j]])
+                    token_prizes.append(self.alpha**j)
+            if coded:
+                encoded_candidates.append(coded)
+                prizes.append(token_prizes)
+                word_score = self.get_word_score(token)
+                word_prizes.append(word_score)
+                W[n-i-1] = word_score
+                if i > 0:
+                    W[n-i-1] += W[n-i]
+        return make_candidates_array(encoded_candidates,
+                                     prizes, word_prizes, W)
+                        
     def score(candidate):
         return 1.0
-
 
 
 cdef opt_results *make_opt_results(int len_y):
