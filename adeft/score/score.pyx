@@ -19,7 +19,7 @@ cdef class LongformScorer:
         opt_params *params_c
     def __init__(self, shortform, penalties=None, alpha=0.5, beta=0.45,
                  gamma=0.5, rho=0.6, inv_penalty=0.9, word_scores=None):
-        self.shortform = shortform
+        self.shortform = shortform.lower()
         self.len_shortform = len(shortform)
         self.alpha = alpha
         self.beta = beta
@@ -33,10 +33,10 @@ cdef class LongformScorer:
         cdef list encoded_shortform = []
         cdef int i = 0, j = 0
         for i in range(self.len_shortform):
-            if shortform[i] not in self.char_map:
-                self.char_map[shortform[i]] = j
+            if self.shortform[i] not in self.char_map:
+                self.char_map[self.shortform[i]] = j
                 j += 1
-            encoded_shortform.append(self.char_map[shortform[i]])
+            encoded_shortform.append(self.char_map[self.shortform[i]])
         if penalties is not None:
             self.penalties = penalties
         else:
@@ -69,7 +69,7 @@ cdef class LongformScorer:
         for i in range(n):
             coded = []
             token_prizes = []
-            token =  candidates[i]
+            token =  candidates[i].lower()
             m = len(token)
             for j in range(m):
                 if token[j] in self.char_map:
@@ -80,9 +80,9 @@ cdef class LongformScorer:
                 prizes.append(token_prizes)
                 word_score = self.get_word_score(token)
                 word_prizes.append(word_score)
-                W[n-i-1] = word_score
-                if i > 0:
-                    W[n-i-1] += W[n-i]
+        W[0] = word_prizes[n-1]
+        for i in range(1, n):
+            W[i] = W[i-1] + word_prizes[n-i-1]
         return make_candidates_array(encoded_candidates,
                                      prizes, word_prizes, W)
                         
@@ -257,16 +257,29 @@ cdef double perm_search(candidates_array *candidates,
     optimize(current, shortform, params, results)
     best = results.score
     while perms.m != 0:
+        print(perms.m)
+        print([perms.P[i] for i in range(n)])
         update_permuter(perms)
         stitch(candidates, perms.P, n, current)
+        perm = [perms.P[i] for i in range(n)]
+        broken = False
+        if perm == [5, 4, 0, 3, 1, 2]:
+            broken = True
         optimize(current, shortform, params, results)
+        if broken:
+            print('aa')
         current_score = results.score * cpow(inv_penalty,
                                              perms.inversions)
+        if broken:
+            print('bb')
         if current_score > best:
             best = current_score
+        if broken:
+            print('cc')
     free_permuter(perms)
     free_opt_results(results)
     free_opt_input(current)
+    print('dd')
     return best
 
 
@@ -370,6 +383,22 @@ cdef void *optimize(opt_input *input_, opt_shortform *shortform,
             char_scores[i][j] = 0
             word_scores[i][j] = 0
             word_use[i][j] = 0
+    print('&&&')
+    x_list = [input_.x.array[i] for i in range(n)]
+    prizes = [input_.prizes.array[i] for i in range(n)]
+    num_words = input_.word_prizes.length
+    word_boundaries = [input_.word_boundaries[i] for i in range(num_words)]
+    word_prizes = [input_.word_prizes.array[i] for i in range(num_words)]
+    print('&&&')
+    broken = False
+    if x_list == [-1, 4, -1, 3, -1, 3, -1, 4, -1, 1, -1, 0, -1, 1,
+                  -1, 2, -1, 1, -1, 4, -1, 0, -1, 4, -1, 0, -1, 1,
+                  -1, 3, -1, 4, -1, 2, -1, 1, -1, 3, -1, 4, -1, 1, -1, 2, -1]:
+        broken = True
+        print('prizes', prizes)
+        print('word_boundaries', word_boundaries)
+        print('word_prizes', word_prizes)
+        print('W', input_.W)
     # Main loop
     k = 0
     for i in range(1, n+1):
@@ -384,7 +413,7 @@ cdef void *optimize(opt_input *input_, opt_shortform *shortform,
                     w = 0
                 possibility1 = score_lookup[i-1][j]
                 # Calculate score if match is accepted
-                char_score= char_scores[i-1][j-1]
+                char_score = char_scores[i-1][j-1]
                 char_score += input_.prizes.array[i-1]/cpow(params.beta,
                                                             word_use[i-1][j-1])
                 word_score = word_scores[i-1][j-1] + w
