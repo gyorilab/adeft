@@ -79,7 +79,7 @@ def test_optimize():
                                  beta=0.5,
                                  rho=0.75,
                                  W=1.,
-                                 result_score=0.8125,
+                                 result_score=(3/4)**(3/4),
                                  result_char_scores=[1.0, 0.5])
 
     # Three words, shortform matches in two places. Highest scoring match
@@ -94,7 +94,7 @@ def test_optimize():
                                  beta=0.5,
                                  rho=0.5,
                                  W=3.0,
-                                 result_score=17/24,
+                                 result_score=(3/4)**(1/2)*(2/3)**(1/2),
                                  result_char_scores=[1.0, 0.5])
 
     # Three words, shortform matches in two places. Highest scoring match
@@ -109,7 +109,7 @@ def test_optimize():
                                  beta=0.5,
                                  rho=0.75,
                                  W=2.25,
-                                 result_score=31/36,
+                                 result_score=(2/3)**(1/2),
                                  result_char_scores=[1., 1.])
 
     # Three words, shortform matches in two places with equal scores
@@ -123,7 +123,7 @@ def test_optimize():
                                  beta=0.5,
                                  rho=0.75,
                                  W=2.5,
-                                 result_score=0.85,
+                                 result_score=(2/5)**(1/4),
                                  result_char_scores=[1., 1.])
 
     # Two words. Only one character in shortform matches
@@ -136,11 +136,10 @@ def test_optimize():
                                  beta=0.5,
                                  rho=0.75,
                                  W=1.5,
-                                 result_score=53/120,
+                                 result_score=(2/5)**(3/4)*(2/3)**(1/4),
                                  result_char_scores=[1., -0.2])
 
     test_cases = [case1, case2, case3, case4, case5, case6]
-    test_cases = [case3]
     for case in test_cases:
         case.check_assertions()
         case.run_test()
