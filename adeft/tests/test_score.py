@@ -15,7 +15,7 @@ def test_perm_search():
                                rho=0.75,
                                inv_penalty=0.9,
                                len_perm=5,
-                               result_score=0.765)
+                               result_score=(2/5)**(1/4) * (9/10))
     for case in [case1]:
         case.run_test()
 
