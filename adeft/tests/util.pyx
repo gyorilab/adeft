@@ -91,6 +91,7 @@ cdef class PermSearchTestCase:
         score = perm_search(candidates, shortform, params, self.inv_penalty,
                             self.len_perm)
         assert (score - self.result_score) < 1e-16
+        assert abs(score - self.result_score) < 1e-16
 
 
 cdef class OptimizationTestCase:
@@ -159,5 +160,5 @@ cdef class OptimizationTestCase:
         free_opt_shortform(shortform)
         free_opt_params(params)
         free_opt_input(input_)
-        assert (score - self.result_score) < 1e-12
+        assert abs(score - self.result_score) < 1e-12
         assert char_scores == self.result_char_scores
