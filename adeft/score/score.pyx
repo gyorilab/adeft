@@ -9,7 +9,8 @@ from adeft.score.permutations cimport permuter, make_permuter, \
 
 cdef class LongformScorer:
     cdef:
-        public list shortform, penalties
+        public str shortform
+        public list penalties
         public double alpha, beta, gamma, rho, inv_penalty
         public dict word_scores
         int len_shortform
@@ -25,6 +26,7 @@ cdef class LongformScorer:
         self.gamma = gamma
         self.inv_penalty = inv_penalty
         self.rho = rho
+        self.params_c = make_opt_params(beta, rho)
         # Encode shortform chars as integers and build map for encoding
         # longform candidates
         self.char_map = {}
@@ -39,7 +41,8 @@ cdef class LongformScorer:
             self.penalties = penalties
         else:
             self.penalties = [gamma**i for i in range(self.len_shortform)]
-        self.shortform_c = make_opt_shortform(encoded_shortform, penalties)
+        self.shortform_c = make_opt_shortform(encoded_shortform,
+                                              self.penalties)
         self.params_c = make_opt_params(beta, rho)
         if word_scores is None:
             self.word_scores = {}
@@ -55,8 +58,8 @@ cdef class LongformScorer:
     cdef candidates_array *process_candidates(self, list candidates):
         cdef:
             double word_score
-            list token, encoded_candidates, coded
-            list prizes, token_prizes, word_prizes, W
+            str token
+            list encoded_candidates, coded, prizes, token_prizes, word_prizes, W
             int m, n, i, j
         encoded_candidates = []
         prizes = []
@@ -83,8 +86,15 @@ cdef class LongformScorer:
         return make_candidates_array(encoded_candidates,
                                      prizes, word_prizes, W)
                         
-    def score(candidate):
-        return 1.0
+    def score(self, candidates):
+        cdef:
+            int n = len(candidates)
+            double score
+            candidates_array *candidates_c
+        candidates_c = self.process_candidates(candidates)
+        score = perm_search(candidates_c, self.shortform_c, self.params_c,
+                            self.inv_penalty, n)
+        return score
 
 
 cdef opt_results *make_opt_results(int len_y):
