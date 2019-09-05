@@ -447,6 +447,7 @@ cdef void *optimize(opt_input *input_, opt_shortform *shortform,
             else:
                 score_lookup[i][j] = score_lookup[i-1][j]
                 char_scores[i][j] = char_scores[i-1][j]
+                word_scores[i][j] = word_scores[i-1][j]
                 word_use[i][j] = word_use[i-1][j]
                 pointers[i-1][j-1] = 0
             if i == input_.word_boundaries[k] + 1:
