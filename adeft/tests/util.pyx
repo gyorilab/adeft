@@ -1,3 +1,5 @@
+import logging
+
 from adeft.score.score cimport int_array, opt_results, candidates_array, \
     opt_input, opt_params, opt_shortform
 from adeft.score.score cimport make_int_array, free_int_array, \
@@ -5,6 +7,9 @@ from adeft.score.score cimport make_int_array, free_int_array, \
     make_opt_params, free_opt_params, make_opt_shortform, free_opt_shortform, \
     make_candidates_array, free_candidates_array
 from adeft.score.score cimport optimize, stitch, perm_search
+
+logger = logging.getLogger(__name__)
+
 
 cdef class StitchTestCase:
     """Test construction of candidates array and stitching"""
@@ -160,4 +165,6 @@ cdef class OptimizationTestCase:
         free_opt_params(params)
         free_opt_input(input_)
         assert abs(score - self.result_score) < 1e-7
-        assert char_scores == self.result_char_scores
+        assert all([abs(expected - observed) < 1e-7
+                   for observed, expected in
+                   zip(char_scores, self.result_char_scores)])

@@ -139,7 +139,8 @@ def test_optimize():
                                  result_score=(2/5)**(3/4)*(2/3)**(1/4),
                                  result_char_scores=[1., -0.2])
 
-    # This case fails for mysterious reasons
+    # This case failed due to incorrect handling of cases where the previous
+    # best score has value negative infinity. This issue has now been fixed
     case7 = OptimizationTestCase(x=[-1, 4, -1, 3, -1, 3, -1, 4, -1, 1, -1,
                                      0, -1, 1, -1, 2, -1, 1, -1, 4, -1, 0, -1,
                                      4, -1, 0, -1, 1, -1, 3, -1, 4, -1, 2, -1,
@@ -159,8 +160,10 @@ def test_optimize():
                                  beta=0.45,
                                  rho=0.6,
                                  W=6.0,
-                                 result_score=0.5,
-                                 result_char_scores=[0.2, 0.2, 0.2, 0.2, 0.2])
+                                 result_score=0.24237555401192815,
+                                 result_char_scores=[-1.0, -0.4, -0.16,
+                                                     1.0, 5/9])
+
 
     test_cases = [case1, case2, case3, case4, case5, case6, case7]
     for case in test_cases:
