@@ -16,7 +16,18 @@ def test_perm_search():
                                inv_penalty=0.9,
                                len_perm=5,
                                result_score=(2/5)**(1/4) * (9/10))
-    for case in [case1]:
+    case2 = PermSearchTestCase(candidates=[[0, 1, 0], [1, 0, 0, 1]],
+                               shortform=[0, 1],
+                               prizes=[[1.0, 1/8, 1/32], [1.0, 1/2, 1/8, 1/64]],
+                               penalties=[1.0, 0.4],
+                               word_prizes=[1.0, 1.0],
+                               word_penalties=[1.0, 2.0],
+                               beta=0.45,
+                               rho=0.6,
+                               inv_penalty=0.9,
+                               len_perm=2,
+                               result_score=1.0)
+    for case in [case1, case2]:
         case.run_test()
 
 
@@ -163,6 +174,21 @@ def test_optimize():
                                  result_score=0.24237555401192815,
                                  result_char_scores=[-1.0, -0.4, -0.16,
                                                      1.0, 5/9])
+
+    # Estrogen Receptor (ER). Fails for mysterious reasons
+    case7 = OptimizationTestCase(x=[-1, 0, -1, 1, -1, 0, -1, 1, -1, 0, -1, 0,
+                                    -1, 1, -1],
+                                 y=[0, 1],
+                                 prizes=[0, 1, 0, 1/8, 0, 1/32, 0, 1, 0, 1/2,
+                                         0, 1/8, 0, 1/64, 0],
+                                 penalties=[1.0, 0.4],
+                                 word_boundaries=[6, 14],
+                                 word_prizes=[1.0, 1.0],
+                                 beta=0.45,
+                                 rho=0.6,
+                                 W=2.0,
+                                 result_score=1.0,
+                                 result_char_scores=[1.0, 1.0])
 
 
     test_cases = [case1, case2, case3, case4, case5, case6, case7]
