@@ -11,19 +11,21 @@ cdef class LongformScorer:
     cdef:
         public str shortform
         public list penalties
-        public double alpha, beta, gamma, rho, inv_penalty
+        public double alpha, beta, gamma, delta, rho, inv_penalty
         public dict word_scores
         int len_shortform
         dict char_map
         opt_shortform *shortform_c
         opt_params *params_c
     def __init__(self, shortform, penalties=None, alpha=0.5, beta=0.45,
-                 gamma=0.5, rho=0.6, inv_penalty=0.9, word_scores=None):
+                 gamma=1.0, delta=0.4, rho=0.6, inv_penalty=0.9,
+                 word_scores=None):
         self.shortform = shortform.lower()
         self.len_shortform = len(shortform)
         self.alpha = alpha
         self.beta = beta
         self.gamma = gamma
+        self.delta = delta
         self.inv_penalty = inv_penalty
         self.rho = rho
         self.params_c = make_opt_params(beta, rho)
@@ -40,7 +42,8 @@ cdef class LongformScorer:
         if penalties is not None:
             self.penalties = penalties
         else:
-            self.penalties = [gamma**i for i in range(self.len_shortform)]
+            self.penalties = [gamma*delta**i
+                              for i in range(self.len_shortform)]
         self.shortform_c = make_opt_shortform(encoded_shortform,
                                               self.penalties)
         self.params_c = make_opt_params(beta, rho)
