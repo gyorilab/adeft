@@ -17,8 +17,8 @@ cdef class LongformScorer:
         dict char_map
         opt_shortform *shortform_c
         opt_params *params_c
-    def __init__(self, shortform, penalties=None, alpha=0.5, beta=0.45,
-                 gamma=1.0, delta=0.4, rho=0.6, inv_penalty=0.9,
+    def __init__(self, shortform, penalties=None, alpha=0.5, beta=0.55,
+                 gamma=0.4, delta=0.9, rho=0.6, inv_penalty=0.9,
                  word_scores=None):
         self.shortform = shortform.lower()
         self.len_shortform = len(shortform)
