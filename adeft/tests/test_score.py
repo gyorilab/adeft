@@ -18,11 +18,12 @@ def test_perm_search():
                                result_score=(2/5)**(1/4) * (9/10))
     case2 = PermSearchTestCase(candidates=[[0, 1, 0], [1, 0, 0, 1]],
                                shortform=[0, 1],
-                               prizes=[[1.0, 1/8, 1/32], [1.0, 1/2, 1/8, 1/64]],
+                               prizes=[[1.0, 1/8, 1/32],
+                                       [1.0, 1/2, 1/8, 1/64]],
                                penalties=[1.0, 0.4],
                                word_prizes=[1.0, 1.0],
                                word_penalties=[1.0, 2.0],
-                               beta=0.45,
+                               beta=0.55,
                                rho=0.6,
                                inv_penalty=0.9,
                                len_perm=2,
@@ -150,14 +151,13 @@ def test_optimize():
                                  result_score=(2/5)**(3/4)*(2/3)**(1/4),
                                  result_char_scores=[1., -0.2])
 
-    # This case failed due to incorrect handling of cases where the previous
-    # best score has value negative infinity. This issue has now been fixed
+    # INDRA
     case7 = OptimizationTestCase(x=[-1, 4, -1, 3, -1, 3, -1, 4, -1, 1, -1,
-                                     0, -1, 1, -1, 2, -1, 1, -1, 4, -1, 0, -1,
-                                     4, -1, 0, -1, 1, -1, 3, -1, 4, -1, 2, -1,
-                                     1, -1, 3, -1, 4, -1, 1, -1, 2, -1],
+                                    0, -1, 1, -1, 2, -1, 1, -1, 4, -1, 0, -1,
+                                    4, -1, 0, -1, 1, -1, 3, -1, 4, -1, 2, -1,
+                                    1, -1, 3, -1, 4, -1, 1, -1, 2, -1],
                                  y=[0, 1, 2, 3, 4],
-                                 prizes=[0.0, 1.0, 0.0, 0.00390625, 0.0, 1.0,
+                                 prizes=[0.0, 1.0, 0., 0.00390625, 0.0, 1.0,
                                          0.0, 0.25, 0.0, 0.03125, 0.0,
                                          0.015625, 0.0, 0.0078125, 0.0, 1.0,
                                          0.0, 0.25, 0.0, 0.125, 0.0, 0.03125,
@@ -168,15 +168,15 @@ def test_optimize():
                                  penalties=[0.4**i for i in range(5)],
                                  word_boundaries=[4, 14, 24, 34, 38, 44],
                                  word_prizes=[1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-                                 beta=0.45,
+                                 beta=0.55,
                                  rho=0.6,
                                  W=6.0,
-                                 result_score=0.24237555401192815,
-                                 result_char_scores=[-1.0, -0.4, -0.16,
-                                                     1.0, 5/9])
+                                 result_score=(6373/11000)**0.6*(1/2)**0.4,
+                                 result_char_scores=[1., 1., -0.4**2,
+                                                     0.5**5/0.55, 1.])
 
-    # Estrogen Receptor (ER). Fails for mysterious reasons
-    case7 = OptimizationTestCase(x=[-1, 0, -1, 1, -1, 0, -1, 1, -1, 0, -1, 0,
+    # Estrogen Receptor (ER)
+    case8 = OptimizationTestCase(x=[-1, 0, -1, 1, -1, 0, -1, 1, -1, 0, -1, 0,
                                     -1, 1, -1],
                                  y=[0, 1],
                                  prizes=[0, 1, 0, 1/8, 0, 1/32, 0, 1, 0, 1/2,
@@ -184,14 +184,13 @@ def test_optimize():
                                  penalties=[1.0, 0.4],
                                  word_boundaries=[6, 14],
                                  word_prizes=[1.0, 1.0],
-                                 beta=0.45,
+                                 beta=0.55,
                                  rho=0.6,
                                  W=2.0,
                                  result_score=1.0,
                                  result_char_scores=[1.0, 1.0])
 
-
-    test_cases = [case1, case2, case3, case4, case5, case6, case7]
+    test_cases = [case1, case2, case3, case4, case5, case6, case7, case8]
     for case in test_cases:
         case.check_assertions()
         case.run_test()
