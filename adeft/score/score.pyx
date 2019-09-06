@@ -399,9 +399,10 @@ cdef void *optimize(opt_input *input_, opt_shortform *shortform,
                 if char_score < 0.0:
                     char_score = 0.0
                 word_score = word_scores[i-1][j-1] + w
+              
                 possibility2 = (cpow(char_score/m, params.rho) *
                                 cpow(word_score/input_.W, (1-params.rho)))
-                if (score_lookup[i-1][j-1] != -1e20 and 
+                if (score_lookup[i-1][j-1] > -1e19 and 
                     possibility2 > possibility1):
                     score_lookup[i][j] = possibility2
                     char_scores[i][j] = char_score
@@ -429,7 +430,7 @@ cdef void *optimize(opt_input *input_, opt_shortform *shortform,
                 word_score = word_scores[i-1][j-1]
                 possibility2 = (cpow(char_score/m, params.rho) *
                                 cpow(word_score/input_.W, 1-params.rho))
-                if (score_lookup[i-1][j-1] != -1e20 and
+                if (score_lookup[i-1][j-1] > -1e19 and
                     possibility2 > possibility1):
                     score_lookup[i][j] = possibility2
                     char_scores[i][j] = char_score
