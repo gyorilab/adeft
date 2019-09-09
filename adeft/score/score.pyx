@@ -63,12 +63,11 @@ cdef class LongformScorer:
             double word_score
             str token
             list encoded_candidates, coded, prizes, token_prizes, word_prizes, W
-            int m, n, i, j
+            int n, i, j
         encoded_candidates = []
         prizes = []
         word_prizes = []
         n = len(candidates)
-        W = [0]*n
         for i in range(n):
             coded = []
             token_prizes = []
@@ -83,21 +82,24 @@ cdef class LongformScorer:
                 prizes.append(token_prizes)
                 word_score = self.get_word_score(token)
                 word_prizes.append(word_score)
-        W[0] = word_prizes[n-1]
-        for i in range(1, n):
-            W[i] = W[i-1] + word_prizes[n-i-1]
+        W = [word_prizes[-1]]
+        for i in range(1, len(word_prizes)):
+            W.append(W[i-1] + word_prizes[-i])
         return make_candidates_array(encoded_candidates,
                                      prizes, word_prizes, W)
                         
     def score(self, candidates):
         cdef:
-            int n = len(candidates)
-            double score
+            int i
+            list scores
             candidates_array *candidates_c
+        scores = []
         candidates_c = self.process_candidates(candidates)
-        score = perm_search(candidates_c, self.shortform_c, self.params_c,
-                            self.inv_penalty, n)
-        return score
+        for i in range(1, candidates_c.length + 1):
+            scores.append(perm_search(candidates_c, self.shortform_c,
+                                      self.params_c,
+                                      self.inv_penalty, i))
+        return scores
 
 
 cdef opt_results *make_opt_results(int len_y):
