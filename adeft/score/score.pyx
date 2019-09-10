@@ -457,8 +457,10 @@ cdef void *optimize(opt_input *input_, opt_shortform *shortform,
                 word_scores[i][j] = word_scores[i-1][j]
                 word_use[i][j] = word_use[i-1][j]
                 pointers[i-1][j-1] = 0
+            # Reset word_use to zero when word_boundary is passed
             if i == input_.word_boundaries[k] + 1:
                 word_use[i][j] = 0
+        # Increment number of words used when boundary is passed
         if i == input_.word_boundaries[k] + 1:
             k += 1
     # Optimal score is in bottom right corner of lookup array
