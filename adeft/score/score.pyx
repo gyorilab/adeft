@@ -250,13 +250,18 @@ cdef double perm_search(candidates_array *candidates,
                         float inv_penalty,
                         int n):
     cdef:
+        int input_size
         double best, current_score
         permuter *perms
         opt_input *current
         opt_results *results
     results = make_opt_results(shortform.y.length)
     total_length = candidates.cum_lengths[n - 1]
-    current = make_opt_input(2*total_length + 1, n)
+    if shortform.y.length > total_length + 1:
+        input_size = total_length + shortform.y.length
+    else:
+        input_size = 2*total_length + 1
+    current = make_opt_input(input_size, n)
     perms = make_permuter(n)
     stitch(candidates, perms.P, n, current)
     optimize(current, shortform, params, results)
@@ -300,6 +305,10 @@ cdef void *stitch(candidates_array *candidates, int *permutation,
             j += 2
         result.word_prizes.array[i] = candidates.word_prizes[n-len_perm+p]
         result.word_boundaries[i] = j - 1
+    while j < result.x.length:
+        result.x.array[j] = -1
+        result.prizes.array[0] = 0
+        j += 1
     result.W = candidates.W_array[len_perm - 1]
     return result
 
