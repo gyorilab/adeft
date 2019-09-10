@@ -376,11 +376,6 @@ cdef void *optimize(opt_input *input_, opt_shortform *shortform,
             char_scores[i][j] = 0
             word_scores[i][j] = 0
             word_use[i][j] = 0
-    x_list = [input_.x.array[s] for s in range(n)]
-    prizes = [input_.prizes.array[s] for s in range(n)]
-    num_words = input_.word_prizes.length
-    word_boundaries = [input_.word_boundaries[s] for s in range(num_words)]
-    word_prizes = [input_.word_prizes.array[s] for s in range(num_words)]
     # Main loop
     k = 0
     for i in range(1, n+1):
