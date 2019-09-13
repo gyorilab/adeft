@@ -255,7 +255,7 @@ cdef void perm_search(candidates_array *candidates,
                       opt_results *output):
     cdef:
         int input_size, i
-        double best, current_score
+        double current_score
         permuter *perms
         opt_input *current
         opt_results *results
@@ -269,8 +269,7 @@ cdef void perm_search(candidates_array *candidates,
     perms = make_permuter(n)
     stitch(candidates, perms.P, n, current)
     optimize(current, shortform, params, results)
-    best = results.score
-    output.score = best
+    output.score = results.score
     for i in range(shortform.y.length):
         output.char_scores[i] = results.char_scores[i]
     while perms.m != 0:
@@ -280,7 +279,7 @@ cdef void perm_search(candidates_array *candidates,
         optimize(current, shortform, params, results)
         current_score = results.score * cpow(inv_penalty,
                                              perms.inversions)
-        if current_score > best:
+        if current_score > output.score:
             output.score = current_score
             for i in range(shortform.y.length):
                 output.char_scores[i] = results.char_scores[i]
@@ -413,7 +412,6 @@ cdef void *optimize(opt_input *input_, opt_shortform *shortform,
                 if char_score < 0.0:
                     char_score = 0.0
                 word_score = word_scores[i-1][j-1] + w
-              
                 possibility2 = (cpow(char_score/m, params.rho) *
                                 cpow(word_score/input_.W, (1-params.rho)))
                 if (score_lookup[i-1][j-1] > -1e19 and 

@@ -101,8 +101,7 @@ cdef class PermSearchTestCase:
         results = make_opt_results(len(self.shortform))
         perm_search(candidates, shortform, params, self.inv_penalty,
                     self.len_perm, results)
-        print(results.score, self.result_score)
-        # assert abs(results.score - self.result_score) < 1e-7
+        assert abs(results.score - self.result_score) < 1e-7
 
 
 cdef class OptimizationTestCase:
