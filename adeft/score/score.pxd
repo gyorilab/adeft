@@ -68,11 +68,12 @@ cdef opt_shortform *make_opt_shortform(list encoded_shortform,
                                        list penalties)
 cdef void free_opt_shortform(opt_shortform *shortform)
 
-cdef double perm_search(candidates_array *candidates,
+cdef void perm_search(candidates_array *candidates,
                         opt_shortform *shortform,
                         opt_params *params,
                         float inv_penalty,
-                        int n)
+                        int n,
+                        opt_results *output)
 
 cdef void *stitch(candidates_array *candidates, int *permutation,
                   int len_parm, opt_input *result)

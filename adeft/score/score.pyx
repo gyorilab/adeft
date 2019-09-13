@@ -93,12 +93,15 @@ cdef class LongformScorer:
             int i
             list scores
             candidates_array *candidates_c
+            opt_results *results
         scores = []
+        results = make_opt_results(self.len_shortform)
         candidates_c = self.process_candidates(candidates)
         for i in range(1, candidates_c.length + 1):
-            scores.append(perm_search(candidates_c, self.shortform_c,
-                                      self.params_c,
-                                      self.inv_penalty, i))
+            perm_search(candidates_c, self.shortform_c,
+                        self.params_c,
+                        self.inv_penalty, i, results)
+            scores.append(results.score)
         return scores
 
 
@@ -244,13 +247,14 @@ cdef void free_opt_shortform(opt_shortform *shortform):
 
 
 @wraparound(False)
-cdef double perm_search(candidates_array *candidates,
-                        opt_shortform *shortform,
-                        opt_params *params,
-                        float inv_penalty,
-                        int n):
+cdef void perm_search(candidates_array *candidates,
+                      opt_shortform *shortform,
+                      opt_params *params,
+                      float inv_penalty,
+                      int n,
+                      opt_results *output):
     cdef:
-        int input_size
+        int input_size, i
         double best, current_score
         permuter *perms
         opt_input *current
@@ -274,11 +278,12 @@ cdef double perm_search(candidates_array *candidates,
         current_score = results.score * cpow(inv_penalty,
                                              perms.inversions)
         if current_score > best:
-            best = current_score
+            output.score = current_score
+            for i in range(shortform.y.length):
+                output.char_scores[i] = results.char_scores[i]
     free_permuter(perms)
     free_opt_results(results)
     free_opt_input(current)
-    return best
 
 
 @boundscheck(False)
