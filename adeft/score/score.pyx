@@ -90,18 +90,42 @@ cdef class LongformScorer:
                         
     def score(self, candidates):
         cdef:
-            int i
+            int i, j, n
+            double current_score, best_score, w, W
+            double_array best_char_scores, upper_bound
             list scores
             candidates_array *candidates_c
             opt_results *results
+            opt_results *probe_results
         scores = []
         results = make_opt_results(self.len_shortform)
+        probe_results = make_opt_results(self.len_shortform)
         candidates_c = self.process_candidates(candidates)
-        for i in range(1, candidates_c.length + 1):
+        n = candidates_c.length
+        best_score = -1.0
+        best_char_scores = make_double_array(self.len_shortform)
+        for j in range(self.len_shortform):
+            best_char_scores[i] = -1e20
+        for i in range(1, n + 1):
+            upper_bound = 0.0
+            probe(candidates_c.array[n - i], candidates_c.prizes[n - i],
+                  self.shortform_c, self.params_c.beta, probe_results)
+            for j in range(self.len_shortform):
+                if probe_results.char_score[j] > best_char_scores[j]:
+                    upper_bound += probe_results.char_score[j]
+                else:
+                    upper_bound += best_char_scores[j]
             perm_search(candidates_c, self.shortform_c,
                         self.params_c,
                         self.inv_penalty, i, results)
+            current_score = results.score
             scores.append(results.score)
+            if current_score >= best_score:
+                best_score = current_score
+                for j in range(self.len_shortform):
+                    best_char_scores[j] = result.char_scores[j]
+                
+                
         free_candidates_array(candidates_c)
         return scores
 
@@ -260,6 +284,7 @@ cdef void perm_search(candidates_array *candidates,
         permuter *perms
         opt_input *current
         opt_results *results
+
     results = make_opt_results(shortform.y.length)
     total_length = candidates.cum_lengths[n - 1]
     if shortform.y.length > total_length + 1:
