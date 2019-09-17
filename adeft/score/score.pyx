@@ -291,6 +291,41 @@ cdef void perm_search(candidates_array *candidates,
 
 @boundscheck(False)
 @wraparound(False)
+cdef void probe(int_array *next_token, double_array *char_scores,
+                opt_shortform *shortform, double beta,
+                opt_results *probe_results):
+    cdef:
+        int i, j
+        opt_input *input_
+        opt_results *result
+        opt_params *params
+    # First initalize the probe
+    input_ = make_opt_input(2*next_token.length + 1, 1)
+    result = make_opt_results(shortform.y.length)
+    params = make_opt_params(beta, 1.0)
+    input_.x.array[0] = -1
+    input_.prizes.array[0] = 0
+    j = 1
+    for i in range(input_.x.length):
+        input_.x.array[j] = next_token.array[i]
+        input_.x.array[j+1] = -1
+        input_.prizes.array[j] = char_scores.array[i]
+        input_.prizes.array[j+1] = 0
+        j += 2
+    while j < input_.x.length:
+        input_.x.array[j] = -1
+        input_.prizes.array[0] = 0
+        j += 1
+    input_.word_prizes.array[0] = 0
+    input_.word_boundaries[i] = j - 1
+    input_.W = 1
+    optimize(input_, shortform, params, result)
+    free_opt_input(input_)
+    free_opt_params(params)
+
+
+@boundscheck(False)
+@wraparound(False)
 cdef void *stitch(candidates_array *candidates, int *permutation,
                   int len_perm, opt_input *result):
     cdef int i, j, k, current_length, n, p
