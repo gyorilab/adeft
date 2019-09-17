@@ -102,6 +102,7 @@ cdef class LongformScorer:
                         self.params_c,
                         self.inv_penalty, i, results)
             scores.append(results.score)
+        free_candidates_array(candidates_c)
         return scores
 
 
