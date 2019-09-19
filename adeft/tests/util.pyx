@@ -4,7 +4,7 @@ from adeft.score.score cimport int_array, opt_results, candidates_array, \
     opt_input, opt_params, opt_shortform
 from adeft.score.score cimport make_int_array, free_int_array, \
     make_opt_results, free_opt_results, make_opt_input, free_opt_input, \
-    make_opt_params, free_opt_params, make_opt_shortform, free_opt_shortform, \
+    make_opt_params, free_opt_params, create_shortform, free_opt_shortform, \
     make_candidates_array, free_candidates_array
 from adeft.score.score cimport optimize, stitch, perm_search
 
@@ -96,7 +96,7 @@ cdef class PermSearchTestCase:
         candidates = make_candidates_array(self.candidates, self.prizes,
                                            self.word_prizes,
                                            self.word_penalties)
-        shortform = make_opt_shortform(self.shortform, self.penalties)
+        shortform = create_shortform(self.shortform, self.penalties)
         params = make_opt_params(self.beta, self.rho)
         results = make_opt_results(len(self.shortform))
         perm_search(candidates, shortform, params, self.inv_penalty,
@@ -145,7 +145,7 @@ cdef class OptimizationTestCase:
             opt_results *output
 
         input_ = make_opt_input(self.n, self.num_words)
-        shortform = make_opt_shortform(self.y, self.penalties)
+        shortform = create_shortform(self.y, self.penalties)
         params = make_opt_params(self.beta, self.rho)
         output = make_opt_results(self.m)
 
