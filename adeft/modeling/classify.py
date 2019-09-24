@@ -305,4 +305,3 @@ def load_model_info(model_info):
     if 'stats' in model_info:
         longform_model.stats = model_info['stats']
     return longform_model
-
