@@ -114,7 +114,6 @@ cdef class LongformScorer:
                   self.shortform_c.y, self.params_c.beta,
                   probe_results)
             print('***')
-            return
             for j in range(self.len_shortform):
                 print('probe', probe_results.char_scores[j])
                 print('e', ub_char_scores)
@@ -382,14 +381,18 @@ cdef void probe(int_array *next_token, double_array *char_scores,
                 int_array *y, double beta,
                 opt_results *probe_results):
     cdef:
-        int i, j
+        int i, j, input_size
         opt_input *input_
         opt_results *result
         opt_params *params
         opt_shortform *shortform
     # First initalize the probe
     print(0)
-    input_ = make_opt_input(2*next_token.length + 1, 1)
+    if y.length > next_token.length + 1:
+        input_size = next_token.length + y.length
+    else:
+        input_size = 2*next_token.length + 1
+    input_ = make_opt_input(input_size, 1)
     print(1)
     result = make_opt_results(y.length)
     print(2)
