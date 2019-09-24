@@ -201,13 +201,14 @@ class AdeftClassifier(object):
         """Predict class labels for a list-like of texts"""
         return self.estimator.predict(texts)
 
-    def dump_model(self, filepath):
-        """Serialize model to gzipped json
+    def get_model_info(self):
+        """Return a JSON object representing a model for portability.
 
-        Parameters
-        ----------
-        filepath : str
-           Path to output file
+        Returns
+        -------
+        dict
+            A JSON object representing the attributes of the classifier needed
+            to make it portable/serializable and enabling its reload.
         """
         logit = self.estimator.named_steps['logit']
         classes_ = logit.classes_.tolist()
@@ -230,6 +231,17 @@ class AdeftClassifier(object):
         # Add model statistics if they are available
         if hasattr(self, 'stats') and self.stats:
             model_info['stats'] = self.stats
+        return model_info
+
+    def dump_model(self, filepath):
+        """Serialize model to gzipped json
+
+        Parameters
+        ----------
+        filepath : str
+           Path to output file
+        """
+        model_info = self.get_model_info()
         json_str = json.dumps(model_info)
         json_bytes = json_str.encode('utf-8')
         with gzip.GzipFile(filepath, 'w') as fout:
@@ -253,7 +265,22 @@ def load_model(filepath):
         json_bytes = fin.read()
     json_str = json_bytes.decode('utf-8')
     model_info = json.loads(json_str)
+    return load_model_info(model_info)
 
+
+def load_model_info(model_info):
+    """Return a longform model from a model info JSON object.
+
+    Parameters
+    ----------
+    model_info : dict
+        The JSON object containing the attributes of a model.
+
+    Returns
+    -------
+    longform_model : py:class:`adeft.classify.AdeftClassifier`
+        The classifier that was loaded from the given JSON object.
+    """
     shortforms = model_info['shortforms']
     pos_labels = model_info['pos_labels']
 
