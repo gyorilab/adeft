@@ -3,6 +3,7 @@ from libc.math cimport pow as cpow
 from cython cimport boundscheck, wraparound
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
+from adeft.nlp import stopwords
 from adeft.score.permutations cimport permuter, make_permuter, \
     free_permuter, update_permuter
 
@@ -48,7 +49,7 @@ cdef class LongformScorer:
                                             self.penalties)
         self.params_c = make_opt_params(beta, rho)
         if word_scores is None:
-            self.word_scores = {}
+            self.word_scores = {word: 0.2 for word in stopwords}
         else:
             self.word_scores = word_scores
 
