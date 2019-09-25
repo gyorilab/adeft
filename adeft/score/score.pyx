@@ -113,17 +113,11 @@ cdef class LongformScorer:
             probe(candidates_c.array[n - i], candidates_c.prizes[n - i],
                   self.shortform_c.y, self.params_c.beta,
                   probe_results)
-            print('***')
             for j in range(self.len_shortform):
-                print('probe', probe_results.char_scores[j])
-                print('e', ub_char_scores)
                 if probe_results.char_scores[j] > best_char_scores.array[j]:
-                    print('f', ub_char_scores)
                     ub_char_scores += probe_results.char_scores[j]
                 else:
-                    print('g', ub_char_scores)
                     ub_char_scores += best_char_scores.array[j]
-            print('****')
             if i > 1:
                 previous_word_scores = make_double_array(i)
                 for k in range(i-1):
@@ -156,7 +150,7 @@ cdef class LongformScorer:
         free_opt_results(probe_results)
         free_opt_results(results)
         free_candidates_array(candidates_c)
-        # return scores
+        return scores
 
 
 cdef double opt_selection(double_array *word_prizes, int k):
@@ -387,52 +381,38 @@ cdef void probe(int_array *next_token, double_array *char_scores,
         opt_params *params
         opt_shortform *shortform
     # First initalize the probe
-    print(0)
     if y.length > next_token.length + 1:
         input_size = next_token.length + y.length
     else:
         input_size = 2*next_token.length + 1
     input_ = make_opt_input(input_size, 1)
-    print(1)
     result = make_opt_results(y.length)
-    print(2)
     params = make_opt_params(beta, 1.0)
     shortform = make_opt_shortform(y.length)
     for i in range(y.length):
         shortform.y.array[i] = y.array[i]
         shortform.penalties.array[i] = 0.0
-    print(3)
     input_.x.array[0] = -1
-    print(4)
     input_.prizes.array[0] = 0
-    print(5)
     i = 0
     j = 1
-    for i in range(input_.x.length):
-        print(6, i, j)
+    for i in range(next_token.length):
         input_.x.array[j] = next_token.array[i]
         input_.x.array[j+1] = -1
         input_.prizes.array[j] = char_scores.array[i]
         input_.prizes.array[j+1] = 0
         j += 2
     while j < input_.x.length:
-        print(7, j)
         input_.x.array[j] = -1
         input_.prizes.array[0] = 0
         j += 1
     input_.word_prizes.array[0] = 0
     input_.word_boundaries[0] = j - 1
     input_.W = 1
-    print(8)
     optimize(input_, shortform, params, result)
-    print('???')
-    print(result.score)
-    print([result.char_scores[i] for i in range(y.length)])
-    print(9)
     free_opt_input(input_)
     free_opt_params(params)
     free_opt_shortform(shortform)
-    print(10)
 
 
 @boundscheck(False)
