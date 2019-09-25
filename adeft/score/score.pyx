@@ -123,7 +123,6 @@ cdef class LongformScorer:
                 for k in range(i):
                     previous_word_scores.array[k] = \
                         candidates_c.word_prizes[n-k-1]
-                       range(previous_word_scores.length)])
                 ub_word_scores = opt_selection(previous_word_scores,
                                                self.len_shortform-1)
                 free_double_array(previous_word_scores)
