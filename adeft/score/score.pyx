@@ -87,7 +87,36 @@ cdef class LongformScorer:
             W.append(W[i-1] + word_prizes[-i])
         return make_candidates_array(encoded_candidates,
                                      prizes, word_prizes, W)
-                        
+
+    cdef tuple get_score_results(self,
+                                 list candidates,
+                                 list scores,
+                                 double *W):
+        """Produce useable output for longform scorer
+        """
+        n = len(candidates)
+        i = j = 0
+        shortform_chars = set(self.shortform)
+        results = []
+        best_score = -1.0
+        current_score = 0.0
+        current_candidates_list = []
+        best_candidate = ''
+        while i < n:
+            current_candidates_list.append(candidates[n-i-1])
+            current_candidate = ' '.join(current_candidates_list[::-1])
+            if set(candidates[n-i-1]) & shortform_chars:
+                current_score = scores[j]
+                j += 1
+            else:
+                current_score *= (W[i]/(W[i] + 1))**(1 - self.rho)
+            results += (current_candidate, current_score)
+            if current_score > best_score:
+                best_score = current_score
+                best_candidate = current_candidate
+            i += 1
+        return (best_candidate, best_score, results)
+            
     def score(self, candidates):
         cdef:
             int i, j, k, n
@@ -146,11 +175,13 @@ cdef class LongformScorer:
                 best_score = current_score
                 for j in range(self.len_shortform):
                     best_char_scores.array[j] = results.char_scores[j]
+        
         free_double_array(best_char_scores)
         free_opt_results(probe_results)
         free_opt_results(results)
         free_candidates_array(candidates_c)
-        return scores
+        return self.get_score_results(candidates, scores,
+                                      candidates_c.W_array)
 
 
 cdef double opt_selection(double_array *word_prizes, int k):
