@@ -132,3 +132,8 @@ def untokenize(tokens):
                              - tokens[index][1][1] - 1))
     output.append(tokens[-1][0])
     return ''.join(output)
+
+
+stopwords = set(['a', 'an', 'the', 'and', 'or', 'of', 'with', 'at', 'from',
+                 'into', 'to', 'for', 'on', 'by', 'be', 'been', 'am',
+                 'is', 'are', 'was', 'were', 'in', 'that', 'as'])
