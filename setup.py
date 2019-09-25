@@ -9,13 +9,13 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 
 setup(name='adeft',
-      version='0.3.0',
+      version='0.4.0',
       description=('Acromine based Disambiguation of Entities From'
                    ' Text'),
       long_description=long_description,
       long_description_content_type='text/markdown',
       url='https://github.com/indralab/adeft',
-      download_url='https://github.com/indralab/adeft/archive/0.3.0.tar.gz',
+      download_url='https://github.com/indralab/adeft/archive/0.4.0.tar.gz',
       author='adeft developers, Harvard Medical School',
       author_email='albert_steppi@hms.harvard.edu',
       classifiers=[
