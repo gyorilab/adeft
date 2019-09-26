@@ -59,7 +59,7 @@ cdef class LongformScorer:
         else:
             return 1.0
 
-    cdef candidates_array *process_candidates(self, list candidates):
+    cdef tuple process_candidates(self, list candidates):
         cdef:
             double word_score
             str token
@@ -84,11 +84,12 @@ cdef class LongformScorer:
                 prizes.append(token_prizes)
                 word_score = self.get_word_score(token)
                 word_prizes.append(word_score)
+        if not encoded_candidates:
+            return ([], [], [], [])
         W = [word_prizes[-1]]
         for i in range(1, len(word_prizes)):
             W.append(W[i-1] + word_prizes[-i])
-        return make_candidates_array(encoded_candidates,
-                                     prizes, word_prizes, W)
+        return (encoded_candidates, prizes, word_prizes, W)
 
     cdef tuple get_score_results(self,
                                  list candidates,
@@ -126,13 +127,20 @@ cdef class LongformScorer:
             double ub_word_scores
             double_array *best_char_scores
             double_array *previous_word_scores
-            list scores
+            list scores, encoded_candidates, prizes, word_prizes, W_array
             candidates_array *candidates_c
             opt_results *results
             opt_results *probe_results
         results = make_opt_results(self.len_shortform)
         probe_results = make_opt_results(self.len_shortform)
-        candidates_c = self.process_candidates(candidates)
+        encoded_candidates, prizes, word_prizes, W_array = \
+            self.process_candidates(candidates)
+        if not encoded_candidates:
+            return self.get_score_results(candidates, [0.0]*len(candidates),
+                                          [0.0]*len(candidates))
+        candidates_c = make_candidates_array(encoded_candidates,
+                                             prizes, word_prizes,
+                                             W_array)
         n = candidates_c.length
         scores = [None]*n
         best_score = -1.0
