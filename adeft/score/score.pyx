@@ -73,7 +73,7 @@ cdef class LongformScorer:
         for i in range(n):
             coded = []
             token_prizes = []
-            token =  candidates[i].lower()
+            token = candidates[i].lower()
             m = len(token)
             for j in range(m):
                 if token[j] in self.char_map:
