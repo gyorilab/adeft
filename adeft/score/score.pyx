@@ -63,7 +63,8 @@ cdef class LongformScorer:
         cdef:
             double word_score
             str token
-            list encoded_candidates, coded, prizes, token_prizes, word_prizes, W
+            list encoded_candidates, coded, prizes,
+            list token_prizes, word_prizes, W
             int n, i, j
         encoded_candidates = []
         prizes = []
