@@ -94,7 +94,7 @@ cdef class LongformScorer:
     cdef tuple get_score_results(self,
                                  list candidates,
                                  list scores,
-                                 double *W):
+                                 list W_array):
         """Produce useable output for longform scorer
         """
         n = len(candidates)
@@ -112,14 +112,15 @@ cdef class LongformScorer:
                 current_score = scores[j]
                 j += 1
             else:
-                current_score *= (W[i]/(W[i] + 1))**(1 - self.rho)
+                W = W_array[j-1] if j > 0 else 0.0
+                current_score *= (W/(W + 1))**(1 - self.rho)
             results += (current_candidate, current_score)
             if current_score > best_score:
                 best_score = current_score
                 best_candidate = current_candidate
             i += 1
         return (best_candidate, best_score, results)
-            
+
     def score(self, candidates):
         cdef:
             int i, j, k, n
@@ -191,7 +192,8 @@ cdef class LongformScorer:
         free_opt_results(results)
         free_candidates_array(candidates_c)
         return self.get_score_results(candidates, scores,
-                                      candidates_c.W_array)
+                                      [candidates_c.W_array[i]
+                                       for i in range(candidates_c.length)])
 
 
 cdef double opt_selection(double_array *word_prizes, int k):
