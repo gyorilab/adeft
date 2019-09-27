@@ -264,8 +264,6 @@ cdef void free_double_array(double_array *x):
     return
 
 
-@boundscheck(False)
-@wraparound(False)
 cdef candidates_array *make_candidates_array(list encoded_candidates,
                                              list prizes,
                                              list word_prizes,
@@ -370,7 +368,6 @@ cdef void free_opt_shortform(opt_shortform *shortform):
     PyMem_Free(shortform)
 
 
-@wraparound(False)
 cdef void perm_search(candidates_array *candidates,
                       opt_shortform *shortform,
                       opt_params *params,
