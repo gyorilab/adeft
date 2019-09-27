@@ -16,57 +16,9 @@ logger = logging.getLogger(__file__)
 _stemmer = EnglishStemmer()
 
 
-class _TrieNode(object):
-    """TrieNode structure for use in recognizer
-
-    Attributes
-    ----------
-    longform : str or None
-        Set to associated longform at leaf nodes in the trie, otherwise None.
-        Each longform corresponds to a path in the trie from root to leaf.
-
-    children : dict
-        dict mapping tokens to child nodes
-    """
-    __slots__ = ['longform', 'children']
-
-    def __init__(self, longform=None):
-        self.longform = longform
-        self.children = {}
-
-
-class AdeftRecognizer(object):
-    """Class for recognizing longforms by searching for defining patterns (DP)
-
-    Searches text for the pattern "<longform> (<shortform>)" for a collection
-    of grounded longforms supplied by the user.
-
-    Parameters
-    ----------
-    shortform : str
-        shortform to be recognized
-    grounding_map : dict[str, str]
-        Dictionary mapping longform texts to their groundings
-    window : Optional[int]
-        Specifies range of characters before a defining pattern (DP)
-        to consider when finding longforms. Should be set to the same value
-        that was used in the AdeftMiner that was used to find longforms.
-        Default: 100
-    exclude : Optional[set]
-        set of tokens to ignore when searching for longforms.
-        Default: None
-
-    Attributes
-    ----------
-    _trie : :py:class:`adeft.recognize._TrieNode`
-        Trie used to search for longforms. Edges correspond to stemmed tokens
-        from longforms. They appear in reverse order to the bottom of the trie
-        with terminal nodes containing the associated longform in their data.
-    """
-    def __init__(self, shortform, grounding_map, window=100, exclude=None):
+class BaseRecognizer(object):
+    def __init__(self, shortform, window=100, exclude=None):
         self.shortform = shortform
-        self.grounding_map = grounding_map
-        self._trie = self._init_trie()
         self.window = window
         if exclude is None:
             self.exclude = set([])
@@ -74,19 +26,6 @@ class AdeftRecognizer(object):
             self.exclude = exclude
 
     def recognize(self, text):
-        """Find longforms in text by searching for defining patterns (DP)
-
-        Parameters
-        ----------
-        text : str
-            Sentence where we seek to disambiguate shortform
-
-        Returns
-        -------
-        longform : set of str
-            longform corresponding to shortform in sentence if the standard
-            pattern is matched. Returns None if the pattern is not matched
-        """
         groundings = set()
         fragments = get_candidate_fragments(text, self.shortform,
                                             window=self.window)
@@ -99,34 +38,8 @@ class AdeftRecognizer(object):
                                           for token in tokens[::-1]))
             # if a longform is recognized, add it to output list
             if longform:
-                grounding = self.grounding_map[longform]
+                grounding = self._post_process(longform)
                 groundings.add(grounding)
-        return groundings
-
-    def _init_trie(self):
-        """Initialize search trie with longforms in grounding map
-
-        Returns
-        -------
-        root : :py:class:`adeft.recogize._TrieNode`
-            Root of search trie used to recognize longforms
-        """
-        root = _TrieNode()
-        for longform, grounding in self.grounding_map.items():
-            edges = tuple(_stemmer.stem(token)
-                          for token, _ in tokenize(longform))[::-1]
-            current = root
-            for index, token in enumerate(edges):
-                if token not in current.children:
-                    if index == len(edges) - 1:
-                        new = _TrieNode(longform)
-                    else:
-                        new = _TrieNode()
-                    current.children[token] = new
-                    current = new
-                else:
-                    current = current.children[token]
-        return root
 
     def strip_defining_patterns(self, text):
         """Return text with defining patterns stripped
@@ -182,6 +95,90 @@ class AdeftRecognizer(object):
         return stripped_text
 
     def _search(self, tokens):
+        raise NotImplementedError
+
+    def _post_process(self, text):
+        raise NotImplementedError
+
+
+class _TrieNode(object):
+    """TrieNode structure for use in recognizer
+
+    Attributes
+    ----------
+    longform : str or None
+        Set to associated longform at leaf nodes in the trie, otherwise None.
+        Each longform corresponds to a path in the trie from root to leaf.
+
+    children : dict
+        dict mapping tokens to child nodes
+    """
+    __slots__ = ['longform', 'children']
+
+    def __init__(self, longform=None):
+        self.longform = longform
+        self.children = {}
+
+
+class AdeftRecognizer(BaseRecognizer):
+    """Class for recognizing longforms by searching for defining patterns (DP)
+
+    Searches text for the pattern "<longform> (<shortform>)" for a collection
+    of grounded longforms supplied by the user.
+
+    Parameters
+    ----------
+    shortform : str
+        shortform to be recognized
+    grounding_map : dict[str, str]
+        Dictionary mapping longform texts to their groundings
+    window : Optional[int]
+        Specifies range of characters before a defining pattern (DP)
+        to consider when finding longforms. Should be set to the same value
+        that was used in the AdeftMiner that was used to find longforms.
+        Default: 100
+    exclude : Optional[set]
+        set of tokens to ignore when searching for longforms.
+        Default: None
+
+    Attributes
+    ----------
+    _trie : :py:class:`adeft.recognize._TrieNode`
+        Trie used to search for longforms. Edges correspond to stemmed tokens
+        from longforms. They appear in reverse order to the bottom of the trie
+        with terminal nodes containing the associated longform in their data.
+    """
+    def __init__(self, shortform, grounding_map, window=100, exclude=None):
+        self.grounding_map = grounding_map
+        self._trie = self._init_trie()
+        super().__init__(shortform, window, exclude)
+
+    def _init_trie(self):
+        """Initialize search trie with longforms in grounding map
+
+        Returns
+        -------
+        root : :py:class:`adeft.recogize._TrieNode`
+            Root of search trie used to recognize longforms
+        """
+        root = _TrieNode()
+        for longform, grounding in self.grounding_map.items():
+            edges = tuple(_stemmer.stem(token)
+                          for token, _ in tokenize(longform))[::-1]
+            current = root
+            for index, token in enumerate(edges):
+                if token not in current.children:
+                    if index == len(edges) - 1:
+                        new = _TrieNode(longform)
+                    else:
+                        new = _TrieNode()
+                    current.children[token] = new
+                    current = new
+                else:
+                    current = current.children[token]
+        return root
+
+    def _search(self, tokens):
         """Return longform from maximal candidate preceding shortform
 
         Parameters
@@ -206,3 +203,6 @@ class AdeftRecognizer(object):
                 return current.children[token].longform
             else:
                 current = current.children[token]
+
+    def _post_process(self, longform):
+        return self.grounding_map[longform]
