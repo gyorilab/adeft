@@ -1,4 +1,3 @@
-import numpy as np
 from libc.math cimport pow as cpow
 from cython cimport boundscheck, wraparound
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
