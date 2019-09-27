@@ -8,6 +8,45 @@ from adeft.score.permutations cimport permuter, make_permuter, \
 
 
 cdef class AdeftLongformScorer:
+    """Scorer for longform expansions based on character matching
+
+    Searches for shortform as a subsequence of the longform. Each character
+    in the longform has an associated prize if it is included in a match. Each
+    character in the shortform has a penalty if it is not included. 
+    Character prizes and penalties are controlled by four parameters, alpha,
+    beta, gamma, and delta, described below. Longform expansions are judged not
+    only as sequences of characters, but also as sequences of tokens. Penalties
+    can be given for tokens in a candidate longform that have no characters
+    matched with the given shortform.
+
+    A character based score and a token based score are each normalized to
+    range within [0, 1] and combined using a weighted geometric mean with
+    weight rho attached to the character based score and weight 1 - rho
+    attached to the token based score. A dynamic programming algorithm is
+    used to solve the core optimization problem.
+
+    The algorithm considers candidate longforms one at a time, working right
+    to left from the defining pattern (DP). In the previous sentence the
+    longforms 'pattern', 'defining pattern', 'the defining pattern', 
+    'from the defining pattern'... would be considered in succession. Given
+    a candidate, all permutations of its tokens are considered as potential
+    matches to the shortform. This allows the algorithm to identify cases
+    such as beta-2 adrenergic receptor (ADRB2). A multiplicative penalty,
+    inv_penalty, is applied for each inversion of the permutation. To avoid
+    factorial complexity, a subproblem is solved at each step to determine
+    if the best score seen so far could be improved by considering the
+    next candidate. 
+
+    Attributes
+    ----------
+    alpha : double
+    beta : double
+    gamma : double
+    delta : double
+    rho : double
+    inv_penalty : double
+    word_scores : dict
+    """
     cdef:
         public str shortform
         public list penalties
