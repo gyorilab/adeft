@@ -569,22 +569,10 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
 
     Paramters
     ---------
-    x : C array of int
-        Contains nonnegative long ints for supersequence in which we seek
-        a subsequence match. May also contain the value -1 which corresponds to a
-        wildcard that matches any nonnegative int.
-
-    y : C array of int
-        Sequence we seek an optimal subsequence match of in x
-
-    prizes : C array of double
-        Must be the same length as x. Prize gained for matching an element
-        of y to the corresponding element of x
- : C array of double
-        Must the the same length as y. Penalty lost if the corresponding
-        element of y matches a wildcard.
-
-    results : struct opt_results
+    input_ : opt_input *
+    shortform : opt_shortform *
+    params : opt_params *
+    results : opt_results *
         opt_results structure to where output is to be placed
     """
     cdef:
