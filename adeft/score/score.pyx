@@ -7,7 +7,7 @@ from adeft.score.permutations cimport permuter, make_permuter, \
     free_permuter, update_permuter
 
 
-cdef class LongformScorer:
+cdef class AdeftLongformScorer:
     cdef:
         public str shortform
         public list penalties

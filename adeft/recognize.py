@@ -7,8 +7,8 @@ import logging
 
 from nltk.stem.snowball import EnglishStemmer
 
-from adeft.score import LongformScorer
 from adeft.nlp import tokenize, untokenize
+from adeft.score import AdeftLongformScorer
 from adeft.util import get_candidate_fragments, get_candidate
 
 
@@ -20,8 +20,21 @@ _stemmer = EnglishStemmer()
 class BaseRecognizer(object):
     """Base class for recognizers
 
-    Recognizers are built to identify longform expansions based on defining
-    patterns
+    Recognizers are built to identify longform expansions for a shortform by
+    searching for defining patterns (DPs).
+
+    Parameters
+    ----------
+    shortform : str
+        shortform to be recognized
+    window : Optional[int]
+        Specifies range of characters before a defining pattern (DP)
+        to consider when finding longforms. Should be set to the same value
+        that was used in the AdeftMiner that was used to find longforms.
+        Default: 100
+    exclude : Optional[set]
+        set of tokens to ignore when searching for longforms.
+        Default: None
     """
     def __init__(self, shortform, window=100, exclude=None):
         self.shortform = shortform
@@ -32,7 +45,21 @@ class BaseRecognizer(object):
             self.exclude = exclude
 
     def recognize(self, text):
-        groundings = set()
+        """Find longforms in text by searching for defining patterns (DPs)
+
+        Parameters
+        ----------
+        text : str
+            Sentence where we seek to disambiguate shortform
+
+        Returns
+        -------
+        expansions : set of str
+            Set of longforms corresponding to shortform in sentence if a
+            defining pattern is matched. Returns None if no defining patterns
+            are found
+        """
+        expansions = set()
         fragments = get_candidate_fragments(text, self.shortform,
                                             window=self.window)
         for fragment in fragments:
@@ -43,9 +70,9 @@ class BaseRecognizer(object):
             longform = self._search(tokens)
             # if a longform is recognized, add it to output list
             if longform:
-                grounding = self._post_process(longform)
-                groundings.add(grounding)
-        return groundings
+                expansion = self._post_process(longform)
+                expansions.add(expansion)
+        return expansions
 
     def strip_defining_patterns(self, text):
         """Return text with defining patterns stripped
@@ -100,9 +127,18 @@ class BaseRecognizer(object):
         return stripped_text
 
     def _search(self, tokens):
+        """Method to identify longform expansion from tokens preceeding DP
+
+        This method should take a list of tokens preceeding a defining pattern
+        and return a longform expansion as a single string
+        """
         raise NotImplementedError
 
     def _post_process(self, text):
+        """Post-processing step for longform expansion
+
+        Default to no post-processing
+        """
         return text
 
 
@@ -184,21 +220,19 @@ class AdeftRecognizer(BaseRecognizer):
         return root
 
     def _search(self, tokens):
-        """Return longform from maximal candidate preceding shortform
+        """Find longform expansion based on grounding map
 
         Parameters
         ----------
-        tokens : tuple of str
+        tokens : list of str
             contains tokens that precede the occurence of the pattern
             "<longform> (<shortform>)" up until the start of the containing
-            sentence or an excluded word is reached. Tokens must appear in
-            reverse order.
+            sentence or an excluded word is reached.
 
         Returns
         -------
         str
-            Agent ID corresponding to associated longform in the concept map
-            if one exists, otherwise None.
+            Identified longform expansion
         """
         current = self._trie
         for token in tuple(_stemmer.stem(token) for token in tokens[::-1]):
@@ -210,14 +244,33 @@ class AdeftRecognizer(BaseRecognizer):
                 return current.children[token].longform
 
     def _post_process(self, longform):
+        """Map longform associated grounding in grounding map"""
         return self.grounding_map[longform]
 
 
 class StringRecognizer(BaseRecognizer):
+    """Identify longform expansions using subsequence matching
+
+    Parameters
+    ----------
+    shortform : str
+        shortform to be recognized
+    window : Optional[int]
+        Specifies range of characters before a defining pattern (DP)
+        to consider when finding longforms. Should be set to the same value
+        that was used in the AdeftMiner that was used to find longforms.
+        Default: 100
+    exclude : Optional[set]
+        set of tokens to ignore when searching for longforms.
+        Default: None
+    **params
+        Parameters for :py:class`adeft.score.AdeftLongformScorer`
+    """
     def __init__(self, shortform, window=100, exclude=None, **params):
-        self.scorer = LongformScorer(shortform, **params)
+        self.scorer = AdeftLongformScorer(shortform, **params)
         super().__init__(shortform, window, exclude)
 
     def _search(self, tokens):
+        """Use AdeftLongformScorer to identify expansions"""
         result = self.scorer.score(tokens)
         return result[0]
