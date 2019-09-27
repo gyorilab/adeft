@@ -7,6 +7,7 @@ import logging
 
 from nltk.stem.snowball import EnglishStemmer
 
+from adeft.score import LongformScorer
 from adeft.nlp import tokenize, untokenize
 from adeft.util import get_candidate_fragments, get_candidate
 
@@ -17,6 +18,11 @@ _stemmer = EnglishStemmer()
 
 
 class BaseRecognizer(object):
+    """Base class for recognizers
+
+    Recognizers are built to identify longform expansions based on defining
+    patterns
+    """
     def __init__(self, shortform, window=100, exclude=None):
         self.shortform = shortform
         self.window = window
@@ -34,8 +40,7 @@ class BaseRecognizer(object):
                 continue
             tokens = get_candidate(fragment, self.exclude)
             # search for longform in trie
-            longform = self._search(tuple(_stemmer.stem(token)
-                                          for token in tokens[::-1]))
+            longform = self._search(tokens)
             # if a longform is recognized, add it to output list
             if longform:
                 grounding = self._post_process(longform)
@@ -68,9 +73,8 @@ class BaseRecognizer(object):
         for fragment in fragments:
             # Each fragment is tokenized and its longform is identified
             tokens = tokenize(fragment)
-            longform = self._search(tuple(_stemmer.stem(token)
-                                          for token, _ in tokens[::-1]
-                                          if token not in string.punctuation))
+            longform = self._search([token for token, _ in tokens
+                                     if token not in string.punctuation])
             if longform is None:
                 # For now, ignore a fragment if its grounding has no longform
                 # from the grounding map
@@ -99,7 +103,7 @@ class BaseRecognizer(object):
         raise NotImplementedError
 
     def _post_process(self, text):
-        raise NotImplementedError
+        return text
 
 
 class _TrieNode(object):
@@ -197,7 +201,7 @@ class AdeftRecognizer(BaseRecognizer):
             if one exists, otherwise None.
         """
         current = self._trie
-        for token in tokens:
+        for token in tuple(_stemmer.stem(token) for token in tokens[::-1]):
             if token not in current.children:
                 break
             if current.children[token].longform is None:
@@ -207,3 +211,13 @@ class AdeftRecognizer(BaseRecognizer):
 
     def _post_process(self, longform):
         return self.grounding_map[longform]
+
+
+class StringRecognizer(BaseRecognizer):
+    def __init__(self, shortform, window=100, exclude=None, **params):
+        self.scorer = LongformScorer(shortform, **params)
+        super().__init__(shortform, window, exclude)
+
+    def _search(self, tokens):
+        result = self.scorer.score(tokens)
+        return result[0]
