@@ -40,6 +40,7 @@ class BaseRecognizer(object):
             if longform:
                 grounding = self._post_process(longform)
                 groundings.add(grounding)
+        return groundings
 
     def strip_defining_patterns(self, text):
         """Return text with defining patterns stripped
