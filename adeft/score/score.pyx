@@ -113,7 +113,8 @@ cdef class LongformScorer:
                 j += 1
             else:
                 W = W_array[j-1] if j > 0 else 0.0
-                current_score *= (W/(W + 1))**(1 - self.rho)
+                w = self.get_word_score(candidates[n-i-1])
+                current_score *= (W/(W + w))**(1 - self.rho)
             results += (current_candidate, current_score)
             if current_score > best_score:
                 best_score = current_score
