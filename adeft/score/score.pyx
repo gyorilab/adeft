@@ -130,6 +130,7 @@ cdef class LongformScorer:
             double_array *best_char_scores
             double_array *previous_word_scores
             list scores, encoded_candidates, prizes, word_prizes, W_array
+            tuple out
             candidates_array *candidates_c
             opt_results *results
             opt_results *probe_results
@@ -187,14 +188,14 @@ cdef class LongformScorer:
                 best_score = current_score
                 for j in range(self.len_shortform):
                     best_char_scores.array[j] = results.char_scores[j]
-        
+        out = self.get_score_results(candidates, scores,
+                                     [candidates_c.W_array[i]
+                                      for i in range(candidates_c.length)])
         free_double_array(best_char_scores)
         free_opt_results(probe_results)
         free_opt_results(results)
         free_candidates_array(candidates_c)
-        return self.get_score_results(candidates, scores,
-                                      [candidates_c.W_array[i]
-                                       for i in range(candidates_c.length)])
+        return out
 
 
 cdef double opt_selection(double_array *word_prizes, int k):
