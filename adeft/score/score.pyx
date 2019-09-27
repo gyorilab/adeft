@@ -670,4 +670,3 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
     PyMem_Free(score_lookup)
     PyMem_Free(word_use)
     PyMem_Free(pointers)
-
