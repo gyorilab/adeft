@@ -1,1 +1,1 @@
-from .score import LongformScorer
+from .score import AdeftLongformScorer
