@@ -421,7 +421,6 @@ cdef void probe(int_array *next_token, double_array *char_scores,
     cdef:
         int i, j, input_size
         opt_input *input_
-        opt_results *result
         opt_params *params
         opt_shortform *shortform
     # First initalize the probe
@@ -453,7 +452,7 @@ cdef void probe(int_array *next_token, double_array *char_scores,
     input_.word_prizes.array[0] = 0
     input_.word_boundaries[0] = j - 1
     input_.W = 1
-    optimize(input_, shortform, params, result)
+    optimize(input_, shortform, params, probe_results)
     free_opt_input(input_)
     free_opt_params(params)
     free_opt_shortform(shortform)
