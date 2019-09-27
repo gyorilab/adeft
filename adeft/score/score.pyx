@@ -40,12 +40,42 @@ cdef class AdeftLongformScorer:
     Attributes
     ----------
     alpha : double
+        Real value in [0, 1]
+        Within a token, the initial character has prize 1.0. Prizes for
+        succeeding characters decay exponentially at rate alpha.
+        Default: 0.5
     beta : double
+        Real value in (0, 1]
+        Character prizes are increased if previous characters within a token
+        have already been matched to a character in the shortform. Character
+        prize is divided by beta**(num_previous_matches). For useful results,
+        make sure beta >= alpha
+        Default: 0.4
     gamma : double
+        Real value in [0, 1]
+        Penalty for not matching first character in shortform
+        Default: 0.55
     delta : double
+        Real value in [0, 1]
+        Penalties for additional characters in shortform decay exponentially
+        at rate delta
+        Default: 0.9
     rho : double
+        Real value in [0, 1]
+        Weighting for character based scoring vs token based scoring. Larger
+        values of rho correspond to more importance being given to character
+        matching
+        Default: 0.6
     inv_penalty : double
+        Multiplicative penalty for number of inversions in permutation of
+        tokens If trying a match with a permution P of the tokens in a
+        candidate, multiply score by inv_penalty**inv where inv is the number
+        of inversions in P
+        Default: 0.9
     word_scores : dict
+        Scores associated to each token. Higher scores correspond to a higher
+        penalty for not being included in a match with the shortform. The
+        scores for words not in the word_scores dictionary default to 1
     """
     cdef:
         public str shortform
