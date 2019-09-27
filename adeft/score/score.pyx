@@ -493,7 +493,7 @@ cdef void stitch(candidates_array *candidates, int *permutation,
 @boundscheck(False)
 @wraparound(False)
 cdef void optimize(opt_input *input_, opt_shortform *shortform,
-                    opt_params *params, opt_results *output):
+                   opt_params *params, opt_results *output):
     """Subsequence match optimization algorithm for longform scoring
 
     Uses a dynamic programming algorithm to find optimal instance of
