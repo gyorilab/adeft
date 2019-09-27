@@ -61,8 +61,8 @@ def test_init():
 def test_search():
     """Test that searching for a longform in the trie works correctly"""
     rec = AdeftRecognizer('ER', grounding_map)
-    example = ('room', 'emerg', 'non', 'of', 'type', 'some',
-               'reduc', 'program', 'hmo', 'mandatori', ',', 'women', 'for')
+    example = ['for', 'women', ',', 'mandatory', 'hmo', 'programs', 'reduce',
+               'some', 'types', 'of', 'non', 'emergency', 'room']
     assert rec._search(example) == 'emergency room'
 
 
