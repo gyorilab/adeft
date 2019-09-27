@@ -400,7 +400,6 @@ cdef void perm_search(candidates_array *candidates,
     while perms.m != 0:
         update_permuter(perms)
         stitch(candidates, perms.P, n, current)
-        perm = [perms.P[i] for i in range(n)]
         optimize(current, shortform, params, results)
         current_score = results.score * cpow(inv_penalty,
                                              perms.inversions)
