@@ -17,6 +17,7 @@ cdef class LongformScorer:
         dict char_map
         opt_shortform *shortform_c
         opt_params *params_c
+
     def __init__(self, shortform, penalties=None, alpha=0.5, beta=0.55,
                  gamma=0.4, delta=0.9, rho=0.6, inv_penalty=0.9,
                  word_scores=None):
@@ -220,7 +221,6 @@ cdef double opt_selection(double_array *word_prizes, int k):
     for i in range(k):
         output += word_prizes.array[i]
     return output
-                
 
 
 cdef opt_results *make_opt_results(int len_y):
@@ -302,8 +302,8 @@ cdef void free_candidates_array(candidates_array *candidates):
     cdef:
         int i, j
     for i in range(candidates.length):
-         free_int_array(candidates.array[i])
-         free_double_array(candidates.prizes[i])
+        free_int_array(candidates.array[i])
+        free_double_array(candidates.prizes[i])
     PyMem_Free(candidates.word_prizes)
     PyMem_Free(candidates.W_array)
     PyMem_Free(candidates.prizes)
@@ -584,8 +584,8 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
                 word_score = word_scores[i-1][j-1] + w
                 possibility2 = (cpow(char_score/m, params.rho) *
                                 cpow(word_score/input_.W, (1-params.rho)))
-                if (score_lookup[i-1][j-1] > -1e19 and 
-                    possibility2 > possibility1):
+                if score_lookup[i-1][j-1] > -1e19 and \
+                   possibility2 > possibility1:
                     score_lookup[i][j] = possibility2
                     char_scores[i][j] = char_score
                     word_scores[i][j] = word_score
@@ -612,8 +612,8 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
                 word_score = word_scores[i-1][j-1]
                 possibility2 = (cpow(char_score/m, params.rho) *
                                 cpow(word_score/input_.W, 1-params.rho))
-                if (score_lookup[i-1][j-1] > -1e19 and
-                    possibility2 > possibility1):
+                if score_lookup[i-1][j-1] > -1e19 and \
+                   possibility2 > possibility1:
                     score_lookup[i][j] = possibility2
                     char_scores[i][j] = char_score
                     word_scores[i][j] = word_score
