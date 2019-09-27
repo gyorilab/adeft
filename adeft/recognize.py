@@ -200,10 +200,10 @@ class AdeftRecognizer(BaseRecognizer):
         for token in tokens:
             if token not in current.children:
                 break
-            if current.children[token].longform is not None:
-                return current.children[token].longform
-            else:
+            if current.children[token].longform is None:
                 current = current.children[token]
+            else:
+                return current.children[token].longform
 
     def _post_process(self, longform):
         return self.grounding_map[longform]
