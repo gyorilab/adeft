@@ -95,7 +95,7 @@ cdef class AdeftLongformScorer:
         opt_params *params_c
 
     def __init__(self, shortform, penalties=None, alpha=0.5, beta=0.55,
-                 gamma=0.4, delta=0.9, rho=0.6, inv_penalty=0.9,
+                 gamma=1.0, delta=0.8, rho=0.6, inv_penalty=0.95,
                  word_scores=None):
         self.shortform = shortform.lower()
         self.len_shortform = len(shortform)
