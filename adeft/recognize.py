@@ -254,7 +254,7 @@ class OneShotRecognizer(BaseRecognizer):
     Uses a string matching algorithm to determine longform boundaries
     for a defining pattern for only a single text.
 
-    Parameters
+    Attributes
     ----------
     shortform : str
         shortform to be recognized
