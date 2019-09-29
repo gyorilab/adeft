@@ -12,7 +12,7 @@ cdef class AdeftLongformScorer:
 
     Searches for shortform as a subsequence of the longform. Each character
     in the longform has an associated prize if it is included in a match. Each
-    character in the shortform has a penalty if it is not included. 
+    character in the shortform has a penalty if it is not included.
     Character prizes and penalties are controlled by four parameters, alpha,
     beta, gamma, and delta, described below. Longform expansions are judged not
     only as sequences of characters, but also as sequences of tokens. Penalties
@@ -27,7 +27,7 @@ cdef class AdeftLongformScorer:
 
     The algorithm considers candidate longforms one at a time, working right
     to left from the defining pattern (DP). In the previous sentence the
-    longforms 'pattern', 'defining pattern', 'the defining pattern', 
+    longforms 'pattern', 'defining pattern', 'the defining pattern',
     'from the defining pattern'... would be considered in succession. Given
     a candidate, all permutations of its tokens are considered as potential
     matches to the shortform. This allows the algorithm to identify cases
@@ -35,7 +35,7 @@ cdef class AdeftLongformScorer:
     inv_penalty, is applied for each inversion of the permutation. To avoid
     factorial complexity, a subproblem is solved at each step to determine
     if the best score seen so far could be improved by considering the
-    next candidate. 
+    next candidate.
 
     Attributes
     ----------
@@ -61,7 +61,7 @@ cdef class AdeftLongformScorer:
     gamma : double
         Real value in [0, 1]
         Penalty for not matching first character in shortform
-        Default: 0.55
+        Default: 1.0
     delta : double
         Real value in [0, 1]
         Penalties for additional characters in shortform decay exponentially
@@ -94,8 +94,8 @@ cdef class AdeftLongformScorer:
         opt_shortform *shortform_c
         opt_params *params_c
 
-    def __init__(self, shortform, penalties=None, alpha=0.5, beta=0.55,
-                 gamma=1.0, delta=0.8, rho=0.6, inv_penalty=0.95,
+    def __init__(self, shortform, penalties=None, alpha=0.2, beta=0.25,
+                 gamma=1.0, delta=0.8, rho=0.7, inv_penalty=0.95,
                  word_scores=None):
         self.shortform = shortform.lower()
         self.len_shortform = len(shortform)
