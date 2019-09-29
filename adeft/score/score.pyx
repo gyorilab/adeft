@@ -39,6 +39,13 @@ cdef class AdeftLongformScorer:
 
     Attributes
     ----------
+    shortform : str
+        Shortform for which longforms are sought
+    penalties : list of double
+        Penalties for characters in the shortform that are not matched.
+        If None, then penalties are calculated based on the parameters
+        gamma and delta.
+        Default: None
     alpha : double
         Real value in [0, 1]
         Within a token, the initial character has prize 1.0. Prizes for
