@@ -31,7 +31,7 @@ cdef struct opt_input:
 
 
 cdef struct opt_params:
-    double beta, rho
+    double beta, lambda_
 
 
 cdef struct opt_shortform:
@@ -61,7 +61,7 @@ cdef void free_candidates_array(candidates_array *candidates)
 cdef opt_input *make_opt_input(int n, int num_words)
 cdef void free_opt_input(opt_input *input_)
 
-cdef opt_params *make_opt_params(double beta, double rho)
+cdef opt_params *make_opt_params(double beta, double lambda_)
 cdef void free_opt_params(opt_params *params)
 
 cdef opt_shortform *create_shortform(list encoded_shortform,

@@ -21,7 +21,7 @@ cdef class AdeftLongformScorer:
 
     A character based score and a token based score are each normalized to
     range within [0, 1] and combined using a weighted geometric mean with
-    weight rho attached to the character based score and weight 1 - rho
+    weight lambda_ attached to the character based score and weight 1 - lambda_
     attached to the token based score. A dynamic programming algorithm is
     used to solve the core optimization problem.
 
@@ -32,7 +32,7 @@ cdef class AdeftLongformScorer:
     a candidate, all permutations of its tokens are considered as potential
     matches to the shortform. This allows the algorithm to identify cases
     such as beta-2 adrenergic receptor (ADRB2). A multiplicative penalty,
-    inv_penalty, is applied for each inversion of the permutation. To avoid
+    rho, is applied for each inversion of the permutation. To avoid
     factorial complexity, a subproblem is solved at each step to determine
     if the best score seen so far could be improved by considering the
     next candidate.
@@ -67,16 +67,16 @@ cdef class AdeftLongformScorer:
         Penalties for additional characters in shortform decay exponentially
         at rate delta
         Default: 0.9
-    rho : double
+    lambda_ : double
         Real value in [0, 1]
         Weighting for character based scoring vs token based scoring. Larger
-        values of rho correspond to more importance being given to character
-        matching
-        Default: 0.6
-    inv_penalty : double
+        values of lambda_ correspond to more importance being given to
+        character matching
+        Default: 0.7
+    rho : double
         Multiplicative penalty for number of inversions in permutation of
         tokens If trying a match with a permution P of the tokens in a
-        candidate, multiply score by inv_penalty**inv where inv is the number
+        candidate, multiply score by rho**inv where inv is the number
         of inversions in P
         Default: 0.9
     word_scores : dict
@@ -87,15 +87,15 @@ cdef class AdeftLongformScorer:
     cdef:
         public str shortform
         public list penalties
-        public double alpha, beta, gamma, delta, rho, inv_penalty
+        public double alpha, beta, gamma, delta, lambda_, rho
         public dict word_scores
         int len_shortform
         dict char_map
         opt_shortform *shortform_c
         opt_params *params_c
 
-    def __init__(self, shortform, penalties=None, alpha=0.2, beta=0.25,
-                 gamma=1.0, delta=0.8, rho=0.7, inv_penalty=0.95,
+    def __init__(self, shortform, penalties=None, alpha=0.4, beta=0.4,
+                 gamma=1.0, delta=0.8, lambda_=0.65, rho=0.8,
                  word_scores=None):
         self.shortform = shortform.lower()
         self.len_shortform = len(shortform)
@@ -103,9 +103,9 @@ cdef class AdeftLongformScorer:
         self.beta = beta
         self.gamma = gamma
         self.delta = delta
-        self.inv_penalty = inv_penalty
         self.rho = rho
-        self.params_c = make_opt_params(beta, rho)
+        self.lambda_ = lambda_
+        self.params_c = make_opt_params(beta, lambda_)
         # Encode shortform chars as integers and build map for encoding
         # longform candidates
         self.char_map = {}
@@ -123,7 +123,7 @@ cdef class AdeftLongformScorer:
                               for i in range(self.len_shortform)]
         self.shortform_c = create_shortform(encoded_shortform,
                                             self.penalties)
-        self.params_c = make_opt_params(beta, rho)
+        self.params_c = make_opt_params(beta, lambda_)
         if word_scores is None:
             self.word_scores = {word: 0.2 for word in stopwords}
         else:
@@ -190,7 +190,7 @@ cdef class AdeftLongformScorer:
             else:
                 W = W_array[j-1] if j > 0 else 0.0
                 w = self.get_word_score(candidates[n-i-1])
-                current_score *= (W/(W + w))**(1 - self.rho)
+                current_score *= (W/(W + w))**(1 - self.lambda_)
             results += (current_candidate, current_score)
             if current_score > best_score:
                 best_score = current_score
@@ -250,14 +250,14 @@ cdef class AdeftLongformScorer:
             W = candidates_c.W_array[i-1]
             w = candidates_c.word_prizes[n-i]
             ub_word_scores = (w + ub_word_scores)/W
-            upper_bound = (cpow(ub_char_scores, self.params_c.rho) *
-                           cpow(ub_word_scores, 1-self.params_c.rho))
+            upper_bound = (cpow(ub_char_scores, self.params_c.lambda_) *
+                           cpow(ub_word_scores, 1-self.params_c.lambda_))
             if upper_bound < best_score:
                 scores[i-1] = scores[i-2]*(W - w)/W
                 continue
             perm_search(candidates_c, self.shortform_c,
                         self.params_c,
-                        self.inv_penalty, i, results)
+                        self.rho, i, results)
             current_score = results.score
             scores[i-1] = results.score
             if current_score >= best_score:
@@ -405,11 +405,11 @@ cdef void free_opt_input(opt_input *input_):
     PyMem_Free(input_)
 
 
-cdef opt_params *make_opt_params(double beta, double rho):
+cdef opt_params *make_opt_params(double beta, double lambda_):
     cdef opt_params *params
     params = <opt_params *> PyMem_Malloc(sizeof(opt_params))
     params.beta = beta
-    params.rho = rho
+    params.lambda_ = lambda_
     return params
 
 
@@ -447,16 +447,15 @@ cdef void free_opt_shortform(opt_shortform *shortform):
 cdef void perm_search(candidates_array *candidates,
                       opt_shortform *shortform,
                       opt_params *params,
-                      float inv_penalty,
+                      float rho,
                       int n,
                       opt_results *output):
     cdef:
-        int input_size, i
-        double current_score
+        int input_size, i,
+        double current_score, inv_penalty, max_inversions
         permuter *perms
         opt_input *current
         opt_results *results
-
     results = make_opt_results(shortform.y.length)
     total_length = candidates.cum_lengths[n - 1]
     if shortform.y.length > total_length + 1:
@@ -464,6 +463,7 @@ cdef void perm_search(candidates_array *candidates,
     else:
         input_size = 2*total_length + 1
     current = make_opt_input(input_size, n)
+    max_inversions = (n**2 - n)/2
     perms = make_permuter(n)
     stitch(candidates, perms.P, n, current)
     optimize(current, shortform, params, results)
@@ -474,8 +474,8 @@ cdef void perm_search(candidates_array *candidates,
         update_permuter(perms)
         stitch(candidates, perms.P, n, current)
         optimize(current, shortform, params, results)
-        current_score = results.score * cpow(inv_penalty,
-                                             perms.inversions)
+        inv_penalty = 1 - (1 - rho)*perms.inversions/max_inversions
+        current_score = results.score * inv_penalty
         if current_score > output.score:
             output.score = current_score
             for i in range(shortform.y.length):
@@ -642,8 +642,8 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
                 if char_score < 0.0:
                     char_score = 0.0
                 word_score = word_scores[i-1][j-1] + w
-                possibility2 = (cpow(char_score/m, params.rho) *
-                                cpow(word_score/input_.W, (1-params.rho)))
+                possibility2 = (cpow(char_score/m, params.lambda_) *
+                                cpow(word_score/input_.W, (1-params.lambda_)))
                 if score_lookup[i-1][j-1] > -1e19 and \
                    possibility2 > possibility1:
                     score_lookup[i][j] = possibility2
@@ -670,8 +670,8 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
                 if char_score < 0.0:
                     char_score = 0.0
                 word_score = word_scores[i-1][j-1]
-                possibility2 = (cpow(char_score/m, params.rho) *
-                                cpow(word_score/input_.W, 1-params.rho))
+                possibility2 = (cpow(char_score/m, params.lambda_) *
+                                cpow(word_score/input_.W, 1-params.lambda_))
                 if score_lookup[i-1][j-1] > -1e19 and \
                    possibility2 > possibility1:
                     score_lookup[i][j] = possibility2
