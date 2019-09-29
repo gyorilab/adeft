@@ -1,7 +1,7 @@
 from nltk.stem.snowball import EnglishStemmer
 
 from adeft.nlp import tokenize
-from adeft.recognize import AdeftRecognizer
+from adeft.recognize import AdeftRecognizer, OneShotRecognizer
 
 _stemmer = EnglishStemmer()
 
@@ -100,3 +100,30 @@ def test_strip_defining_patterns():
     null_case = 'Newly developed extended release (ER) medications'
     null_result = 'Newly developed extended release ER medications'
     assert rec.strip_defining_patterns(null_case) == null_result
+
+
+def test_one_shot_recognizer():
+    example6 = ('A number of studies have assessed the relationship between'
+                ' beta-2 adrenergic receptor (ADRB2) gene polymorphisms'
+                ' and asthma risk', 'beta 2 adrenergic receptor', 'ADRB2')
+    example7 = ('Mutation PRECEPT and Regulon Precept, which use Bayesian'
+                ' statistics to characterize predictors of cellular phenotypes'
+                ' to guide therapeutic strategies (PRECEPTS)',
+                'predictors of cellular phenotypes to guide therapeutic'
+                ' strategies', 'PRECEPTS')
+    example8 = ('This is a test sentence for the OneShotRecognizer class'
+                ' of Acromine based Disambiguation of Entities from Text'
+                ' (ADEFT)',
+                'acromine based disambiguation of entities from text',
+                'ADEFT')
+    example9 = ('Hormones as diverse as adiponectin (ADP) and thromboxane'
+                ' (TXA2) are mentioned in this sentence.', 'adiponectin',
+                'ADP')
+    example10 = ('There are few acronyms as difficult as thromboxane (TXA2)',
+                 'thromboxane', 'TXA2')
+    for text, result, shortform in [example6, example7, example8, example9,
+                                    example10]:
+        rec = OneShotRecognizer(shortform)
+        longform_set = rec.recognize(text)
+        print(longform_set, result)
+        # assert longform_set.pop() == result
