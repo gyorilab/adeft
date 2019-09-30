@@ -536,6 +536,7 @@ cdef void stitch(candidates_array *candidates, int *permutation,
             result.x.array[j+1] = -1
             j += 2
         result.word_boundaries[i] = j - 1
+        result.word_prizes.array[i] = candidates.word_prizes[n-len_perm+p]
     while j < result.x.length:
         result.x.array[j] = -1
         j += 1
