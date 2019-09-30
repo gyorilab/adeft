@@ -10,12 +10,11 @@ cdef struct double_array:
     
 cdef struct opt_results:
     double score
-    double *char_scores
+    double *char_prizes
 
     
 cdef struct candidates_array:
     int_array **array
-    double_array **prizes
     double *word_prizes
     double *W_array
     int *cum_lengths
@@ -24,14 +23,13 @@ cdef struct candidates_array:
 
 cdef struct opt_input:
     int_array *x
-    double_array *prizes
     unsigned int *word_boundaries
     double_array *word_prizes
     double W
 
 
 cdef struct opt_params:
-    double beta, lambda_
+    double alpha, beta, gamma, lambda_
 
 
 cdef struct opt_shortform:
@@ -53,7 +51,6 @@ cdef double_array *make_double_array(int length)
 cdef void free_double_array(double_array *x)
 
 cdef candidates_array *make_candidates_array(list encoded_candidates,
-                                             list prizes,
                                              list word_prizes,
                                              list W)
 cdef void free_candidates_array(candidates_array *candidates)
@@ -61,7 +58,8 @@ cdef void free_candidates_array(candidates_array *candidates)
 cdef opt_input *make_opt_input(int n, int num_words)
 cdef void free_opt_input(opt_input *input_)
 
-cdef opt_params *make_opt_params(double beta, double lambda_)
+cdef opt_params *make_opt_params(double alpha, double beta,
+                                 double gamma, double lambda_)
 cdef void free_opt_params(opt_params *params)
 
 cdef opt_shortform *create_shortform(list encoded_shortform,

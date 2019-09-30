@@ -15,19 +15,17 @@ cdef class StitchTestCase:
     """Test construction of candidates array and stitching"""
     cdef:
         list candidates, prizes, word_prizes
-        list permutation, result_x, result_prizes, result_word_prizes
+        list permutation, result_x, result_word_prizes
         list result_word_boundaries, W_array
-    def __init__(self, candidates=None, prizes=None, word_prizes=None,
+    def __init__(self, candidates=None, word_prizes=None,
                  permutation=None, W_array=None,
                  result_x=None, result_prizes=None, result_word_prizes=None,
                  result_word_boundaries=None):
         self.candidates = candidates
-        self.prizes = prizes
         self.word_prizes = word_prizes
         self.W_array = W_array
         self.permutation = permutation
         self.result_x = result_x
-        self.result_prizes = result_prizes
         self.result_word_prizes = result_word_prizes
         self.result_word_boundaries = result_word_boundaries
 
@@ -38,7 +36,6 @@ cdef class StitchTestCase:
             candidates_array *candidates
 
         candidates = make_candidates_array(self.candidates,
-                                           self.prizes,
                                            self.word_prizes,
                                            self.W_array)
         n = len(self.permutation)
@@ -48,11 +45,10 @@ cdef class StitchTestCase:
         total_length = candidates.cum_lengths[n - 1]
         input_ = make_opt_input(2*total_length + 1, n)
         stitch(candidates, perm.array, n, input_)
-        x, p, wp, wb = [], [], [], []
+        x, wp, wb = [], [], []
         length = input_.x.length
         for i in range(length):
             x.append(input_.x.array[i])
-            p.append(input_.prizes.array[i])
         for j in range(input_.word_prizes.length):
             wp.append(input_.word_prizes.array[j])
             wb.append(input_.word_boundaries[j])
@@ -60,30 +56,31 @@ cdef class StitchTestCase:
         free_opt_input(input_)
         free_int_array(perm)
         assert x == self.result_x
-        assert p == self.result_prizes
         assert wp == self.result_word_prizes
         assert wb == self.result_word_boundaries
 
 
 cdef class PermSearchTestCase:
     cdef:
-        list shortform, candidates, prizes, penalties, word_prizes
+        list shortform, candidates, penalties, word_prizes
         list word_penalties
-        double beta, rho, inv_penalty, result_score
+        double alpha, beta, gamma, lambda_, rho, result_score
         int len_perm
-    def __init__(self, shortform=None, candidates=None, prizes=None,
+    def __init__(self, shortform=None, candidates=None,
                  penalties=None, word_prizes=None, word_penalties=None,
-                 beta=None, rho=None, inv_penalty=None, len_perm=None,
+                 alpha=None, beta=None, gamma=None, lambda_=None, rho=None,
+                 len_perm=None,
                  result_score=None):
         self.shortform = shortform
         self.candidates = candidates
-        self.prizes = prizes
         self.penalties = penalties
         self.word_prizes = word_prizes
         self.word_penalties = word_penalties
+        self.alpha = alpha
         self.beta = beta
+        self.gamma = gamma
+        self.lambda_ = lambda_
         self.rho = rho
-        self.inv_penalty = inv_penalty
         self.len_perm = len_perm
         self.result_score = result_score
 
@@ -93,36 +90,37 @@ cdef class PermSearchTestCase:
             opt_shortform *shortform
             opt_params *params
             opt_results *results
-        candidates = make_candidates_array(self.candidates, self.prizes,
+        candidates = make_candidates_array(self.candidates,
                                            self.word_prizes,
                                            self.word_penalties)
         shortform = create_shortform(self.shortform, self.penalties)
-        params = make_opt_params(self.beta, self.rho)
+        params = make_opt_params(self.alpha, self.beta, self.gamma,
+                                 self.lambda_)
         results = make_opt_results(len(self.shortform))
-        perm_search(candidates, shortform, params, self.inv_penalty,
+        perm_search(candidates, shortform, params, self.rho,
                     self.len_perm, results)
         assert abs(results.score - self.result_score) < 1e-7
 
 
 cdef class OptimizationTestCase:
     cdef:
-        list x, y, prizes, penalties, word_boundaries, word_prizes
+        list x, y, penalties, word_boundaries, word_prizes
         list result_char_scores
-        double beta, rho, C, W, result_score
+        double alpha, beta, gamma, lambda_, C, W, result_score
         int n, m, num_words
-    def __init__(self, x=None, y=None,
-                 prizes=None, penalties=None,
-                 word_boundaries=None, word_prizes=None, beta=None,
-                 rho=None, W=None, result_score=None,
-                 result_char_scores=None):
+    def __init__(self, x=None, y=None, penalties=None,
+                 word_boundaries=None, word_prizes=None, alpha=None,
+                 beta=None, gamma=None, lambda_=None, W=None,
+                 result_score=None, result_char_scores=None):
         self.x = x
         self.y = y
-        self.prizes = prizes
         self.penalties = penalties
         self.word_boundaries = word_boundaries
         self.word_prizes = word_prizes
+        self.alpha = alpha
         self.beta = beta
-        self.rho = rho
+        self.gamma = gamma
+        self.lambda_ = lambda_
         self.W = W
         self.n = len(x)
         self.m = len(y)
@@ -131,7 +129,6 @@ cdef class OptimizationTestCase:
         self.result_char_scores = result_char_scores
 
     def check_assertions(self):
-        assert len(self.prizes) == self.n
         assert len(self.penalties) == self.m
         assert len(self.word_prizes) == self.num_words
         assert self.word_boundaries[-1] == len(self.x) - 1
@@ -146,13 +143,13 @@ cdef class OptimizationTestCase:
 
         input_ = make_opt_input(self.n, self.num_words)
         shortform = create_shortform(self.y, self.penalties)
-        params = make_opt_params(self.beta, self.rho)
+        params = make_opt_params(self.alpha, self.beta, self.gamma,
+                                 self.lambda_)
         output = make_opt_results(self.m)
 
         input_.W = self.W
         for i in range(self.n):
             input_.x.array[i] = self.x[i]
-            input_.prizes.array[i] = self.prizes[i]
         for i in range(self.num_words):
             input_.word_boundaries[i] = self.word_boundaries[i]
             input_.word_prizes.array[i] = self.word_prizes[i]
@@ -162,7 +159,7 @@ cdef class OptimizationTestCase:
 
         optimize(input_, shortform, params, output)
         score = output.score
-        cs = output.char_scores
+        cs = output.char_prizes
         char_scores = []
         for i in range(self.m):
             char_scores.append(cs[i])
