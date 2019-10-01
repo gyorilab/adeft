@@ -566,7 +566,7 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
     cdef:
         unsigned int n = input_.x.length
         unsigned int m = shortform.y.length
-        double possibility1, possibility2, word_score, char_score, w
+        double possibility1, possibility2, word_score, char_score, c, w
         double first_capture, prize
         unsigned int i, j, k, h, first_capture_index
 
@@ -631,9 +631,11 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
                     prize /= cpow(params.gamma, word_use[i-1][j-1] - 1)
                 char_score += prize
                 if char_score < 0.0:
-                    char_score = 0.0
+                    c = 0.0
+                else:
+                    c = char_score
                 word_score = word_scores[i-1][j-1] + w
-                possibility2 = (cpow(char_score/m, params.lambda_) *
+                possibility2 = (cpow(c/m, params.lambda_) *
                                 cpow(word_score/input_.W, (1-params.lambda_)))
                 if score_lookup[i-1][j-1] > -1e19 and \
                    possibility2 > possibility1:
@@ -643,7 +645,6 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
                     char_prizes[i][j] = prize
                     word_use[i][j] = word_use[i-1][j-1] + 1
                     pointers[i-1][j-1] = 1
-
                 else:
                     score_lookup[i][j] = possibility1
                     char_scores[i][j] = char_scores[i-1][j]
@@ -651,7 +652,6 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
                     word_use[i][j] = word_use[i-1][j]
                     pointers[i-1][j-1] = 0
                 # update position in current word
-                h += 1
             # Case where element of x in current position is a wildcard.
             # May either accept or reject this match
             elif input_.x.array[i-1] == -1:
@@ -663,9 +663,11 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
                 # Take min with zero to ensure char_score doesn't become
                 # negative
                 if char_score < 0.0:
-                    char_score = 0.0
+                    c = 0
+                else:
+                    c = char_score
                 word_score = word_scores[i-1][j-1]
-                possibility2 = (cpow(char_score/m, params.lambda_) *
+                possibility2 = (cpow(c/m, params.lambda_) *
                                 cpow(word_score/input_.W, 1-params.lambda_))
                 if score_lookup[i-1][j-1] > -1e19 and \
                    possibility2 > possibility1:
@@ -690,12 +692,13 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
                 word_use[i][j] = word_use[i-1][j]
                 pointers[i-1][j-1] = 0
                 # Update position in current word
-                h += 1
             # Reset word_use to zero when word_boundary is passed
             if i == input_.word_boundaries[k] + 1:
                 word_use[i][j] = 0
         # Increment number of words used when boundary is passed
         # Also reset position in current word
+        if input_.x.array[i-1] != -1:
+            h += 1
         if i == input_.word_boundaries[k] + 1:
             k += 1
             h = 0
@@ -711,9 +714,9 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
     i, j, k = n, m, 0
     while j > 0:
         if pointers[i - 1][j - 1]:
+            output.char_prizes[m-k-1] = char_prizes[i][j]
             i -= 1
             j -= 1
-            output.char_prizes[m-k-1] = char_prizes[i][j]
             k += 1
         else:
             i -= 1
