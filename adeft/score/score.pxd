@@ -15,6 +15,7 @@ cdef struct opt_results:
     
 cdef struct candidates_array:
     int_array **array
+    int_array **indices
     double *word_prizes
     double *W_array
     int *cum_lengths
@@ -23,6 +24,7 @@ cdef struct candidates_array:
 
 cdef struct opt_input:
     int_array *x
+    int_array *indices
     unsigned int *word_boundaries
     double_array *word_prizes
     double W
@@ -51,6 +53,7 @@ cdef double_array *make_double_array(int length)
 cdef void free_double_array(double_array *x)
 
 cdef candidates_array *make_candidates_array(list encoded_candidates,
+                                             list indices,
                                              list word_prizes,
                                              list W)
 cdef void free_candidates_array(candidates_array *candidates)

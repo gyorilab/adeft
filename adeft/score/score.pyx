@@ -94,8 +94,8 @@ cdef class AdeftLongformScorer:
         opt_shortform *shortform_c
         opt_params *params_c
 
-    def __init__(self, shortform, penalties=None, alpha=0.5, beta=0.9,
-                 gamma=0.95, delta=0.4, epsilon=0.8, lambda_=0.65, rho=0.8,
+    def __init__(self, shortform, penalties=None, alpha=0.2, beta=0.9,
+                 gamma=0.95, delta=1.0, epsilon=0.4, lambda_=0.72, rho=0.95,
                  word_scores=None):
         self.shortform = shortform.lower()
         self.len_shortform = len(shortform)
@@ -140,20 +140,25 @@ cdef class AdeftLongformScorer:
         cdef:
             double word_score
             str token
-            list encoded_candidates, coded, word_prizes, W
+            list encoded_candidates, indices, encoded_token
+            list token_indices, word_prizes, W
             int n, i, j
         encoded_candidates = []
+        indices = []
         word_prizes = []
         n = len(candidates)
         for i in range(n):
-            coded = []
+            encoded_token = []
+            token_indices = []
             token = candidates[i].lower()
             m = len(token)
             for j in range(m):
                 if token[j] in self.char_map:
-                    coded.append(self.char_map[token[j]])
-            if coded:
-                encoded_candidates.append(coded)
+                    encoded_token.append(self.char_map[token[j]])
+                    token_indices.append(j)
+            if encoded_token:
+                encoded_candidates.append(encoded_token)
+                indices.append(token_indices)
                 word_score = self.get_word_score(token)
                 word_prizes.append(word_score)
         if not encoded_candidates:
@@ -161,7 +166,7 @@ cdef class AdeftLongformScorer:
         W = [word_prizes[-1]]
         for i in range(1, len(word_prizes)):
             W.append(W[i-1] + word_prizes[-i])
-        return (encoded_candidates, word_prizes, W)
+        return (encoded_candidates, indices, word_prizes, W)
 
     cdef tuple get_score_results(self,
                                  list candidates,
@@ -201,19 +206,20 @@ cdef class AdeftLongformScorer:
             double ub_word_scores
             double_array *best_char_scores
             double_array *previous_word_scores
-            list scores, encoded_candidates, word_prizes, W_array
+            list scores, encoded_candidates, indices, word_prizes, W_array
             tuple out
             candidates_array *candidates_c
             opt_results *results
             opt_results *probe_results
         results = make_opt_results(self.len_shortform)
         probe_results = make_opt_results(self.len_shortform)
-        encoded_candidates, word_prizes, W_array = \
+        encoded_candidates, indices, word_prizes, W_array = \
             self.process_candidates(candidates)
         if not encoded_candidates:
             return self.get_score_results(candidates, [0.0]*len(candidates),
                                           [0.0]*len(candidates))
         candidates_c = make_candidates_array(encoded_candidates,
+                                             indices,
                                              word_prizes,
                                              W_array)
         n = candidates_c.length
@@ -224,7 +230,8 @@ cdef class AdeftLongformScorer:
             best_char_scores.array[i] = -1e20
         for i in range(1, n + 1):
             ub_char_scores = 0.0
-            probe(candidates_c.array[n - i], self.shortform_c.y,
+            probe(candidates_c.array[n - i], candidates_c.indices[n - i],
+                  self.shortform_c.y,
                   self.params_c.alpha, self.params_c.beta, self.params_c.gamma,
                   probe_results)
             for j in range(self.len_shortform):
@@ -337,6 +344,7 @@ cdef void free_double_array(double_array *x):
 
 
 cdef candidates_array *make_candidates_array(list encoded_candidates,
+                                             list indices,
                                              list word_prizes,
                                              list W):
     cdef:
@@ -345,6 +353,8 @@ cdef candidates_array *make_candidates_array(list encoded_candidates,
     n = len(encoded_candidates)
     candidates = <candidates_array *> PyMem_Malloc(sizeof(candidates_array))
     candidates.array = <int_array **> PyMem_Malloc(n * sizeof(int_array*))
+    candidates.indices = <int_array **> \
+        PyMem_Malloc(n * sizeof(double_array*))
     candidates.word_prizes = <double *> PyMem_Malloc(n * sizeof(double))
     candidates.cum_lengths = <int *> PyMem_Malloc(n * sizeof(int))
     candidates.W_array = <double *> PyMem_Malloc(n * sizeof(double))
@@ -354,12 +364,14 @@ cdef candidates_array *make_candidates_array(list encoded_candidates,
         m1 = len(encoded_candidates[i])
         m2 = len(encoded_candidates[n-i-1])
         candidates.array[i] = make_int_array(m1)
+        candidates.indices[i] = make_int_array(m1)
         cum_length += m2
         candidates.cum_lengths[i] = cum_length
         candidates.word_prizes[i] = word_prizes[i]
         candidates.W_array[i] = W[i]
         for j in range(m1):
             candidates.array[i].array[j] = encoded_candidates[i][j]
+            candidates.indices[i].array[j] = indices[i][j]
     return candidates
 
 
@@ -368,9 +380,11 @@ cdef void free_candidates_array(candidates_array *candidates):
         int i, j
     for i in range(candidates.length):
         free_int_array(candidates.array[i])
+        free_int_array(candidates.indices[i])
     PyMem_Free(candidates.word_prizes)
     PyMem_Free(candidates.W_array)
     PyMem_Free(candidates.array)
+    PyMem_Free(candidates.indices)
     PyMem_Free(candidates.cum_lengths)
     PyMem_Free(candidates)
 
@@ -379,6 +393,7 @@ cdef opt_input *make_opt_input(int n, int num_words):
     cdef opt_input *input_
     input_ = <opt_input *> PyMem_Malloc(sizeof(opt_input))
     input_.x = make_int_array(n)
+    input_.indices = make_int_array(n)
     input_.word_boundaries = <unsigned int *> \
         PyMem_Malloc(num_words * sizeof(unsigned int))
     input_.word_prizes = make_double_array(num_words)
@@ -464,7 +479,7 @@ cdef void perm_search(candidates_array *candidates,
         update_permuter(perms)
         stitch(candidates, perms.P, n, current)
         optimize(current, shortform, params, results)
-        inv_penalty = 1 - (1 - rho)*perms.inversions/max_inversions
+        inv_penalty = cpow(rho, perms.inversions)
         current_score = results.score * inv_penalty
         if current_score > output.score:
             output.score = current_score
@@ -477,7 +492,7 @@ cdef void perm_search(candidates_array *candidates,
 
 @boundscheck(False)
 @wraparound(False)
-cdef void probe(int_array *next_token, int_array *y,
+cdef void probe(int_array *next_token, int_array *indices, int_array *y,
                 double alpha, double beta, double gamma,
                 opt_results *probe_results):
     cdef:
@@ -498,14 +513,18 @@ cdef void probe(int_array *next_token, int_array *y,
         shortform.y.array[i] = y.array[i]
         shortform.penalties.array[i] = 0.0
     input_.x.array[0] = -1
+    input_.indices.array[0] = -1
     i = 0
     j = 1
     for i in range(next_token.length):
         input_.x.array[j] = next_token.array[i]
+        input_.indices.array[j] = indices.array[i]
         input_.x.array[j+1] = -1
+        input_.indices.array[j+1] = -1
         j += 2
     while j < input_.x.length:
         input_.x.array[j] = -1
+        input_.indices.array[j] = -1
         j += 1
     input_.word_prizes.array[0] = 0
     input_.word_boundaries[0] = j - 1
@@ -524,6 +543,7 @@ cdef void stitch(candidates_array *candidates, int *permutation,
     n = candidates.length
     # stitched output begins with wildcard represented by -1
     result.x.array[0] = -1
+    result.indices.array[0] = -1
     i = 0
     j = 1
     for i in range(len_perm):
@@ -532,13 +552,17 @@ cdef void stitch(candidates_array *candidates, int *permutation,
         for k in range(current_length):
             result.x.array[j] = \
                 candidates.array[n-len_perm+p].array[k]
+            result.indices.array[j] = \
+                candidates.indices[n-len_perm+p].array[k]
             # insert wildcard after each element from input
             result.x.array[j+1] = -1
+            result.indices.array[j+1] = -1
             j += 2
         result.word_boundaries[i] = j - 1
         result.word_prizes.array[i] = candidates.word_prizes[n-len_perm+p]
     while j < result.x.length:
         result.x.array[j] = -1
+        result.indices.array[j] = -1
         j += 1
     result.W = candidates.W_array[len_perm - 1]
 
@@ -568,7 +592,7 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
         unsigned int m = shortform.y.length
         double possibility1, possibility2, word_score, char_score, c, w
         double first_capture, prize
-        unsigned int i, j, k, h, first_capture_index
+        unsigned int i, j, k, first_capture_index
 
     # Dynamic initialization of score_lookup array and traceback pointer
     # array
@@ -609,7 +633,8 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
             word_use[i][j] = 0
     # Main loop
     k = 0
-    h = 0
+    first_capture = 0
+    first_capture_index = -1
     for i in range(1, n+1):
         for j in range(1, m+1):
             # Case where element of x in current position matches
@@ -618,15 +643,16 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
             if input_.x.array[i-1] == shortform.y.array[j-1]:
                 if word_use[i-1][j-1] == 0:
                     w = input_.word_prizes.array[k]
-                    first_capture = params.alpha**h
-                    first_capture_index = h
+                    first_capture_index = input_.indices.array[i-1]
+                    first_capture = cpow(params.alpha, first_capture_index)
                 else:
                     w = 0
                 possibility1 = score_lookup[i-1][j]
                 # Calculate score if match is accepted
                 char_score = char_scores[i-1][j-1]
                 prize = first_capture
-                prize *= cpow(params.beta, h - first_capture_index)
+                prize *= cpow(params.beta,
+                              input_.indices.array[i-1] - first_capture_index)
                 if word_use[i-1][j-1] > 1:
                     prize /= cpow(params.gamma, word_use[i-1][j-1] - 1)
                 char_score += prize
@@ -697,11 +723,8 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
                 word_use[i][j] = 0
         # Increment number of words used when boundary is passed
         # Also reset position in current word
-        if input_.x.array[i-1] != -1:
-            h += 1
         if i == input_.word_boundaries[k] + 1:
             k += 1
-            h = 0
     # Optimal score is in bottom right corner of lookup array
     score = score_lookup[n][m]
     # Free the memory used by the lookup array

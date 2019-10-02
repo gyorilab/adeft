@@ -14,10 +14,11 @@ logger = logging.getLogger(__name__)
 cdef class StitchTestCase:
     """Test construction of candidates array and stitching"""
     cdef:
-        list candidates, prizes, word_prizes
+        list candidates, indices, word_prizes
         list permutation, result_x, result_word_prizes
         list result_word_boundaries, W_array
-    def __init__(self, candidates=None, word_prizes=None,
+    def __init__(self, candidates=None, indices=None,
+                 word_prizes=None,
                  permutation=None, W_array=None,
                  result_x=None, result_prizes=None, result_word_prizes=None,
                  result_word_boundaries=None):
@@ -36,6 +37,7 @@ cdef class StitchTestCase:
             candidates_array *candidates
 
         candidates = make_candidates_array(self.candidates,
+                                           self.indices,
                                            self.word_prizes,
                                            self.W_array)
         n = len(self.permutation)
@@ -62,11 +64,11 @@ cdef class StitchTestCase:
 
 cdef class PermSearchTestCase:
     cdef:
-        list shortform, candidates, penalties, word_prizes
+        list shortform, candidates, indices, penalties, word_prizes
         list word_penalties
         double alpha, beta, gamma, lambda_, rho, result_score
         int len_perm
-    def __init__(self, shortform=None, candidates=None,
+    def __init__(self, shortform=None, candidates=None, indices=None,
                  penalties=None, word_prizes=None, word_penalties=None,
                  alpha=None, beta=None, gamma=None, lambda_=None, rho=None,
                  len_perm=None,
@@ -91,6 +93,7 @@ cdef class PermSearchTestCase:
             opt_params *params
             opt_results *results
         candidates = make_candidates_array(self.candidates,
+                                           self.indices,
                                            self.word_prizes,
                                            self.word_penalties)
         shortform = create_shortform(self.shortform, self.penalties)
@@ -104,16 +107,17 @@ cdef class PermSearchTestCase:
 
 cdef class OptimizationTestCase:
     cdef:
-        list x, y, penalties, word_boundaries, word_prizes
+        list x, y, indices, penalties, word_boundaries, word_prizes
         list result_char_scores
         double alpha, beta, gamma, lambda_, C, W, result_score
         int n, m, num_words
-    def __init__(self, x=None, y=None, penalties=None,
+    def __init__(self, x=None, y=None, indices=None, penalties=None,
                  word_boundaries=None, word_prizes=None, alpha=None,
                  beta=None, gamma=None, lambda_=None, W=None,
                  result_score=None, result_char_scores=None):
         self.x = x
         self.y = y
+        self.indices = indices
         self.penalties = penalties
         self.word_boundaries = word_boundaries
         self.word_prizes = word_prizes
@@ -150,6 +154,7 @@ cdef class OptimizationTestCase:
         input_.W = self.W
         for i in range(self.n):
             input_.x.array[i] = self.x[i]
+            input_.indices.array[i] = self.indices[i]
         for i in range(self.num_words):
             input_.word_boundaries[i] = self.word_boundaries[i]
             input_.word_prizes.array[i] = self.word_prizes[i]
