@@ -179,5 +179,5 @@ cdef class OptimizationTestCase:
         free_opt_input(input_)
         assert abs(score - self.result_score) < 1e-7
         assert all([abs(expected - observed) < 1e-7
-                   for observed, expected in
-                   zip(char_scores, self.result_char_scores)])
+                    for observed, expected in
+                    zip(char_scores, self.result_char_scores)])
