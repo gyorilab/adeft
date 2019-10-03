@@ -200,7 +200,7 @@ cdef class AdeftLongformScorer:
             overlapping with the shortform. For the above example this will be
             [1.0, 1.0, 1.0] if 'appear', 'defining', and 'pattern' do not
             appear in self.word_scores
-        W : list of double
+        W_array : list of double
             The kth element contains the sum of all prizes for the last k+1
             tokens in candidates, regardless of whether they have a character
             in common with the shortform. These are used for calculating word
@@ -212,7 +212,7 @@ cdef class AdeftLongformScorer:
             double word_score
             str token
             list encoded_candidates, indices, encoded_token
-            list token_indices, word_prizes, W
+            list token_indices, word_prizes, W_array
             int n, i, j
         encoded_candidates = []
         indices = []
@@ -234,36 +234,75 @@ cdef class AdeftLongformScorer:
                 word_prizes.append(word_score)
         if not encoded_candidates:
             return ([], [], [], [])
-        W = [word_prizes[-1]]
+        W_array = [word_prizes[-1]]
         for i in range(1, len(word_prizes)):
-            W.append(W[i-1] + word_prizes[-i])
-        return (encoded_candidates, indices, word_prizes, W)
+            W_array.append(W[i-1] + word_prizes[-i])
+        return (encoded_candidates, indices, word_prizes, W_array)
 
     cdef tuple get_score_results(self,
                                  list candidates,
                                  list scores,
                                  list W_array):
-        """Produce useable output for longform scorer
+        """Produce output from raw optimization results
+
+        This function is needed because tokens that do not have a character
+        in common with the shortform are not considered when solving the
+        core optimization problem, but we still need to produce scores for
+        these candidates.
+
+        Parameters
+        ----------
+        candidates : list of str
+            List of tokens preceding defining pattern
+        scores : list of double
+            List of scores for tokens in candidates that have a character in
+            common with the shortform
+        W_array : list of double
+            Same as W_array in self.process_candidates
+
+        Returns
+        -------
+        best_candidate : str
+            Highest scoring longform candidate
+        best_score : double
+            Score associated to best_candidate
+        results : list of tuple
+            longform candidate, score pairs for each longform candidate
         """
-        n = len(candidates)
-        i = j = 0
         shortform_chars = set(self.shortform)
         results = []
         best_score = -1.0
         current_score = 0.0
         current_candidates_list = []
         best_candidate = ''
+        # i indexes into the list of candidates
+        # j indexes into the list of scores for candidates with a
+        # character overlapping with the shortform
+        i = j = 0
+        # loop through candidates
+        n = len(candidates)
         while i < n:
+            # append elements to current candidate, working from right to
+            # left
             current_candidates_list.append(candidates[n-i-1])
             current_candidate = ' '.join(current_candidates_list[::-1])
             if set(candidates[n-i-1]) & shortform_chars:
+                # Token overlaps with shortform, we already know the score
                 current_score = scores[j]
+                # since token overlaps with shortform, increment j
                 j += 1
             else:
+                # Token does not overlap with shortform. Calculate score
+                # from previous score, using known word_score for this
+                # additional token. Since there is no overlap, it could not
+                # have been captured.
                 W = W_array[j-1] if j > 0 else 0.0
                 w = self.get_word_score(candidates[n-i-1])
+                # Update step when adding an uncaptured token with prize w
                 current_score *= (W/(W + w))**(1 - self.lambda_)
+                # since no overlap, do not increment j
             results += (current_candidate, current_score)
+            # Check if current_candidate improves upon existing ones
             if current_score > best_score:
                 best_score = current_score
                 best_candidate = current_candidate
