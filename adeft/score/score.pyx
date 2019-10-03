@@ -384,16 +384,11 @@ cdef class AdeftLongformScorer:
             if upper_bound < best_score:
                 scores[i-1] = scores[i-2]*(W - w)/W
                 continue
-            if upper_bound * self.rho < best_score:
-                opt_search(candidates_c, self.shortform_c,
-                           self.params_c, self.rho,
-                           i, 0, 0, results)
-            else:
-                max_inversions = get_max_inversions(best_score, upper_bound,
-                                                    self.rho)
-                opt_search(candidates_c, self.shortform_c,
-                           self.params_c, self.rho,
-                           i, 1, max_inversions, results)
+            max_inversions = get_max_inversions(best_score, upper_bound,
+                                                self.rho)
+            opt_search(candidates_c, self.shortform_c,
+                       self.params_c, self.rho,
+                       i, max_inversions, results)
             current_score = results.score
             scores[i-1] = current_score
             if current_score >= best_score:
@@ -647,15 +642,15 @@ cdef void opt_search(candidates_array *candidates,
                      opt_params *params,
                      float rho,
                      int n,
-                     int permute,
                      int max_inversions,
                      opt_results *output):
     cdef:
         int input_size, i,
         double current_score, inv_penalty
-        permuter *perms
         opt_input *current
         opt_results *results
+        permuter *perms
+    perms = make_permuter(n)
     results = make_opt_results(shortform.y.length)
     total_length = candidates.cum_lengths[n - 1]
     if shortform.y.length > total_length + 1:
@@ -663,13 +658,12 @@ cdef void opt_search(candidates_array *candidates,
     else:
         input_size = 2*total_length + 1
     current = make_opt_input(input_size, n)
-    perms = make_permuter(n)
     stitch(candidates, perms.P, n, current)
     optimize(current, shortform, params, results)
     output.score = results.score
     for i in range(shortform.y.length):
         output.char_prizes[i] = results.char_prizes[i]
-    if permute:
+    if max_inversions >= 1:
         while perms.m != 0:
             update_permuter(perms)
             if perms.inversions > max_inversions:

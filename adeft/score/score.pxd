@@ -76,7 +76,6 @@ cdef void opt_search(candidates_array *candidates,
                      opt_params *params,
                      float inv_penalty,
                      int n,
-                     int permute,
                      int max_inversions,
                      opt_results *output)
 

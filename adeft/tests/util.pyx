@@ -101,7 +101,7 @@ cdef class PermSearchTestCase:
                                  self.lambda_)
         results = make_opt_results(len(self.shortform))
         opt_search(candidates, shortform, params, self.rho,
-                   self.len_perm, 1, 100, results)
+                   self.len_perm, 100, results)
         assert abs(results.score - self.result_score) < 1e-7
 
 
