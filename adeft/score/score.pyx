@@ -12,32 +12,45 @@ from adeft.score.permutations cimport permuter, make_permuter, \
 cdef class AdeftLongformScorer:
     """Scorer for longform expansions based on character matching
 
-    Searches for shortform as a subsequence of the longform. Each character
-    in the longform has an associated prize if it is included in a match. Each
-    character in the shortform has a penalty if it is not included.
-    Character prizes and penalties are controlled by four parameters, alpha,
-    beta, gamma, and delta, described below. Longform expansions are judged not
-    only as sequences of characters, but also as sequences of tokens. Penalties
-    can be given for tokens in a candidate longform that have no characters
-    matched with the given shortform.
+    Searches for shortform as a subsequence of the characters within
+    longform candidates. Longform candidates are given by sequences of tokens
+    preceding a defining pattern (DP). Prizes are given for characters matched
+    within the longform and penalties are given for characters in the
+    shortform that are not matched to any character in the longform. Prizes
+    within tokens are context dependent, depending on the pattern of previous
+    matches in the current token. The maximum character prize is 1.0. A 
+    character score is calculated by taking the sum of prizes for all
+    characters matched in the longform subtracted by the sum of penalties
+    for all characters in the shortform that are not matched and then dividing
+    by the length of the shortform. The character score is then the max of
+    this number and zero.
+    
+    Character prizes are controlled by three parameters, alpha, beta, and
+    gamma. Penalties for unmatched characters from the shortform are controlled
+    by the parameters delta, and epsilon. More information in the description
+    of parameters below.
 
-    A character based score and a token based score are each normalized to
-    range within [0, 1] and combined using a weighted geometric mean with
-    weight lambda_ attached to the character based score and weight 1 - lambda_
-    attached to the token based score. A dynamic programming algorithm is
-    used to solve the core optimization problem.
+    The algorithm considers candidate longforms one at a time, preceding
+    from right to left from the defining pattern (DP). Tokens that do not
+    contain any of the character from the shortform are ignored, since
+    they cannot contain a match. Each token has an associated score. If a
+    character is matched in a given token, we say that token has been
+    captured. A token score is calculated as the sum of scores for all
+    captured tokens divided by the sum of scores for all tokens. Tokens
+    that do not contain characters in the shortform are still included
+    when calculating the sum of all token scores. 
 
-    The algorithm considers candidate longforms one at a time, working right
-    to left from the defining pattern (DP). In the previous sentence the
-    longforms 'pattern', 'defining pattern', 'the defining pattern',
-    'from the defining pattern'... would be considered in succession. Given
-    a candidate, all permutations of its tokens are considered as potential
-    matches to the shortform. This allows the algorithm to identify cases
-    such as beta-2 adrenergic receptor (ADRB2). A multiplicative penalty,
-    rho, is applied for each inversion of the permutation. To avoid
-    factorial complexity, a subproblem is solved at each step to determine
-    if the best score seen so far could be improved by considering the
-    next candidate.
+    The character scores and token scores described above each fall between
+    0 and 1. The total score for a longform is given by a weighted geometric
+    mean of these two values, with the weight being controlled by a user
+    supplied parameter lambda_.
+
+    Given a candidate, all permutations of its tokens are considered as
+    potential matches to the shortform. This allows the algorithm to identify
+    cases such as beta-2 adrenergic receptor (ADRB2). A multiplicative penalty,
+    rho, is applied for each inversion of the permutation. A number of
+    optimizations and heuristics are performed that allow the algorithm to
+    efficiently despite the possibility of super-factorial complexity.
 
     Attributes
     ----------
