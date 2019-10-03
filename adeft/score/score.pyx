@@ -451,6 +451,11 @@ cdef double opt_selection(double_array *word_prizes, int k):
 
 
 cdef opt_results *make_opt_results(int len_y):
+    """Create opt_results data-structure
+
+    Contains the optimal score for optimization problem as well as prizes
+    or penalties associated to each character in the shortform
+    """
     cdef opt_results *results
     results = <opt_results *> PyMem_Malloc(sizeof(opt_results))
     results.char_prizes = <double *> PyMem_Malloc(len_y * sizeof(double))
@@ -458,12 +463,17 @@ cdef opt_results *make_opt_results(int len_y):
 
 
 cdef void free_opt_results(opt_results *results):
+    """Destroy opt_results data-structure"""
     PyMem_Free(results.char_prizes)
     PyMem_Free(results)
     return
 
 
 cdef int_array *make_int_array(int length):
+    """Create int_array data-structure
+    
+    An array of integers along with its length
+    """
     cdef int_array *output
     output = <int_array *> PyMem_Malloc(sizeof(int_array))
     output.array = <int *> PyMem_Malloc(length * sizeof(int))
@@ -472,12 +482,17 @@ cdef int_array *make_int_array(int length):
 
 
 cdef void free_int_array(int_array *x):
+    """Destroy int_array data-structure"""
     PyMem_Free(x.array)
     PyMem_Free(x)
     return
 
 
 cdef double_array *make_double_array(int length):
+    """Create double_array data-structure
+
+    An array of doubles along with its length
+    """
     cdef double_array *output
     output = <double_array *> PyMem_Malloc(sizeof(int_array))
     output.array = <double *> PyMem_Malloc(length * sizeof(double))
@@ -486,6 +501,7 @@ cdef double_array *make_double_array(int length):
 
 
 cdef void free_double_array(double_array *x):
+    """Destroy double_array data-structure"""
     PyMem_Free(x.array)
     PyMem_Free(x)
     return
@@ -495,6 +511,16 @@ cdef candidates_array *make_candidates_array(list encoded_candidates,
                                              list indices,
                                              list word_prizes,
                                              list W):
+    """Create candidates_array data-structure
+
+    This is the core data-structure that contains all information needed
+    to set up the core optimization problem. The list of encoded candidates
+    is stored as an array of arrays, as is the list of lists of indices.
+    Word prizes and the W_array described in the DocString for
+    AdeftLongformScorer.process_candidates are also stored. The number of
+    characters overlapping with the shortform in each candidate is also
+    stored.
+    """
     cdef:
         int i, j, num_candidates, m1,m2, n, cum_length
         candidates_array *candidates
@@ -524,6 +550,7 @@ cdef candidates_array *make_candidates_array(list encoded_candidates,
 
 
 cdef void free_candidates_array(candidates_array *candidates):
+    """"Destroy candidates array data-structure"""
     cdef:
         int i, j
     for i in range(candidates.length):
@@ -538,6 +565,11 @@ cdef void free_candidates_array(candidates_array *candidates):
 
 
 cdef opt_input *make_opt_input(int n, int num_words):
+    """Create opt_input data-structure
+
+    Stores information in longform candidate needed to set up
+    optimization problem
+    """
     cdef opt_input *input_
     input_ = <opt_input *> PyMem_Malloc(sizeof(opt_input))
     input_.x = make_int_array(n)
@@ -549,6 +581,7 @@ cdef opt_input *make_opt_input(int n, int num_words):
 
 
 cdef void free_opt_input(opt_input *input_):
+    """Destroy opt_input data-structure"""
     free_int_array(input_.x)
     PyMem_Free(input_.word_boundaries)
     PyMem_Free(input_.word_prizes)
@@ -557,6 +590,10 @@ cdef void free_opt_input(opt_input *input_):
 
 cdef opt_params *make_opt_params(double alpha, double beta,
                                  double gamma, double lambda_):
+    """Create opt_params data-structure
+
+    Stores scoring parameters
+    """
     cdef opt_params *params
     params = <opt_params *> PyMem_Malloc(sizeof(opt_params))
     params.alpha = alpha
@@ -567,10 +604,15 @@ cdef opt_params *make_opt_params(double alpha, double beta,
 
 
 cdef void free_opt_params(opt_params *params):
+    """Destroy opt_params data-structure"""
     PyMem_Free(params)
 
 
 cdef opt_shortform *make_opt_shortform(int m):
+    """Allocate opt_shortform data-structure
+
+    Stores information about shortform needed to set up optimization problem
+    """
     cdef opt_shortform *shortform
     shortform = <opt_shortform *> PyMem_Malloc(sizeof(opt_shortform))
     shortform.y = make_int_array(m)
@@ -580,6 +622,8 @@ cdef opt_shortform *make_opt_shortform(int m):
 
 cdef opt_shortform *create_shortform(list encoded_shortform,
                                      list penalties):
+    """Initialize opt_shortform data-structure
+    """
     cdef:
         opt_shortform *shortform
         int i = 0
@@ -592,6 +636,7 @@ cdef opt_shortform *create_shortform(list encoded_shortform,
 
 
 cdef void free_opt_shortform(opt_shortform *shortform):
+    """Destroy opt_shortform data-structure"""
     free_int_array(shortform.y)
     free_double_array(shortform.penalties)
     PyMem_Free(shortform)
