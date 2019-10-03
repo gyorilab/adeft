@@ -417,7 +417,7 @@ cdef double opt_selection(double_array *word_prizes, int k):
     for i in range(k):
         max_index = i
         max_value = word_prizes.array[i]
-        for j in range(i+i, word_prizes.length):
+        for j in range(i+1, word_prizes.length):
             if word_prizes.array[j] > max_value:
                 max_index = j
                 max_value = word_prizes.array[j]
