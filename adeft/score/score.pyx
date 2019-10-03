@@ -644,8 +644,22 @@ cdef void opt_search(candidates_array *candidates,
                      int n,
                      int max_inversions,
                      opt_results *output):
+    """Calculates score for all permutations of tokens in candidate longform
+
+    A multiplicate penalty rho is applied for each inversion in the permutation.
+    So if a permutation P of the tokens with k inversions has score S based on
+    the core optimization problem, the associated score for these tokens is
+    S*rho**k. The scoring algorithm calculates an upper bound for the score
+    that can be made by including the next token from right to left. Based on
+    this upper bound, the maximum number of inversions in a permutation P that
+    can still lead to an improvement in score can be calculated. If this number
+    is zero, does not permute at all. If it is one, only checks permutations
+    with one inversion. If it is greater than one, runs through all
+    permutations, but only solves the core optimization problem for
+    permutations with fewer than or equal to max_inversions inversions.
+    """
     cdef:
-        int input_size, i,
+        int input_size, i, j, temp
         double current_score, inv_penalty
         opt_input *current
         opt_results *results
@@ -663,7 +677,7 @@ cdef void opt_search(candidates_array *candidates,
     output.score = results.score
     for i in range(shortform.y.length):
         output.char_prizes[i] = results.char_prizes[i]
-    if max_inversions >= 1:
+    if max_inversions > 1:
         while perms.m != 0:
             update_permuter(perms)
             if perms.inversions > max_inversions:
@@ -702,6 +716,11 @@ cdef void opt_search(candidates_array *candidates,
 cdef void probe(int_array *next_token, int_array *indices, int_array *y,
                 double alpha, double beta, double gamma,
                 opt_results *probe_results):
+    """Sets up optimization problem to help decide whether test a candidate
+
+    Calculates best possible char scores that can be made obtained by
+    including the next token in an expanding sequence of candidates
+    """
     cdef:
         int i, j, input_size
         opt_input *input_
@@ -746,6 +765,10 @@ cdef void probe(int_array *next_token, int_array *indices, int_array *y,
 @wraparound(False)
 cdef void stitch(candidates_array *candidates, int *permutation,
                   int len_perm, opt_input *result):
+    """Stitch together information in candidates array into opt_input
+
+    Forms opt_input for a permutation of the tokens in a candidate
+    """
     cdef int i, j, k, current_length, n, p
     n = candidates.length
     # stitched output begins with wildcard represented by -1
@@ -784,7 +807,7 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
     y as a subsequence in x where elements of x each have a corresponding
     prize. Wildcard characters are allowed in x that match any element of y
     and penalties may be given for when an element of y matches a wildcard
-    instead of a regular element of x. Results are updated in place.
+    instead of a regular element of x.
 
     Paramters
     ---------
