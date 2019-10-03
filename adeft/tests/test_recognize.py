@@ -125,5 +125,4 @@ def test_one_shot_recognizer():
                                     example10]:
         rec = OneShotRecognizer(shortform)
         longform_set = rec.recognize(text)
-        print(longform_set, result)
-        # assert longform_set.pop() == result
+        assert longform_set.pop() == result
