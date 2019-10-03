@@ -674,8 +674,24 @@ cdef void opt_search(candidates_array *candidates,
             current_score = results.score * inv_penalty
             if current_score > output.score:
                 output.score = current_score
-                for i in range(shortform.y.length):
-                    output.char_prizes[i] = results.char_prizes[i]
+                for j in range(shortform.y.length):
+                    output.char_prizes[j] = results.char_prizes[j]
+    elif max_inversions == 1:
+        for i in range(n-2):
+            temp = perms.P[i]
+            perms.P[i] = perms.P[i+1]
+            perms.P[i+1] = temp
+            stitch(candidates, perms.P, n, current)
+            optimize(current, shortform, params, results)
+            inv_penalty = cpow(rho, perms.inversions)
+            current_score = results.score * inv_penalty
+            if current_score > output.score:
+                output.score = current_score
+                for j in range(shortform.y.length):
+                    output.char_prizes[j] = results.char_prizes[j]
+            temp = perms.P[i]
+            perms.P[i] = perms.P[i+1]
+            perms.P[i+1] = temp
     free_permuter(perms)
     free_opt_results(results)
     free_opt_input(current)
