@@ -162,12 +162,52 @@ cdef class AdeftLongformScorer:
             self.word_scores = word_scores
 
     cdef double get_word_score(self, str token):
+        """Calculate scores for tokens in longform"""
         if token in self.word_scores:
             return self.word_scores[token]
         else:
             return 1.0
 
     cdef tuple process_candidates(self, list candidates):
+        """Convert list of tokens to info needed to solve optimization problem
+
+        Parameters
+        ----------
+        candidates : list
+            List of tokens that appear in a defining pattern (DP)
+            ['that', 'appear', 'in', 'a', 'defining', 'pattern']
+        
+        Returns
+        -------
+        encoded_candidates : list of list
+            Characters in shortform are encoded with natural numbers
+            Each element of encoded_candidates corresponds to a token
+            in candidates that contains one of the characters in the
+            shortform. These elements contain the natural number encodings
+            for all characters in the token that are also in the shortform,
+            in the order in which the appear in the longform. For example,
+            in DP, D would be encoded as 0 and P as 1. The encoded_candidates
+            corresponding to ['that', 'appear', 'in', 'a', 'defining',
+                              'pattern']
+            are [[1, 1], [0], [1]].
+        indices : list of list
+            List of lists of the same shape as encoded_candidates. For each
+            token, the associated list contains the indices of the characters
+            in the token that are also in the shortform. The indices list for
+            the above example is [[1, 2], [0], [0]].
+        word_prizes : list
+            Token prizes for each token in candidates that contains a character
+            overlapping with the shortform. For the above example this will be
+            [1.0, 1.0, 1.0] if 'appear', 'defining', and 'pattern' do not
+            appear in self.word_scores
+        W : list of double
+            The kth element contains the sum of all prizes for the last k+1
+            tokens in candidates, regardless of whether they have a character
+            in common with the shortform. These are used for calculating word
+            scores for a match. The word score is the sum of prizes for all
+            captured tokens divided by the sum of all prizes for tokens in
+            a candidate.
+        """
         cdef:
             double word_score
             str token
