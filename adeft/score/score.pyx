@@ -236,7 +236,7 @@ cdef class AdeftLongformScorer:
             return ([], [], [], [])
         W_array = [word_prizes[-1]]
         for i in range(1, len(word_prizes)):
-            W_array.append(W[i-1] + word_prizes[-i])
+            W_array.append(W_array[i-1] + word_prizes[-i])
         return (encoded_candidates, indices, word_prizes, W_array)
 
     cdef tuple get_score_results(self,
