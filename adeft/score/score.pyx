@@ -111,7 +111,9 @@ cdef class AdeftLongformScorer:
     word_scores : dict
         Scores associated to each token. Higher scores correspond to a higher
         penalty for not being included in a match with the shortform. The
-        scores for words not in the word_scores dictionary default to 1
+        scores for words not in the word_scores dictionary default to 1.
+        If None, uses a dict assigning the value 0.2 to the stopwords in
+        adeft.nlp.stopwords
     """
     cdef:
         public str shortform
