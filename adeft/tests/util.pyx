@@ -14,19 +14,21 @@ logger = logging.getLogger(__name__)
 cdef class StitchTestCase:
     """Test construction of candidates array and stitching"""
     cdef:
-        list candidates, indices, word_prizes
-        list permutation, result_x, result_word_prizes
+        list candidates, indices, word_prizes,
+        list permutation, result_x, result_word_prizes, result_indices
         list result_word_boundaries, W_array
     def __init__(self, candidates=None, indices=None,
                  word_prizes=None,
                  permutation=None, W_array=None,
-                 result_x=None, result_prizes=None, result_word_prizes=None,
+                 result_x=None, result_indices=None, result_word_prizes=None,
                  result_word_boundaries=None):
         self.candidates = candidates
+        self.indices = indices
         self.word_prizes = word_prizes
         self.W_array = W_array
         self.permutation = permutation
         self.result_x = result_x
+        self.result_indices = result_indices
         self.result_word_prizes = result_word_prizes
         self.result_word_boundaries = result_word_boundaries
 
@@ -47,10 +49,11 @@ cdef class StitchTestCase:
         total_length = candidates.cum_lengths[n - 1]
         input_ = make_opt_input(2*total_length + 1, n)
         stitch(candidates, perm.array, n, input_)
-        x, wp, wb = [], [], []
+        x, ind, wp, wb = [], [], [], []
         length = input_.x.length
         for i in range(length):
             x.append(input_.x.array[i])
+            ind.append(input_.indices.array[i])
         for j in range(input_.word_prizes.length):
             wp.append(input_.word_prizes.array[j])
             wb.append(input_.word_boundaries[j])
@@ -58,6 +61,7 @@ cdef class StitchTestCase:
         free_opt_input(input_)
         free_int_array(perm)
         assert x == self.result_x
+        assert ind == self.result_indices
         assert wp == self.result_word_prizes
         assert wb == self.result_word_boundaries
 
@@ -75,6 +79,7 @@ cdef class PermSearchTestCase:
                  result_score=None):
         self.shortform = shortform
         self.candidates = candidates
+        self.indices = indices
         self.penalties = penalties
         self.word_prizes = word_prizes
         self.word_penalties = word_penalties
