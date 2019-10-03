@@ -117,10 +117,11 @@ def test_one_shot_recognizer():
                 'acromine based disambiguation of entities from text',
                 'ADEFT')
     example9 = ('Hormones as diverse as adiponectin (ADP) and thromboxane'
-                ' (TXA2) are mentioned in this sentence.', 'adiponectin',
+                'A2 (TXA2) are mentioned in this sentence.', 'adiponectin',
                 'ADP')
-    example10 = ('There are few acronyms as difficult as thromboxane (TXA2)',
-                 'thromboxane', 'TXA2')
+    example10 = ('Hormones as diverse as adiponectin (ADP) and thromboxane'
+                 ' A2 (TXA2) are mentioned in this sentence.',
+                 'thromboxane a2', 'TXA2')
     for text, result, shortform in [example6, example7, example8, example9,
                                     example10]:
         rec = OneShotRecognizer(shortform)
