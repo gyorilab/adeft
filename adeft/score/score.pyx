@@ -31,14 +31,10 @@ cdef class AdeftLongformScorer:
     of parameters below.
 
     The algorithm considers candidate longforms one at a time, preceding
-    from right to left from the defining pattern (DP). Tokens that do not
-    contain any of the character from the shortform are ignored, since
-    they cannot contain a match. Each token has an associated score. If a
-    character is matched in a given token, we say that token has been
-    captured. A token score is calculated as the sum of scores for all
-    captured tokens divided by the sum of scores for all tokens. Tokens
-    that do not contain characters in the shortform are still included
-    when calculating the sum of all token scores. 
+    from right to left from the defining pattern (DP). Each token has an
+    associated score. If a character is matched in a given token, we say that
+    token has been captured. A token score is calculated as the sum of scores
+    for all captured tokens divided by the sum of scores for all tokens.
 
     The character scores and token scores described above each fall between
     0 and 1. The total score for a longform is given by a weighted geometric
@@ -59,41 +55,59 @@ cdef class AdeftLongformScorer:
     penalties : list of double
         Penalties for characters in the shortform that are not matched.
         If None, then penalties are calculated based on the parameters
-        gamma and delta.
+        delta and epsilon
         Default: None
     alpha : double
         Real value in [0, 1]
-        Within a token, the initial character has prize 1.0. Prizes for
-        succeeding characters decay exponentially at rate alpha.
-        Default: 0.5
+        Controls prize for the first character within a token that is
+        matched to a character in the shortform. The prize for matching
+        the first character in a token is always 1.0. Prizes then decay
+        exponentially at rate alpha for additional characters in the token.
+        Captures the idea that most acronyms are based on the first characters
+        within the longform.
+        Default: 0.2
     beta : double
         Real value in (0, 1]
-        Character prizes are increased if previous characters within a token
-        have already been matched to a character in the shortform. Character
-        prize is divided by beta**(num_previous_matches). For useful results,
-        make sure beta >= alpha
-        Default: 0.4
+        Along with gamma, controls prizes for additional characters matched
+        within a token. Suppose a captured token T has its first match at
+        position i. The prize for this first match will be alpha**i. The
+        prize for the following character will then also be alpha**i and
+        prizes for additional characters will decay exponentially 
+        from there at rate beta. When additional matches are made,
+        the prizes for the additional characters are divided by a constant
+        gamma with 0 <= beta <= gamma <= 1. Thus decay is slowed for each
+        additional match. beta and gamma allow matches to longforms with
+        tokens containing multiple matching characters such as
+        adiponectin (ADP).
+        Default: 0.85
     gamma : double
         Real value in [0, 1]
-        Penalty for not matching first character in shortform
-        Default: 1.0
+        Along with beta, controls prizes for additional characters matched
+        within a token. See the description for the parameter beta. For the
+        algorithm to work, we must have gamma > beta.
+        Default: 0.9
     delta : double
         Real value in [0, 1]
-        Penalties for additional characters in shortform decay exponentially
-        at rate delta
-        Default: 0.9
+        If no explicit penalties are given for shortform characters, the
+        penalty for the first character in the shortform will have value
+        delta.
+        Default: 1.0
+    epsilon : double
+        Real value in [0, 1]
+        Penalties for additional characters in the shortform decay
+        exponentially at rate epsilon
     lambda_ : double
         Real value in [0, 1]
         Weighting for character based scoring vs token based scoring. Larger
         values of lambda_ correspond to more importance being given to
         character matching
-        Default: 0.7
+        Default: 0.6
     rho : double
         Multiplicative penalty for number of inversions in permutation of
         tokens If trying a match with a permution P of the tokens in a
         candidate, multiply score by rho**inv where inv is the number
         of inversions in P
-        Default: 0.9
+        Default: 0.95
     word_scores : dict
         Scores associated to each token. Higher scores correspond to a higher
         penalty for not being included in a match with the shortform. The
