@@ -1,4 +1,6 @@
 from libc.math cimport pow as cpow
+cdef extern from 'limits.h':
+    int INT_MAX
 from cython cimport boundscheck, wraparound
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
@@ -94,8 +96,8 @@ cdef class AdeftLongformScorer:
         opt_shortform *shortform_c
         opt_params *params_c
 
-    def __init__(self, shortform, penalties=None, alpha=0.2, beta=0.9,
-                 gamma=0.95, delta=1.0, epsilon=0.4, lambda_=0.72, rho=0.95,
+    def __init__(self, shortform, penalties=None, alpha=0.2, beta=0.85,
+                 gamma=0.9, delta=1.0, epsilon=0.4, lambda_=0.6, rho=0.95,
                  word_scores=None):
         self.shortform = shortform.lower()
         self.len_shortform = len(shortform)
@@ -201,7 +203,7 @@ cdef class AdeftLongformScorer:
 
     def score(self, candidates):
         cdef:
-            int i, j, k, n
+            int i, j, k, n, max_inversions
             double current_score, best_score, w, W, ub_char_scores
             double ub_word_scores
             double_array *best_char_scores
@@ -237,7 +239,7 @@ cdef class AdeftLongformScorer:
             for j in range(self.len_shortform):
                 if probe_results.char_prizes[j] > best_char_scores.array[j]:
                     ub_char_scores += probe_results.char_prizes[j]
-                else:
+                elif best_char_scores.array[j] > 0:
                     ub_char_scores += best_char_scores.array[j]
             if i > 1:
                 previous_word_scores = make_double_array(i)
@@ -258,11 +260,18 @@ cdef class AdeftLongformScorer:
             if upper_bound < best_score:
                 scores[i-1] = scores[i-2]*(W - w)/W
                 continue
-            perm_search(candidates_c, self.shortform_c,
-                        self.params_c,
-                        self.rho, i, results)
+            if upper_bound * self.rho < best_score:
+                opt_search(candidates_c, self.shortform_c,
+                           self.params_c, self.rho,
+                           i, 0, 0, results)
+            else:
+                max_inversions = get_max_inversions(best_score, upper_bound,
+                                                    self.rho)
+                opt_search(candidates_c, self.shortform_c,
+                           self.params_c, self.rho,
+                           i, 1, max_inversions, results)
             current_score = results.score
-            scores[i-1] = results.score
+            scores[i-1] = current_score
             if current_score >= best_score:
                 best_score = current_score
                 for j in range(self.len_shortform):
@@ -277,24 +286,35 @@ cdef class AdeftLongformScorer:
         return out
 
 
+cdef inline int get_max_inversions(double best_score,
+                                   double upper_bound,
+                                   double rho):
+    cdef int k = 0
+    if best_score <= 0.0:
+        return INT_MAX
+    while best_score <= upper_bound * cpow(rho, k):
+        k += 1
+    return k - 1
+
+
 cdef double opt_selection(double_array *word_prizes, int k):
     cdef:
-        int min_index, i, j
-        double min_value, temp, output
+        int max_index, i, j
+        double max_value, temp, output
     if k >= word_prizes.length:
         output = 0.0
         for i in range(word_prizes.length):
             output += word_prizes.array[i]
         return output
     for i in range(k):
-        min_index = i
-        min_value = word_prizes.array[i]
+        max_index = i
+        max_value = word_prizes.array[i]
         for j in range(i+i, word_prizes.length):
-            if word_prizes.array[j] < min_value:
-                min_index = j
-                min_value = word_prizes.array[j]
-                temp = word_prizes.array[min_index]
-                word_prizes.array[min_index] = word_prizes.array[i]
+            if word_prizes.array[j] > max_value:
+                max_index = j
+                max_value = word_prizes.array[j]
+                temp = word_prizes.array[max_index]
+                word_prizes.array[max_index] = word_prizes.array[i]
                 word_prizes.array[i] = temp
     output = 0.0
     for i in range(k):
@@ -449,15 +469,17 @@ cdef void free_opt_shortform(opt_shortform *shortform):
     PyMem_Free(shortform)
 
 
-cdef void perm_search(candidates_array *candidates,
-                      opt_shortform *shortform,
-                      opt_params *params,
-                      float rho,
-                      int n,
-                      opt_results *output):
+cdef void opt_search(candidates_array *candidates,
+                     opt_shortform *shortform,
+                     opt_params *params,
+                     float rho,
+                     int n,
+                     int permute,
+                     int max_inversions,
+                     opt_results *output):
     cdef:
         int input_size, i,
-        double current_score, inv_penalty, max_inversions
+        double current_score, inv_penalty
         permuter *perms
         opt_input *current
         opt_results *results
@@ -468,23 +490,25 @@ cdef void perm_search(candidates_array *candidates,
     else:
         input_size = 2*total_length + 1
     current = make_opt_input(input_size, n)
-    max_inversions = (n**2 - n)/2
     perms = make_permuter(n)
     stitch(candidates, perms.P, n, current)
     optimize(current, shortform, params, results)
     output.score = results.score
     for i in range(shortform.y.length):
         output.char_prizes[i] = results.char_prizes[i]
-    while perms.m != 0:
-        update_permuter(perms)
-        stitch(candidates, perms.P, n, current)
-        optimize(current, shortform, params, results)
-        inv_penalty = cpow(rho, perms.inversions)
-        current_score = results.score * inv_penalty
-        if current_score > output.score:
-            output.score = current_score
-            for i in range(shortform.y.length):
-                output.char_prizes[i] = results.char_prizes[i]
+    if permute:
+        while perms.m != 0:
+            update_permuter(perms)
+            if perms.inversions > max_inversions:
+                continue
+            stitch(candidates, perms.P, n, current)
+            optimize(current, shortform, params, results)
+            inv_penalty = cpow(rho, perms.inversions)
+            current_score = results.score * inv_penalty
+            if current_score > output.score:
+                output.score = current_score
+                for i in range(shortform.y.length):
+                    output.char_prizes[i] = results.char_prizes[i]
     free_permuter(perms)
     free_opt_results(results)
     free_opt_input(current)

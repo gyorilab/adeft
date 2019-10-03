@@ -6,7 +6,7 @@ from adeft.score.score cimport make_int_array, free_int_array, \
     make_opt_results, free_opt_results, make_opt_input, free_opt_input, \
     make_opt_params, free_opt_params, create_shortform, free_opt_shortform, \
     make_candidates_array, free_candidates_array
-from adeft.score.score cimport optimize, stitch, perm_search
+from adeft.score.score cimport optimize, stitch, opt_search
 
 logger = logging.getLogger(__name__)
 
@@ -100,8 +100,8 @@ cdef class PermSearchTestCase:
         params = make_opt_params(self.alpha, self.beta, self.gamma,
                                  self.lambda_)
         results = make_opt_results(len(self.shortform))
-        perm_search(candidates, shortform, params, self.rho,
-                    self.len_perm, results)
+        opt_search(candidates, shortform, params, self.rho,
+                   self.len_perm, 1, 100, results)
         assert abs(results.score - self.result_score) < 1e-7
 
 
