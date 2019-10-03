@@ -25,7 +25,7 @@ cdef struct candidates_array:
 cdef struct opt_input:
     int_array *x
     int_array *indices
-    unsigned int *word_boundaries
+    int *word_boundaries
     double_array *word_prizes
     double W
 

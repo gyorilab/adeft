@@ -569,8 +569,8 @@ cdef opt_input *make_opt_input(int n, int num_words):
     input_ = <opt_input *> PyMem_Malloc(sizeof(opt_input))
     input_.x = make_int_array(n)
     input_.indices = make_int_array(n)
-    input_.word_boundaries = <unsigned int *> \
-        PyMem_Malloc(num_words * sizeof(unsigned int))
+    input_.word_boundaries = <int *> \
+        PyMem_Malloc(num_words * sizeof(int))
     input_.word_prizes = make_double_array(num_words)
     return input_
 
@@ -818,11 +818,11 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
         opt_results structure to where output is to be placed
     """
     cdef:
-        unsigned int n = input_.x.length
-        unsigned int m = shortform.y.length
+        int n = input_.x.length
+        int m = shortform.y.length
         double possibility1, possibility2, word_score, char_score, c, w
         double first_capture, prize
-        unsigned int i, j, k, first_capture_index
+        int i, j, k, current_fci
 
     # Dynamic initialization of score_lookup array and traceback pointer
     # array
@@ -836,6 +836,8 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
         double **word_scores = (<double **>
                                 PyMem_Malloc((n+1) * sizeof(double *)))
         int **word_use = <int **> PyMem_Malloc((n+1) * sizeof(int *))
+        int **first_capture_index = <int **> \
+            PyMem_Malloc((n+1) * sizeof(int *))
         int **pointers = <int **> PyMem_Malloc(n * sizeof(int *))
     for i in range(n+1):
         score_lookup[i] = <double *> PyMem_Malloc((m+1) * sizeof(double))
@@ -843,6 +845,7 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
         char_prizes[i] = <double *> PyMem_Malloc((m+1) * sizeof(double))
         word_scores[i] = <double *> PyMem_Malloc((m+1) * sizeof(double))
         word_use[i] = <int *> PyMem_Malloc((m+1) * sizeof(int))
+        first_capture_index[i] = <int *> PyMem_Malloc((m+1) * sizeof(int))
         if i != n:
             pointers[i] = <int *> PyMem_Malloc(m * sizeof(int))
     # Initialize lookup array
@@ -850,21 +853,23 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
     char_scores[0][0] = 0
     word_scores[0][0] = 0
     word_use[0][0] = 0
+    first_capture_index[0][0] = -1
     for j in range(1, m+1):
         score_lookup[0][j] = -1e20
         char_scores[0][j] = 0
         word_scores[0][j] = 0
         word_use[0][j] = 0
+        first_capture_index[0][j] = -1
     for i in range(1, n+1):
         for j in range(0, m+1):
             score_lookup[i][j] = 0
             char_scores[i][j] = 0
             word_scores[i][j] = 0
             word_use[i][j] = 0
+            first_capture_index[i][j] = -1
     # Main loop
     k = 0
-    first_capture = 0
-    first_capture_index = -1
+    first_capture = 0.0
     for i in range(1, n+1):
         for j in range(1, m+1):
             # Case where element of x in current position matches
@@ -873,16 +878,19 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
             if input_.x.array[i-1] == shortform.y.array[j-1]:
                 if word_use[i-1][j-1] == 0:
                     w = input_.word_prizes.array[k]
-                    first_capture_index = input_.indices.array[i-1]
-                    first_capture = cpow(params.alpha, first_capture_index)
+                    current_fci = input_.indices.array[i-1]
                 else:
+                    current_fci = first_capture_index[i-1][j-1]
                     w = 0
+                first_capture = cpow(params.alpha, current_fci)
                 possibility1 = score_lookup[i-1][j]
                 # Calculate score if match is accepted
                 char_score = char_scores[i-1][j-1]
                 prize = first_capture
-                prize *= cpow(params.beta,
-                              input_.indices.array[i-1] - first_capture_index)
+                if input_.indices.array[i-1] > current_fci:
+                    prize *= cpow(params.beta,
+                                  input_.indices.array[i-1] -
+                                  current_fci - 1)
                 if word_use[i-1][j-1] > 1:
                     prize /= cpow(params.gamma, word_use[i-1][j-1] - 1)
                 char_score += prize
@@ -900,14 +908,16 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
                     word_scores[i][j] = word_score
                     char_prizes[i][j] = prize
                     word_use[i][j] = word_use[i-1][j-1] + 1
+                    first_capture_index[i][j] = current_fci
                     pointers[i-1][j-1] = 1
                 else:
                     score_lookup[i][j] = possibility1
                     char_scores[i][j] = char_scores[i-1][j]
                     word_scores[i][j] = word_scores[i-1][j]
                     word_use[i][j] = word_use[i-1][j]
+                    first_capture_index[i][j] = \
+                        first_capture_index[i-1][j]
                     pointers[i-1][j-1] = 0
-                # update position in current word
             # Case where element of x in current position is a wildcard.
             # May either accept or reject this match
             elif input_.x.array[i-1] == -1:
@@ -932,12 +942,16 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
                     word_scores[i][j] = word_score
                     char_prizes[i][j] = -shortform.penalties.array[j-1]
                     word_use[i][j] = word_use[i-1][j-1]
+                    first_capture_index[i][j] = \
+                        first_capture_index[i-1][j-1]
                     pointers[i-1][j-1] = 1
                 else:
                     score_lookup[i][j] = possibility1
                     char_scores[i][j] = char_scores[i-1][j]
                     word_scores[i][j] = word_scores[i-1][j]
                     word_use[i][j] = word_use[i-1][j]
+                    first_capture_index[i][j] = \
+                        first_capture_index[i-1][j]
                     pointers[i-1][j-1] = 0
             # No match is possible. There is only one option to fill
             # current entry of dynamic programming lookup array.
@@ -946,11 +960,14 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
                 char_scores[i][j] = char_scores[i-1][j]
                 word_scores[i][j] = word_scores[i-1][j]
                 word_use[i][j] = word_use[i-1][j]
+                first_capture_index[i][j] = \
+                    first_capture_index[i-1][j]
                 pointers[i-1][j-1] = 0
                 # Update position in current word
             # Reset word_use to zero when word_boundary is passed
             if i == input_.word_boundaries[k] + 1:
                 word_use[i][j] = 0
+                first_capture_index[i][j] = -1
         # Increment number of words used when boundary is passed
         # Also reset position in current word
         if i == input_.word_boundaries[k] + 1:
