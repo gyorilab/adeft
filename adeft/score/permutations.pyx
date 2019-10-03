@@ -123,9 +123,3 @@ cdef void update_permuter(permuter *perms):
             perms.m = perms.n - 1
         # Case 1: m = n - 1 and it has not reached the last step in its
         # present direction. No changes are needed.
-        
-     
-     
-         
-     
-        
