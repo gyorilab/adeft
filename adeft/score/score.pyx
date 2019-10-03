@@ -310,6 +310,22 @@ cdef class AdeftLongformScorer:
         return (best_candidate, best_score, results)
 
     def score(self, candidates):
+        """Find optimal scoring candidate longform
+
+        Parameters
+        ----------
+        candidates : list
+            List of tokens preceding defining pattern (DP)
+
+        Returns
+        -------
+        best_candidate : str
+            Highest scoring longform candidate
+        best_score : double
+            Score associated to best_candidate
+        results : list of tuple
+            longform candidate, score pairs for each longform candidate
+        """
         cdef:
             int i, j, k, n, max_inversions
             double current_score, best_score, w, W, ub_char_scores
@@ -397,6 +413,8 @@ cdef class AdeftLongformScorer:
 cdef inline int get_max_inversions(double best_score,
                                    double upper_bound,
                                    double rho):
+    """Find the largest value of k such that best_score <= upper_bound*rho**k
+    """
     cdef int k = 0
     if best_score <= 0.0:
         return INT_MAX
@@ -406,6 +424,8 @@ cdef inline int get_max_inversions(double best_score,
 
 
 cdef double opt_selection(double_array *word_prizes, int k):
+    """Find the sum of the largest k elements in a double_array
+    """
     cdef:
         int max_index, i, j
         double max_value, temp, output
