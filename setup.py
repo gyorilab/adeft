@@ -4,7 +4,7 @@ from setuptools import dist, setup, find_packages
 
 
 dist.Distribution().fetch_build_eggs(['cython'])
-from CythonBuild import cythonize, build_ext
+from Cython.Build import cythonize, build_ext
 
 here = path.abspath(path.dirname(__file__))
 
