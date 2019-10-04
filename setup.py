@@ -1,8 +1,10 @@
 from os import path
-from setuptools import setup, find_packages
 from setuptools.extension import Extension
-from Cython.Build import cythonize, build_ext
+from setuptools import dist, setup, find_packages
 
+
+dist.Distribution().fetch_build_eggs(['cython'])
+from CythonBuild import cythonize, build_ext
 
 here = path.abspath(path.dirname(__file__))
 
@@ -34,7 +36,7 @@ setup(name='adeft',
       ],
       packages=find_packages(),
       install_requires=['nltk', 'scikit-learn>=0.20.0', 'wget',
-                        'requests', 'flask', 'cython'],
+                        'requests', 'flask'],
       extras_require={'test': ['nose', 'coverage']},
       keywords=['nlp', 'biology', 'disambiguation'],
       ext_modules=cythonize(extensions,
