@@ -56,11 +56,11 @@ Disambiguation of abbreviations is a special case of word sense disambiguation
 (WSD) [@wsd-survey2009; @wsd-bio-overview2005; @wsd-difficulty2014]. It is
 recognized as easier than disambiguation of general terms, first, because the
 existence of defining patterns allows for automatic labeling of text corpora,
-and second, because an observation that senses for overlapping abbreviations
-tend to be more distinct than is the case for general ambiguous terms
-[@disamb-bio2009; @disamb-bio2010] Sophisticated methods have been developed
+and second, because the senses of overlapping abbreviations
+tend to be more distinct than for general ambiguous terms
+[@disamb-bio2009; @disamb-bio2010]. Sophisticated methods have been developed
 for general WSD [@deep-dive-wsd2018; @lmms-acl2019; @glosses-nwsd], but for the
-specific case of abbreviations simple classification methods as used by Adeft
+specific case of abbreviations, simple classification methods as used by Adeft
 achieve 98-99% prediction accuracy for most shortforms [@multi-aspect2004;
 @acromine2010; @disamb-bio2009].
 
