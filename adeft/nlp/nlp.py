@@ -1,9 +1,9 @@
+import os
 import re
 import json
 from collections import defaultdict
 
 from nltk.stem.snowball import EnglishStemmer
-
 
 class WatchfulStemmer(object):
     """Wraps the nltk.snow EnglishStemmer.
@@ -134,5 +134,6 @@ stopwords_min = set(['a', 'an', 'the', 'and', 'or', 'of', 'with', 'at',
                      'from', 'into', 'to', 'for', 'on', 'by', 'be', 'been',
                      'am', 'is', 'are', 'was', 'were', 'in', 'that', 'as'])
 
-with open('stopwords.json', 'r') as f:
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                       'stopwords.json'), 'r') as f:
     english_stopwords = json.load(f)
