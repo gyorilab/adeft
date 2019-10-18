@@ -135,7 +135,7 @@ class AdeftClassifier(object):
         logit_pipeline = Pipeline([('tfidf',
                                     TfidfVectorizer(ngram_range=(1, 2),
                                                     max_features=1000,
-                                                    stop_words='english')),
+                                                    stop_words=self.stop)),
                                    ('logit',
                                     LogisticRegression(C=100.,
                                                        solver='saga',
