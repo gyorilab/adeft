@@ -1,9 +1,5 @@
-"""Implements a set of natural language processing tools used to pre-process
-text used for finding candidate longforms, recognizing defining patterns,
-and learning classification models.
-
-"""
 import re
+import json
 from collections import defaultdict
 
 from nltk.stem.snowball import EnglishStemmer
@@ -134,6 +130,9 @@ def untokenize(tokens):
     return ''.join(output)
 
 
-stopwords = set(['a', 'an', 'the', 'and', 'or', 'of', 'with', 'at', 'from',
-                 'into', 'to', 'for', 'on', 'by', 'be', 'been', 'am',
-                 'is', 'are', 'was', 'were', 'in', 'that', 'as'])
+stopwords_min = set(['a', 'an', 'the', 'and', 'or', 'of', 'with', 'at',
+                     'from', 'into', 'to', 'for', 'on', 'by', 'be', 'been',
+                     'am', 'is', 'are', 'was', 'were', 'in', 'that', 'as'])
+
+with open('stopwords.json', 'r') as f:
+    english_stopwords = json.load(f)

@@ -7,7 +7,7 @@ cdef extern from 'limits.h':
 from cython cimport boundscheck, wraparound
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
-from adeft.nlp import stopwords
+from adeft.nlp import stopwords_min
 
 include 'permutations.pyx'
 
@@ -58,7 +58,7 @@ cdef struct opt_shortform:
 cdef struct perm_out:
     double score
 
-
+    
 cdef class AdeftLongformScorer:
     """Scorer for longform expansions based on character matching
 
@@ -163,7 +163,7 @@ cdef class AdeftLongformScorer:
         penalty for not being included in a match with the shortform. The
         scores for words not in the word_scores dictionary default to 1.
         If None, uses a dict assigning the value 0.2 to the stopwords in
-        adeft.nlp.stopwords
+        adeft.nlp.stopwords_min
     """
     cdef:
         public str shortform
@@ -207,7 +207,7 @@ cdef class AdeftLongformScorer:
                                             self.penalties)
         self.params_c = make_opt_params(alpha, beta, gamma, lambda_)
         if word_scores is None:
-            self.word_scores = {word: 0.2 for word in stopwords}
+            self.word_scores = {word: 0.2 for word in stopwords_min}
         else:
             self.word_scores = word_scores
 
