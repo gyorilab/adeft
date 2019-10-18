@@ -49,4 +49,4 @@ setup(name='adeft',
       extras_require={'test': ['nose', 'coverage']},
       keywords=['nlp', 'biology', 'disambiguation'],
       ext_modules=extensions,
-      )
+      include_package_data=True)
