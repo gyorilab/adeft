@@ -99,6 +99,7 @@ def test_modify_groundings():
     assert 'UP:P06213' in ad.classifier.pos_labels
     assert 'UP:P06213' in ad.classifier.estimator.classes_
     assert 'UP:P06213' in ad.names
+    assert 'UP:P06213' in ad.grounding_dict['IR'].values()
     assert ad.names['UP:P06213'] == 'Insulin Receptor'
 
 
