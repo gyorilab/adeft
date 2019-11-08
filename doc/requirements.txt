@@ -5,4 +5,3 @@ nltk
 wget
 requests
 flask
-cython
