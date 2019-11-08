@@ -30,8 +30,8 @@ You should also run
 
     $ python setup.py build_ext --inplace
 
-at the top level of your local repository in order to build Cython extensions for
-alignment based longform recognition. 
+at the top level of your local repository in order to build the extension module
+for alignment based longform detection and scoring.
 
 ## Using Adeft
 A dictionary of available models can be imported with `from adeft import available_models`

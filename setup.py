@@ -1,22 +1,31 @@
+import sys
 from os import path
 from setuptools.extension import Extension
-from setuptools import dist, setup, find_packages
+from setuptools import dist, setup, find_packages, Command
 
-
-dist.Distribution().fetch_build_eggs(['cython'])
-from Cython.Build import cythonize, build_ext
 
 here = path.abspath(path.dirname(__file__))
 
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
+
+if '--use-cython' in sys.argv:
+    USE_CYTHON = True
+    sys.argv.remove('--use-cython')
+else:
+    USE_CYTHON = False
+
+ext = '.pyx' if USE_CYTHON else '.c'
+
 extensions = [
-    Extension('adeft.score.score', ['adeft/score/score.pyx']),
-    Extension('adeft.score.permutations', ['adeft/score/permutations.pyx']),
-    Extension('adeft.tests.util', ['adeft/tests/util.pyx'])
+    Extension('adeft.score.score', ['adeft/score/score' + ext]),
     ]
 
+if USE_CYTHON:
+    from Cython.Build import cythonize
+    extensions = cythonize(extensions,
+                           compiler_directives={'language_level': 3})
 
 setup(name='adeft',
       version='0.5.0',
@@ -39,8 +48,5 @@ setup(name='adeft',
                         'requests', 'flask'],
       extras_require={'test': ['nose', 'coverage']},
       keywords=['nlp', 'biology', 'disambiguation'],
-      ext_modules=cythonize(extensions,
-                            compiler_directives={'language_level': 3}),
-      cmdclass={'build_ext': build_ext},
-      zip_safe=False
+      ext_modules=extensions,
       )
