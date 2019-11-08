@@ -22,6 +22,17 @@ Adeft's pretrained machine learning models can then be downloaded with the comma
 
     $ python -m adeft.download
 
+If you choose to install by cloning this repository
+
+    $ git clone https://github.com/indralab/adeft.git
+
+You should also run
+
+    $ python setup.py build_ext --inplace
+
+at the top level of your local repository in order to build Cython extensions for
+alignment based longform recognition. 
+
 ## Using Adeft
 A dictionary of available models can be imported with `from adeft import available_models`
 
