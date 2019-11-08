@@ -8,11 +8,15 @@ import logging
 from nltk.stem.snowball import EnglishStemmer
 
 from adeft.nlp import tokenize, untokenize
-from adeft.score import AdeftLongformScorer
 from adeft.util import get_candidate_fragments, get_candidate
 
-
 logger = logging.getLogger(__file__)
+
+try:
+    from adeft.score import AdeftLongformScorer
+except Exception:
+    logger.info('OneShotRecognizer not available. AdeftLongformScorer'
+                ' has not been built successfully.')
 
 _stemmer = EnglishStemmer()
 
@@ -270,7 +274,12 @@ class OneShotRecognizer(BaseRecognizer):
         Parameters for :py:class`adeft.score.AdeftLongformScorer`
     """
     def __init__(self, shortform, window=100, exclude=None, **params):
-        self.scorer = AdeftLongformScorer(shortform, **params)
+        try:
+            self.scorer = AdeftLongformScorer(shortform, **params)
+        except NameError:
+            logger.exception('OneShotRecognizer not available.'
+                             ' AdeftLongformScorer has not been built'
+                             ' successfully.')
         super().__init__(shortform, window, exclude)
 
     def _search(self, tokens):

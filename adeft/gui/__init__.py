@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def ground_with_gui(longforms, scores, grounding_map=None,
                     names=None, pos_labels=None, verbose=False, port=5000,
-                    test=False):
+                    no_browser=False, test=False):
     """Opens grounding GUI in browser. Returns output upon user submission.
 
     Parameters
@@ -40,6 +40,9 @@ def ground_with_gui(longforms, scores, grounding_map=None,
     port : Optional[int]
         Port where flask is served. Defaults to flask's default.
         Default: 5000
+    no_browser : Optional[bool]
+        When True, do not automatically open GUI in browser
+        Default: False
     test : Optional[bool]
         If True the Flask app is replaced with a mock version for testing.
         Default: False
@@ -99,7 +102,7 @@ def ground_with_gui(longforms, scores, grounding_map=None,
     flask_server = Process(target=lambda: app.run(port=port))
     flask_server.start()
     # Open app in browser unless a test is being run
-    if not test:
+    if not test and not no_browser:
         webbrowser.open('http://localhost:%d/' % port)
     # Poll until user submits groundings. Checks if output file exists
     while not os.path.exists(os.path.join(outpath, 'output.json')):

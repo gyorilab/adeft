@@ -178,11 +178,11 @@ class AdeftDisambiguator(object):
             self.names = names
             # Update groundings in grounding_dict
             self.grounding_dict = {shortform:
-                                   {(new_groundings[grounding]
+                                   {phrase:
+                                    (new_groundings[grounding]
                                     if grounding in new_groundings
-                                    else grounding):
-                                    name
-                                    for grounding, name in
+                                     else grounding)
+                                    for phrase, grounding in
                                     grounding_map.items()}
                                    for shortform, grounding_map
                                    in self.grounding_dict.items()}
