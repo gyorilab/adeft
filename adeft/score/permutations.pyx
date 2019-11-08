@@ -1,4 +1,4 @@
-"""This extension implements the Steinhaus-Johnson-Trotter permutation
+"""This file implements the Steinhaus-Johnson-Trotter permutation
 generation Algorithm with Even's speedup. The permuter works by successively
 swapping elements of an array, with state variables kept so that at all steps
 it is easy to calculate which elements should be swapped. These are C functions
@@ -8,6 +8,16 @@ that can be cimported within Cython files but cannot be imported in Python files
 
 from cython cimport boundscheck, wraparound
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
+
+
+cdef struct permuter:
+    int n
+    int m
+    int inversions
+    int *P
+    int *Pinv
+    int *D
+    int *T
 
 
 cdef permuter *make_permuter(int n):
