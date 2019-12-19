@@ -303,7 +303,11 @@ class AdeftDisambiguator(object):
 
 
 def load_disambiguator(shortform, path=ADEFT_MODELS_PATH):
-    """Returns deft disambiguator loaded from models directory
+    """Returns adeft disambiguator loaded from models directory
+
+    Searches folder specified by path for a disambiguation model
+    that can disambiguate the given shortform and returns this
+    model
 
     Parameters
     ----------
@@ -317,7 +321,9 @@ def load_disambiguator(shortform, path=ADEFT_MODELS_PATH):
     Returns
     -------
     py:class:`adeft.disambiguate.AdeftDisambiguator`
-        A disambiguator that was loaded from a file.
+        A disambiguator that was loaded from a file. Returns None if there
+        are no disambiguation models in the supplied folder that can
+        disambiguate the given shortform
     """
     available = get_available_models(path=path)
     try:
