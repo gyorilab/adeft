@@ -337,6 +337,20 @@ def load_disambiguator(shortform, path=ADEFT_MODELS_PATH):
 
 
 def load_disambiguator_directly(path):
+    """Returns disambiguator located at path
+    
+    Parameters
+    ----------
+    path : str
+        Path to a disambiguation model. Must be a path to a directory
+       <model_name> containing the files
+       <model_name>_model.gz, <model_name>_grounding_dict.json, <model_name>_names.json
+       
+    Returns
+    -------
+    py:class:`adeft.disambiguate.AdeftDisambiguator`
+        A disambiguation model loaded from folder specified by path
+    """
     model_name = os.path.basename(os.path.abspath(path))
     model = load_model(os.path.join(path, model_name + '_model.gz'))
     with open(os.path.join(path, model_name + '_grounding_dict.json')) as f:
