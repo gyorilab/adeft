@@ -114,16 +114,19 @@ def get_available_models(path=ADEFT_MODELS_PATH):
     for model in os.listdir(path):
         model_path = os.path.join(path, model)
         if os.path.isdir(model_path) and model != '__pycache__':
-            grounding_file = '%s_grounding_dict.json' % model
-            with open(os.path.join(model_path, grounding_file), 'r') as f:
-                grounding_dict = json.load(f)
-            for key, value in grounding_dict.items():
-                if key in output:
-                    logger.warning('Shortform %s has multiple adeft models'
-                                   'This may lead to unexpected behavior'
-                                   % key)
-                else:
-                    output[key] = model
+            try:
+                grounding_file = '%s_grounding_dict.json' % model
+                with open(os.path.join(model_path, grounding_file), 'r') as f:
+                    grounding_dict = json.load(f)
+                for key, value in grounding_dict.items():
+                    if key in output:
+                        logger.warning('Shortform %s has multiple adeft models'
+                                       'This may lead to unexpected behavior'
+                                       % key)
+                    else:
+                        output[key] = model
+            except FileNotFoundError:
+                continue
     return output
 
 

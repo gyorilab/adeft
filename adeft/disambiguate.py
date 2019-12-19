@@ -303,7 +303,11 @@ class AdeftDisambiguator(object):
 
 
 def load_disambiguator(shortform, path=ADEFT_MODELS_PATH):
-    """Returns deft disambiguator loaded from models directory
+    """Returns adeft disambiguator loaded from models directory
+
+    Searches folder specified by path for a disambiguation model
+    that can disambiguate the given shortform and returns this
+    model
 
     Parameters
     ----------
@@ -317,7 +321,9 @@ def load_disambiguator(shortform, path=ADEFT_MODELS_PATH):
     Returns
     -------
     py:class:`adeft.disambiguate.AdeftDisambiguator`
-        A disambiguator that was loaded from a file.
+        A disambiguator that was loaded from a file. Returns None if there
+        are no disambiguation models in the supplied folder that can
+        disambiguate the given shortform
     """
     available = get_available_models(path=path)
     try:
@@ -326,13 +332,31 @@ def load_disambiguator(shortform, path=ADEFT_MODELS_PATH):
         logger.error('No model available for shortform %s' % shortform)
         return None
 
-    model = load_model(os.path.join(path, model_name,
-                                    model_name + '_model.gz'))
-    with open(os.path.join(path, model_name,
-                           model_name + '_grounding_dict.json')) as f:
+    output = load_disambiguator_directly(os.path.join(path, model_name))
+    return output
+
+
+def load_disambiguator_directly(path):
+    """Returns disambiguator located at path
+    
+    Parameters
+    ----------
+    path : str
+        Path to a disambiguation model. Must be a path to a directory
+       <model_name> containing the files
+       <model_name>_model.gz, <model_name>_grounding_dict.json, <model_name>_names.json
+       
+    Returns
+    -------
+    py:class:`adeft.disambiguate.AdeftDisambiguator`
+        A disambiguation model loaded from folder specified by path
+    """
+    model_name = os.path.basename(os.path.abspath(path))
+    model = load_model(os.path.join(path, model_name + '_model.gz'))
+    with open(os.path.join(path, model_name + '_grounding_dict.json')) as f:
         grounding_dict = json.load(f)
-    with open(os.path.join(path, model_name,
-                           model_name + '_names.json')) as f:
+    with open(os.path.join(path, model_name + '_names.json')) as f:
         names = json.load(f)
     output = AdeftDisambiguator(model, grounding_dict, names)
     return output
+    
