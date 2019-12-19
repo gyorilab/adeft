@@ -332,13 +332,17 @@ def load_disambiguator(shortform, path=ADEFT_MODELS_PATH):
         logger.error('No model available for shortform %s' % shortform)
         return None
 
-    model = load_model(os.path.join(path, model_name,
-                                    model_name + '_model.gz'))
-    with open(os.path.join(path, model_name,
-                           model_name + '_grounding_dict.json')) as f:
+    output = load_disambiguator_directly(os.path.join(path, model_name))
+    return output
+
+
+def load_disambiguator_directly(path):
+    model_name = os.path.basename(os.path.abspath(path))
+    model = load_model(os.path.join(path, model_name + '_model.gz'))
+    with open(os.path.join(path, model_name + '_grounding_dict.json')) as f:
         grounding_dict = json.load(f)
-    with open(os.path.join(path, model_name,
-                           model_name + '_names.json')) as f:
+    with open(os.path.join(path, model_name + '_names.json')) as f:
         names = json.load(f)
     output = AdeftDisambiguator(model, grounding_dict, names)
     return output
+    
