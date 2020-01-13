@@ -54,6 +54,7 @@ class AdeftClassifier(object):
         self.estimator = None
         self.best_score = None
         self.cv_results = None
+        self._std = None
 
     def train(self, texts, y, C=1.0, ngram_range=(1, 2), max_features=1000):
         """Fits a disambiguation model
@@ -91,6 +92,7 @@ class AdeftClassifier(object):
         self.estimator = logit_pipeline
         self.best_score = None
         self.cv_results = None
+        self._set_variance(texts)
 
     def cv(self, texts, y, param_grid, n_jobs=1, cv=5):
         """Performs grid search to select and fit a disambiguation model
@@ -189,6 +191,7 @@ class AdeftClassifier(object):
         self.best_score = grid_search.best_score_
         self.cv_results = grid_search.cv_results_
         self.stats = stats
+        self._set_variance(texts)
 
     def predict_proba(self, texts):
         """Predict class probabilities for a list-like of texts"""
@@ -246,6 +249,54 @@ class AdeftClassifier(object):
         json_bytes = json_str.encode('utf-8')
         with gzip.GzipFile(filepath, 'w') as fout:
             fout.write(json_bytes)
+
+    def feature_importances(self):
+        """Return feature importance scores for each label
+
+        The feature importance scores are given by multiplying the coefficients
+        of the logistic regression model by the standard deviations of the
+        tf-idf scores for the associated features over all texts. Note that
+        there is a coefficient associated to each label feature pair.
+
+        One can interpret the feature importance score as the change in the
+        linear predictor for a given label associated to a one standard
+        deviation change in a feature's value. The predicted probability being
+        given by the composition of the logit link function and the linear
+        predictor.
+
+        Returns
+        -------
+        dict
+            Dictionary with class labels as keys. The associated values
+            are lists of two element tuples each with first element an ngram
+            feature and second element a feature importance score
+        """
+        output = {}
+        tfidf = self.estimator.named_steps['tfidf']
+        logit = self.estimator.named_steps['logit']
+        feature_names = tfidf.get_feature_names()
+        for index, label in enumerate(logit.classes_):
+            importance = logit.coef_[index] * self._std
+            output[label] = sorted(zip(feature_names, importance),
+                                   key=lambda x: -x[1])
+        return output
+
+    def _set_variance(self, texts):
+        """Set attribute containing array of variances for features
+
+        Parameters
+        __________
+        texts : iterable of str
+            Training texts
+        """
+        tfidf = self.estimator.named_steps['tfidf']
+        X = tfidf.transform(texts)
+        temp = X.copy()
+        temp.data **= 2
+        second_moment = temp.mean(0)
+        first_moment_squared = np.square(X.mean(0))
+        result = second_moment - first_moment_squared
+        self._std = np.sqrt(np.squeeze(np.asarray(result)))
 
 
 def load_model(filepath):
