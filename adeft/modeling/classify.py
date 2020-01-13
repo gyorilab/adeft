@@ -53,7 +53,7 @@ class AdeftClassifier(object):
         self.stats = None
         self.estimator = None
         self.best_score = None
-        self.grid_search = None
+        self.cv_results = None
 
     def train(self, texts, y, C=1.0, ngram_range=(1, 2), max_features=1000):
         """Fits a disambiguation model
@@ -90,7 +90,7 @@ class AdeftClassifier(object):
         logit_pipeline.fit(texts, y)
         self.estimator = logit_pipeline
         self.best_score = None
-        self.grid_search = None
+        self.cv_results = None
 
     def cv(self, texts, y, param_grid, n_jobs=1, cv=5):
         """Performs grid search to select and fit a disambiguation model
@@ -187,7 +187,7 @@ class AdeftClassifier(object):
 
         self.estimator = grid_search.best_estimator_
         self.best_score = grid_search.best_score_
-        self.grid_search = grid_search
+        self.cv_results = grid_search.cv_results_
         self.stats = stats
 
     def predict_proba(self, texts):
