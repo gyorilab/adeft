@@ -65,6 +65,22 @@ def test_cv_binary():
     assert classifier.stats['precision']['mean'] > 0.5
 
 
+@attr('slow')
+def test_feature_importance():
+    params = {'C': 1.0,
+              'ngram_range': (1, 2),
+              'max_features': 1000}
+    classifier = AdeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'])
+    texts = data['texts']
+    labels = data['labels']
+    classifier.train(texts, labels, **params)
+    feature_importances = classifier.feature_importances()
+    assert isinstance(feature_importances, dict)
+    assert set(feature_importances.keys()) == set(labels)
+    for label, importances in feature_importances.items():
+        assert importances == sorted(importances, key=lambda x: -x[1])
+
+
 def test_serialize():
     """Test that models can correctly be saved to and loaded from gzipped json
     """
