@@ -28,7 +28,7 @@ if USE_CYTHON:
                            compiler_directives={'language_level': 3})
 
 setup(name='adeft',
-      version='0.5.2',
+      version='0.5.3',
       description=('Acromine based Disambiguation of Entities From'
                    ' Text'),
       long_description=long_description,
