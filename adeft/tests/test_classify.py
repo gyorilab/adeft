@@ -78,7 +78,14 @@ def test_feature_importance_multiclass():
     assert isinstance(feature_importances, dict)
     assert set(feature_importances.keys()) == set(labels)
     for label, importances in feature_importances.items():
+        # check that importances are sorted
         assert importances == sorted(importances, key=lambda x: -x[1])
+        # check that output is of the correct type
+        assert all(isinstance(x, tuple) and
+                   len(x) == 2 and
+                   isinstance(x[0], str) and
+                   isinstance(x[1], float)
+                   for x in importances)
 
 
 @attr('slow')
@@ -95,7 +102,14 @@ def test_feature_importance_binary():
     assert isinstance(feature_importances, dict)
     assert set(feature_importances.keys()) == set(labels)
     for label, importances in feature_importances.items():
+        # check that importances are sorted
         assert importances == sorted(importances, key=lambda x: -x[1])
+        # check that output is of the correct type
+        assert all(isinstance(x, tuple) and
+                   len(x) == 2 and
+                   isinstance(x[0], str) and
+                   isinstance(x[1], float)
+                   for x in importances)
 
 
 def test_serialize():
