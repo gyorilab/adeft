@@ -276,6 +276,11 @@ class AdeftClassifier(object):
         logit = self.estimator.named_steps['logit']
         feature_names = tfidf.get_feature_names()
         classes = logit.classes_
+        # Binary and multiclass cases most be handled separately
+        # When there are greater than two classes, the logistic
+        # regression model will have a row of coefficients for
+        # each class. When there are only two classes, there is
+        # only one row of coefficients corresponding to the label classes[1]
         if len(classes) > 2:
             for index, label in enumerate(classes):
                 importance = logit.coef_[index] * self._std
@@ -283,11 +288,11 @@ class AdeftClassifier(object):
                                        key=lambda x: -x[1])
         else:
             importance = np.squeeze(logit.coef_) * self._std
-            output[classes[0]] = sorted(zip(feature_names, importance),
+            output[classes[1]] = sorted(zip(feature_names, importance),
                                         key=lambda x: -x[1])
-            output[classes[1]] = [(feature, -value)
+            output[classes[0]] = [(feature, -value)
                                   for feature, value
-                                  in output[classes[0]][::-1]]
+                                  in output[classes[1]][::-1]]
         return output
 
     def _set_variance(self, texts):
