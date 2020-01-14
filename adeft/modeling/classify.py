@@ -1,3 +1,4 @@
+import os
 import gzip
 import json
 import logging
@@ -232,8 +233,12 @@ class AdeftClassifier(object):
                       'shortforms': self.shortforms,
                       'pos_labels': self.pos_labels}
         # Add model statistics if they are available
-        if hasattr(self, 'stats') and self.stats:
+        if hasattr(self, 'stats') and self.stats is not None:
             model_info['stats'] = self.stats
+        # Add standard deviations used for calculating feature importances
+        # if they are available
+        if hasattr(self, '_std') and self._std is not None:
+            model_info['std'] = self._std.tolist()
         return model_info
 
     def dump_model(self, filepath):
@@ -369,4 +374,8 @@ def load_model_info(model_info):
     # Load model statistics if they are available
     if 'stats' in model_info:
         longform_model.stats = model_info['stats']
+    # Load standard deviations for calculating feature importances
+    # if they are available
+    if 'std' in model_info:
+        longform_model._std = np.array(model_info['std'])
     return longform_model
