@@ -275,10 +275,19 @@ class AdeftClassifier(object):
         tfidf = self.estimator.named_steps['tfidf']
         logit = self.estimator.named_steps['logit']
         feature_names = tfidf.get_feature_names()
-        for index, label in enumerate(logit.classes_):
-            importance = logit.coef_[index] * self._std
-            output[label] = sorted(zip(feature_names, importance),
-                                   key=lambda x: -x[1])
+        classes = logit.classes_
+        if len(classes) > 2:
+            for index, label in enumerate(classes):
+                importance = logit.coef_[index] * self._std
+                output[label] = sorted(zip(feature_names, importance),
+                                       key=lambda x: -x[1])
+        else:
+            importance = np.squeeze(logit.coef_) * self._std
+            output[classes[0]] = sorted(zip(feature_names, importance),
+                                        key=lambda x: -x[1])
+            output[classes[1]] = [(feature, -value)
+                                  for feature, value
+                                  in output[classes[0]][::-1]]
         return output
 
     def _set_variance(self, texts):
