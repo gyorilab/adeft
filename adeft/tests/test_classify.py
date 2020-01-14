@@ -66,13 +66,30 @@ def test_cv_binary():
 
 
 @attr('slow')
-def test_feature_importance():
+def test_feature_importance_multiclass():
     params = {'C': 1.0,
               'ngram_range': (1, 2),
               'max_features': 1000}
     classifier = AdeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'])
     texts = data['texts']
     labels = data['labels']
+    classifier.train(texts, labels, **params)
+    feature_importances = classifier.feature_importances()
+    assert isinstance(feature_importances, dict)
+    assert set(feature_importances.keys()) == set(labels)
+    for label, importances in feature_importances.items():
+        assert importances == sorted(importances, key=lambda x: -x[1])
+
+
+@attr('slow')
+def test_feature_importance_binary():
+    params = {'C': 1.0,
+              'ngram_range': (1, 2),
+              'max_features': 1000}
+    classifier = AdeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'])
+    texts = data['texts']
+    labels = [label if label == 'HGNC:6091' else 'ungrounded'
+              for label in data['labels']]
     classifier.train(texts, labels, **params)
     feature_importances = classifier.feature_importances()
     assert isinstance(feature_importances, dict)
