@@ -140,6 +140,13 @@ def test_serialize():
     preds1, preds2, preds3 = (classifier1.predict_proba(texts),
                               classifier2.predict_proba(texts),
                               classifier3.predict_proba(texts))
+    # Check that generated predictions are the same
     assert np.array_equal(preds1, preds2)
     assert np.array_equal(preds2, preds3)
+    # Check that model stats are the same
+    assert classifier1.stats == classifier2.stats == classifier3.stats
+    # Check that the calculated feature importance scores are the same
+    assert classifier1.feature_importances() == \
+        classifier2.feature_importances() == \
+        classifier3.feature_importances()
     os.remove(temp_filename)
