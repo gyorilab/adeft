@@ -1,4 +1,5 @@
 # Adeft
+[![DOI](https://zenodo.org/badge/156276061.svg)](https://zenodo.org/badge/latestdoi/156276061)
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
 [![Build](https://travis-ci.org/indralab/adeft.svg)](https://travis-ci.org/indralab/adeft)
 [![Documentation](https://readthedocs.org/projects/adeft/badge/?version=latest)](https://adeft.readthedocs.io/en/latest/?badge=latest)
