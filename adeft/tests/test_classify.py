@@ -86,6 +86,13 @@ def test_feature_importance_multiclass():
                    isinstance(x[0], str) and
                    isinstance(x[1], float)
                    for x in importances)
+    # check if selected important features have positive score
+    assert all([score > 0 for feature, score
+                in feature_importances['HGNC:6091']
+                if feature in ['irs1', 'igf1r', 'phosphorylation']])
+    assert all([score > 0 for feature, score
+                in feature_importances['MESH:D011839']
+                if feature in ['radiation', 'exposure', 'ir induced']])
 
 
 @attr('slow')
@@ -93,7 +100,7 @@ def test_feature_importance_binary():
     params = {'C': 1.0,
               'ngram_range': (1, 2),
               'max_features': 1000}
-    classifier = AdeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'])
+    classifier = AdeftClassifier('IR', ['HGNC:6091'])
     texts = data['texts']
     labels = [label if label == 'HGNC:6091' else 'ungrounded'
               for label in data['labels']]
@@ -110,6 +117,10 @@ def test_feature_importance_binary():
                    isinstance(x[0], str) and
                    isinstance(x[1], float)
                    for x in importances)
+    # check if selected important features have positive score
+    assert all([score > 0 for feature, score
+                in feature_importances['HGNC:6091']
+                if feature in ['irs1', 'igf1r', 'phosphorylation']])
 
 
 def test_serialize():
