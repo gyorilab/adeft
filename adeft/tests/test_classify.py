@@ -89,10 +89,10 @@ def test_feature_importance_multiclass():
     # check if selected important features have positive score
     assert all([score > 0 for feature, score
                 in feature_importances['HGNC:6091']
-                if feature in ['irs1', 'igf1r', 'phosphorylation']])
+                if feature in ['irs1', 'igf1r', 'signaling']])
     assert all([score > 0 for feature, score
                 in feature_importances['MESH:D011839']
-                if feature in ['radiation', 'exposure', 'ir induced']])
+                if feature in ['radiation', 'exposure', 'dna']])
 
 
 @attr('slow')
