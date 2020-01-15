@@ -23,12 +23,12 @@ cdef struct double_array:
     double *array
     int length
 
-    
+
 cdef struct opt_results:
     double score
     double *char_prizes
 
-    
+
 cdef struct candidates_array:
     int_array **array
     int_array **indices
@@ -58,7 +58,7 @@ cdef struct opt_shortform:
 cdef struct perm_out:
     double score
 
-    
+
 cdef class AdeftLongformScorer:
     """Scorer for longform expansions based on character matching
 
@@ -74,7 +74,7 @@ cdef class AdeftLongformScorer:
     for all characters in the shortform that are not matched and then dividing
     by the length of the shortform. The character score is then the max of
     this number and zero.
-    
+
     Character prizes are controlled by three parameters, alpha, beta, and
     gamma. Penalties for unmatched characters from the shortform are controlled
     by the parameters delta, and epsilon. More information in the description
@@ -226,7 +226,7 @@ cdef class AdeftLongformScorer:
         candidates : list
             List of tokens that appear in a defining pattern (DP)
             ['that', 'appear', 'in', 'a', 'defining', 'pattern']
-        
+ 
         Returns
         -------
         encoded_candidates : list of list
@@ -516,7 +516,7 @@ cdef void free_opt_results(opt_results *results):
 
 cdef int_array *make_int_array(int length):
     """Create int_array data-structure
-    
+
     An array of integers along with its length
     """
     cdef int_array *output
