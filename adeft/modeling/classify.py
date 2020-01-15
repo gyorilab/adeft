@@ -14,6 +14,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import f1_score, precision_score, recall_score,\
     make_scorer
 
+from adeft.nlp import english_stopwords
+
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
 logger = logging.getLogger(__file__)
@@ -44,6 +46,11 @@ class AdeftClassifier(object):
     stats : str
        Statistics describing model performance. Only available after model is
        fit with crossvalidation
+
+    stop : list of str
+        List of stopwords to exclude when performing tfidf vectorization.
+        These consist of the set of stopwords in adeft.nlp.english_stopwords
+        along with the shortform(s) for which the model is being built
     """
     def __init__(self, shortforms, pos_labels):
         # handle case where single string is passed
@@ -56,6 +63,9 @@ class AdeftClassifier(object):
         self.best_score = None
         self.grid_search = None
         self._std = None
+        # Add shortforms to list of stopwords
+        self.stop = set(english_stopwords).union([sf.lower() for sf
+                                                  in self.shortforms])
 
     def train(self, texts, y, C=1.0, ngram_range=(1, 2), max_features=1000):
         """Fits a disambiguation model
@@ -82,7 +92,7 @@ class AdeftClassifier(object):
         logit_pipeline = Pipeline([('tfidf',
                                     TfidfVectorizer(ngram_range=ngram_range,
                                                     max_features=max_features,
-                                                    stop_words='english')),
+                                                    stop_words=self.stop)),
                                    ('logit',
                                     LogisticRegression(C=C,
                                                        solver='saga',
@@ -125,7 +135,7 @@ class AdeftClassifier(object):
         logit_pipeline = Pipeline([('tfidf',
                                     TfidfVectorizer(ngram_range=(1, 2),
                                                     max_features=1000,
-                                                    stop_words='english')),
+                                                    stop_words=self.stop)),
                                    ('logit',
                                     LogisticRegression(C=100.,
                                                        solver='saga',
@@ -353,7 +363,6 @@ def load_model_info(model_info):
     """
     shortforms = model_info['shortforms']
     pos_labels = model_info['pos_labels']
-
     longform_model = AdeftClassifier(shortforms=shortforms,
                                      pos_labels=pos_labels)
     ngram_range = model_info['tfidf']['ngram_range']

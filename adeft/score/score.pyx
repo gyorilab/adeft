@@ -7,7 +7,7 @@ cdef extern from 'limits.h':
 from cython cimport boundscheck, wraparound
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
-from adeft.nlp import stopwords
+from adeft.nlp import stopwords_min
 
 include 'permutations.pyx'
 
@@ -23,12 +23,12 @@ cdef struct double_array:
     double *array
     int length
 
-    
+
 cdef struct opt_results:
     double score
     double *char_prizes
 
-    
+
 cdef struct candidates_array:
     int_array **array
     int_array **indices
@@ -74,7 +74,7 @@ cdef class AdeftLongformScorer:
     for all characters in the shortform that are not matched and then dividing
     by the length of the shortform. The character score is then the max of
     this number and zero.
-    
+
     Character prizes are controlled by three parameters, alpha, beta, and
     gamma. Penalties for unmatched characters from the shortform are controlled
     by the parameters delta, and epsilon. More information in the description
@@ -163,7 +163,7 @@ cdef class AdeftLongformScorer:
         penalty for not being included in a match with the shortform. The
         scores for words not in the word_scores dictionary default to 1.
         If None, uses a dict assigning the value 0.2 to the stopwords in
-        adeft.nlp.stopwords
+        adeft.nlp.stopwords_min
     """
     cdef:
         public str shortform
@@ -207,7 +207,7 @@ cdef class AdeftLongformScorer:
                                             self.penalties)
         self.params_c = make_opt_params(alpha, beta, gamma, lambda_)
         if word_scores is None:
-            self.word_scores = {word: 0.2 for word in stopwords}
+            self.word_scores = {word: 0.2 for word in stopwords_min}
         else:
             self.word_scores = word_scores
 
@@ -226,7 +226,7 @@ cdef class AdeftLongformScorer:
         candidates : list
             List of tokens that appear in a defining pattern (DP)
             ['that', 'appear', 'in', 'a', 'defining', 'pattern']
-        
+ 
         Returns
         -------
         encoded_candidates : list of list
@@ -516,7 +516,7 @@ cdef void free_opt_results(opt_results *results):
 
 cdef int_array *make_int_array(int length):
     """Create int_array data-structure
-    
+
     An array of integers along with its length
     """
     cdef int_array *output
