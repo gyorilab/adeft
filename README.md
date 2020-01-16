@@ -1,4 +1,5 @@
 # Adeft
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.01708/status.svg)](https://doi.org/10.21105/joss.01708)
 [![DOI](https://zenodo.org/badge/156276061.svg)](https://zenodo.org/badge/latestdoi/156276061)
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
 [![Build](https://travis-ci.org/indralab/adeft.svg)](https://travis-ci.org/indralab/adeft)
@@ -6,12 +7,23 @@
 [![PyPI version](https://badge.fury.io/py/adeft.svg)](https://badge.fury.io/py/adeft)
 [![Python 3](https://img.shields.io/pypi/pyversions/adeft.svg)](https://www.python.org/downloads/release/python-357/)
 
-Adeft (Acromine based Disambiguation of Entities From Text context)
-is a utility for building models to disambiguate acronyms and other abbreviations of biological terms in the scientific literature. It makes use of an implementation of the [Acromine](http://www.chokkan.org/research/acromine/) algorithm developed
-by the [NaCTeM](http://www.nactem.ac.uk/index.php) at the University of Manchester
-to identify possible longform expansions for shortforms in a text corpus.
-It allows users to build disambiguation models to disambiguate shortforms based
-on their text context. A growing number of pretrained disambiguation models are publicly available to download through adeft.
+Adeft (Acromine based Disambiguation of Entities From Text context) is a
+utility for building models to disambiguate acronyms and other abbreviations of
+biological terms in the scientific literature. It makes use of an
+implementation of the [Acromine](http://www.chokkan.org/research/acromine/)
+algorithm developed by the [NaCTeM](http://www.nactem.ac.uk/index.php) at the
+University of Manchester to identify possible longform expansions for
+shortforms in a text corpus.  It allows users to build disambiguation models to
+disambiguate shortforms based on their text context. A growing number of
+pretrained disambiguation models are publicly available to download through
+adeft.
+
+If you use Adeft in your research, please cite the paper in the Journal of
+Open Source Software:
+
+Steppi A, Gyori BM, Bachman JA (2020). Adeft: Acromine-based Disambiguation of
+Entities from Text with applications to the biomedical literature.  *Journal of
+Open Source Software,* 5(45), 1708, https://doi.org/10.21105/joss.01708
 
 ## Installation
 
