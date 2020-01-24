@@ -7,10 +7,10 @@ import numpy as np
 from collections import Counter
 
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import GridSearchCV
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import LogisticRegression
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.metrics import f1_score, precision_score, recall_score,\
     make_scorer
 
@@ -38,6 +38,10 @@ class AdeftClassifier(object):
         interest in an application. For adeft pretrained models these are
         typically genes and other relevant biological terms.
 
+    random_state : Optional[int]
+        Optional specification of seed used when calculating crossvalidation
+        folds and fitting the logistic regression model. Default: None
+
     Attributes
     ----------
     estimator : py:class:`sklearn.pipeline.Pipeline`
@@ -52,12 +56,13 @@ class AdeftClassifier(object):
         These consist of the set of stopwords in adeft.nlp.english_stopwords
         along with the shortform(s) for which the model is being built
     """
-    def __init__(self, shortforms, pos_labels):
+    def __init__(self, shortforms, pos_labels, random_state=None):
         # handle case where single string is passed
         if isinstance(shortforms, str):
             shortforms = [shortforms]
         self.shortforms = shortforms
         self.pos_labels = pos_labels
+        self.random_state = random_state
         self.stats = None
         self.estimator = None
         self.best_score = None
@@ -89,6 +94,7 @@ class AdeftClassifier(object):
             model. Selects top_features by term frequency Default: 1000
         """
         # Initialize pipeline
+        seed = self.random_state
         logit_pipeline = Pipeline([('tfidf',
                                     TfidfVectorizer(ngram_range=ngram_range,
                                                     max_features=max_features,
@@ -97,7 +103,8 @@ class AdeftClassifier(object):
                                     LogisticRegression(C=C,
                                                        solver='saga',
                                                        penalty='l1',
-                                                       multi_class='auto'))])
+                                                       multi_class='auto',
+                                                       random_state=seed))])
 
         logit_pipeline.fit(texts, y)
         self.estimator = logit_pipeline
@@ -132,6 +139,7 @@ class AdeftClassifier(object):
         >>> classifier.train(texts, labels, param_grid=params, n_jobs=4)
         """
         # Initialize pipeline
+        seed = self.random_state
         logit_pipeline = Pipeline([('tfidf',
                                     TfidfVectorizer(ngram_range=(1, 2),
                                                     max_features=1000,
@@ -140,7 +148,8 @@ class AdeftClassifier(object):
                                     LogisticRegression(C=100.,
                                                        solver='saga',
                                                        penalty='l1',
-                                                       multi_class='auto'))])
+                                                       multi_class='auto',
+                                                       random_state=seed))])
 
         # Create scorer for use in grid search. Uses f1 score. The positive
         # labels are specified at the time of construction. Takes the average
@@ -178,6 +187,7 @@ class AdeftClassifier(object):
         param_grid = {param_mapping[key]: value
                       for key, value in param_grid.items()}
 
+        cv = StratifiedKFold(n_splits=cv, shuffle=True, random_state=7*seed)
         # Fit grid_search and set the estimator for the instance of the class
         grid_search = GridSearchCV(logit_pipeline, param_grid,
                                    cv=cv, n_jobs=n_jobs, scoring=scorer,
