@@ -286,6 +286,10 @@ class AdeftClassifier(object):
             are lists of two element tuples each with first element an ngram
             feature and second element a feature importance score
         """
+        if not hasattr(self, '_std') or self._std is None:
+            logger.warning('Feature importance information not available for'
+                           ' this model.')
+            return None
         output = {}
         tfidf = self.estimator.named_steps['tfidf']
         logit = self.estimator.named_steps['logit']
