@@ -13,7 +13,20 @@ from adeft.locations import ADEFT_MODELS_PATH, S3_BUCKET_URL, \
 logger = logging.getLogger(__file__)
 
 
-def download_models(update=False, models=None):
+def setup_models_folder():
+    """Make test resource folders and download content
+
+    Replaces content in existing test_resource_folders if they already
+    exist.
+    """
+    if os.path.isdir(ADEFT_MODELS_PATH):
+        shutil.rmtree(ADEFT_MODELS_PATH)
+    os.mkdir(ADEFT_MODELS_PATH)
+    download_models()
+    return
+
+
+def download_models():
     """Download models from S3
 
     Models are downloaded and placed into a models directory in the users
@@ -39,17 +52,7 @@ def download_models(update=False, models=None):
         as mutually exclusive parameters.
     """
     s3_models = set(get_s3_models().values())
-    if models is None:
-        models = s3_models
-    else:
-        models = set(models) & s3_models
-        update = True
-
-    downloaded_models = get_available_models()
-    for model in models:
-        # if update is False do not download model
-        if not update and model in downloaded_models:
-            continue
+    for model in s3_models:
         # create model directory if it does not currently exist
         if not os.path.exists(os.path.join(ADEFT_MODELS_PATH, model)):
             os.makedirs(os.path.join(ADEFT_MODELS_PATH, model))
@@ -65,7 +68,7 @@ def download_models(update=False, models=None):
                           out=resource_path)
 
 
-def setup_test_resource_folders():
+def setup_test_resource_folder():
     """Make test resource folders and download content
 
     Replaces content in existing test_resource_folders if they already
