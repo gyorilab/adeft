@@ -4,6 +4,7 @@ import json
 import logging
 import warnings
 import numpy as np
+from datetime import datetime
 from collections import Counter
 
 from sklearn.pipeline import Pipeline
@@ -68,9 +69,11 @@ class AdeftClassifier(object):
         self.best_score = None
         self.grid_search = None
         self._std = None
+        self.timestamp = None
         # Add shortforms to list of stopwords
         self.stop = set(english_stopwords).union([sf.lower() for sf
                                                   in self.shortforms])
+        
 
     def train(self, texts, y, C=1.0, ngram_range=(1, 2), max_features=1000):
         """Fits a disambiguation model
@@ -107,9 +110,11 @@ class AdeftClassifier(object):
                                                        random_state=seed))])
 
         logit_pipeline.fit(texts, y)
+      
         self.estimator = logit_pipeline
         self.best_score = None
         self.grid_search = None
+        self.timestamp = self._get_current_time()
         self._set_variance(texts)
 
     def cv(self, texts, y, param_grid, n_jobs=1, cv=5):
@@ -212,6 +217,7 @@ class AdeftClassifier(object):
         self.best_score = grid_search.best_score_
         self.grid_search = grid_search
         self.stats = stats
+        self.timestamp = self._get_current_time()
         self._set_variance(texts)
 
     def predict_proba(self, texts):
@@ -259,6 +265,9 @@ class AdeftClassifier(object):
         # if they are available
         if hasattr(self, '_std') and self._std is not None:
             model_info['std'] = self._std.tolist()
+        # Add timestamp if available
+        if hasattr(self, 'timestamp') and self.timestamp is not None:
+            model_info['timestamp'] = self.timestamp
         return model_info
 
     def dump_model(self, filepath):
@@ -341,6 +350,10 @@ class AdeftClassifier(object):
         result = second_moment - first_moment_squared
         self._std = np.sqrt(np.squeeze(np.asarray(result)))
 
+    def _get_current_time(self):
+        unix_timestamp = datetime.now().timestamp()
+        return datetime.fromtimestamp(unix_timestamp).isoformat()
+
 
 def load_model(filepath):
     """Load previously serialized model
@@ -401,4 +414,7 @@ def load_model_info(model_info):
     # if they are available
     if 'std' in model_info:
         longform_model._std = np.array(model_info['std'])
+    # Load timestamp if available
+    if 'timestamp' in model_info:
+        longform_model.timestamp = timestamp
     return longform_model
