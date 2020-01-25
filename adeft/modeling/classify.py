@@ -192,7 +192,7 @@ class AdeftClassifier(object):
         param_grid = {param_mapping[key]: value
                       for key, value in param_grid.items()}
 
-        cv = StratifiedKFold(n_splits=cv, shuffle=True, random_state=7*seed)
+        cv = StratifiedKFold(n_splits=cv, shuffle=True, random_state=seed)
         # Fit grid_search and set the estimator for the instance of the class
         grid_search = GridSearchCV(logit_pipeline, param_grid,
                                    cv=cv, n_jobs=n_jobs, scoring=scorer,
