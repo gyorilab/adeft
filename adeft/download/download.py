@@ -26,7 +26,7 @@ def setup_models_folder():
     return
 
 
-def download_models():
+def download_models(models=None):
     """Download models from S3
 
     Models are downloaded and placed into a models directory in the users
@@ -52,7 +52,11 @@ def download_models():
         as mutually exclusive parameters.
     """
     s3_models = set(get_s3_models().values())
-    for model in s3_models:
+    if models is None:
+        models = s3_models
+    else:
+        models = set(models) & set(s3_models) 
+    for model in models:
         # create model directory if it does not currently exist
         if not os.path.exists(os.path.join(ADEFT_MODELS_PATH, model)):
             os.makedirs(os.path.join(ADEFT_MODELS_PATH, model))
