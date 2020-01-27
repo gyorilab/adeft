@@ -1,9 +1,9 @@
-import os
 import gzip
 import json
 import logging
 import warnings
 import numpy as np
+from hashlib import md5
 from datetime import datetime
 from collections import Counter
 
@@ -73,7 +73,6 @@ class AdeftClassifier(object):
         # Add shortforms to list of stopwords
         self.stop = set(english_stopwords).union([sf.lower() for sf
                                                   in self.shortforms])
-        
 
     def train(self, texts, y, C=1.0, ngram_range=(1, 2), max_features=1000):
         """Fits a disambiguation model
@@ -110,13 +109,14 @@ class AdeftClassifier(object):
                                                        random_state=seed))])
 
         logit_pipeline.fit(texts, y)
-      
+
         self.estimator = logit_pipeline
         self.best_score = None
         self.grid_search = None
         self.timestamp = self._get_current_time()
+        self.training_set_digest = self.training_set_digest(texts)
         self._set_variance(texts)
-
+        
     def cv(self, texts, y, param_grid, n_jobs=1, cv=5):
         """Performs grid search to select and fit a disambiguation model
 
@@ -218,6 +218,7 @@ class AdeftClassifier(object):
         self.grid_search = grid_search
         self.stats = stats
         self.timestamp = self._get_current_time()
+        self.training_set_digest = self._training_set_digest(texts)
         self._set_variance(texts)
 
     def predict_proba(self, texts):
@@ -353,6 +354,11 @@ class AdeftClassifier(object):
     def _get_current_time(self):
         unix_timestamp = datetime.now().timestamp()
         return datetime.fromtimestamp(unix_timestamp).isoformat()
+
+    def _training_set_digest(self, texts):
+        hashed_texts = ''.join(md5(text.encode('utf-8')).hexdigest()
+                               for text in sorted(texts))
+        return md5(hashed_texts.encode('utf-8')).hexdigest()
 
 
 def load_model(filepath):
