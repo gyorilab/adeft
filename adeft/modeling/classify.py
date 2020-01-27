@@ -15,6 +15,8 @@ from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.metrics import f1_score, precision_score, recall_score,\
     make_scorer
 
+
+from adeft import __version__
 from adeft.nlp import english_stopwords
 
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
@@ -64,12 +66,16 @@ class AdeftClassifier(object):
         self.shortforms = shortforms
         self.pos_labels = pos_labels
         self.random_state = random_state
+        self.version = __version__
         self.stats = None
         self.estimator = None
         self.best_score = None
         self.grid_search = None
         self._std = None
+        self.params = None
         self.timestamp = None
+        self.training_set_digest = None
+
         # Add shortforms to list of stopwords
         self.stop = set(english_stopwords).union([sf.lower() for sf
                                                   in self.shortforms])
@@ -110,13 +116,16 @@ class AdeftClassifier(object):
 
         logit_pipeline.fit(texts, y)
 
+        self.params = {'C': C, 'ngram_grange': ngram_range,
+                       'max_features': max_features,
+                       'random_state': self.random_state}
         self.estimator = logit_pipeline
         self.best_score = None
         self.grid_search = None
         self.timestamp = self._get_current_time()
-        self.training_set_digest = self.training_set_digest(texts)
+        self.training_set_digest = self._training_set_digest(texts)
         self._set_variance(texts)
-        
+
     def cv(self, texts, y, param_grid, n_jobs=1, cv=5):
         """Performs grid search to select and fit a disambiguation model
 
@@ -188,6 +197,8 @@ class AdeftClassifier(object):
         param_mapping = {'C': 'logit__C',
                          'max_features': 'tfidf__max_features',
                          'ngram_range':  'tfidf__ngram_range'}
+        inverse_param_mapping = {value: key
+                                 for key, value in param_mapping.items()}
 
         param_grid = {param_mapping[key]: value
                       for key, value in param_grid.items()}
@@ -213,6 +224,10 @@ class AdeftClassifier(object):
                  'recall': {'mean': cv['mean_test_rc'][best_index],
                             'std': cv['std_test_rc'][best_index]}}
 
+        params = {inverse_param_mapping[key]: value for key, value
+                  in grid_search.best_params_.items()}
+        params['random_state'] = self.random_state
+        self.params = params
         self.estimator = grid_search.best_estimator_
         self.best_score = grid_search.best_score_
         self.grid_search = grid_search
@@ -259,16 +274,15 @@ class AdeftClassifier(object):
                                 'ngram_range': ngram_range},
                       'shortforms': self.shortforms,
                       'pos_labels': self.pos_labels}
-        # Add model statistics if they are available
+        model_info['std'] = self._std.tolist()
+        model_info['timestamp'] = self.timestamp
+        model_info['training_set_digest'] = self.training_set_digest
+        model_info['params'] = self.params
+        model_info['version'] = self.version
+        # Model statistics may not be available depending on
+        # how the model was fit
         if hasattr(self, 'stats') and self.stats is not None:
             model_info['stats'] = self.stats
-        # Add standard deviations used for calculating feature importances
-        # if they are available
-        if hasattr(self, '_std') and self._std is not None:
-            model_info['std'] = self._std.tolist()
-        # Add timestamp if available
-        if hasattr(self, 'timestamp') and self.timestamp is not None:
-            model_info['timestamp'] = self.timestamp
         return model_info
 
     def dump_model(self, filepath):
@@ -413,14 +427,18 @@ def load_model_info(model_info):
     estimator = Pipeline([('tfidf', tfidf),
                           ('logit', logit)])
     longform_model.estimator = estimator
-    # Load model statistics if they are available
+    # These attributes do not exist in older adeft models.
+    # For backwards compatibility we check if they are present
     if 'stats' in model_info:
         longform_model.stats = model_info['stats']
-    # Load standard deviations for calculating feature importances
-    # if they are available
     if 'std' in model_info:
         longform_model._std = np.array(model_info['std'])
-    # Load timestamp if available
     if 'timestamp' in model_info:
-        longform_model.timestamp = timestamp
+        longform_model.timestamp = model_info['timestamp']
+    if 'training_set_digest' in model_info:
+        longform_model.training_set_digest = model_info['training_set_digest']
+    if 'params' in model_info:
+        longform_model.params = model_info['params']
+    if 'version' in model_info:
+        longform_model.version == model_info['version']
     return longform_model
