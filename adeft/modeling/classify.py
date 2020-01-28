@@ -257,6 +257,8 @@ class AdeftClassifier(object):
             to make it portable/serializable and enabling its reload.
         """
         logit = self.estimator.named_steps['logit']
+        if not hasattr(logit, 'coef_'):
+            raise RuntimeError('Estimator has not been fit.')
         classes_ = logit.classes_.tolist()
         intercept_ = logit.intercept_.tolist()
         coef_ = logit.coef_.tolist()
