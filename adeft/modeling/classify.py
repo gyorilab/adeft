@@ -274,15 +274,22 @@ class AdeftClassifier(object):
                                 'ngram_range': ngram_range},
                       'shortforms': self.shortforms,
                       'pos_labels': self.pos_labels}
-        model_info['std'] = self._std.tolist()
-        model_info['timestamp'] = self.timestamp
-        model_info['training_set_digest'] = self.training_set_digest
-        model_info['params'] = self.params
-        model_info['version'] = self.version
         # Model statistics may not be available depending on
         # how the model was fit
         if hasattr(self, 'stats') and self.stats is not None:
             model_info['stats'] = self.stats
+        # These attributes may not exist in older models
+        if hasattr(self, '_std') and self._std is not None:
+            model_info['std'] = self._std.tolist()
+        if hasattr(self, 'timestamp') and self.timestamp is not None:
+            model_info['timestamp'] = self.timestamp
+        if hasattr(self, 'training_set_digest') and \
+           self.training_set_digest is not None:
+            model_info['training_set_digest'] = self.training_set_digest
+        if hasattr(self, 'params') and self.params is not None:
+            model_info['params'] = self.params
+        if hasattr(self, 'version') and self.version is not None:
+            model_info['version'] = self.version
         return model_info
 
     def dump_model(self, filepath):
