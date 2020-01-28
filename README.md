@@ -18,6 +18,8 @@ disambiguate shortforms based on their text context. A growing number of
 pretrained disambiguation models are publicly available to download through
 adeft.
 
+### Citation
+
 If you use Adeft in your research, please cite the paper in the Journal of
 Open Source Software:
 
