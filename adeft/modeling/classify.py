@@ -227,14 +227,13 @@ class AdeftClassifier(object):
         best_index = cv['rank_test_f1_weighted'][0] - 1
         labels = dict(Counter(y))
         stats = {'label_distribution': labels,
-                 'weighted':
-                 {'f1': {'mean': cv['mean_test_f1_weighted'][best_index],
-                         'std': cv['std_test_f1_weighted'][best_index]},
-                  'precision': {'mean':
-                                cv['mean_test_pr_weighted'][best_index],
-                                'std': cv['std_test_pr_weighted'][best_index]},
-                  'recall': {'mean': cv['mean_test_rc_weighted'][best_index],
-                             'std': cv['std_test_rc_weighted'][best_index]}}}
+                 'f1': {'mean': cv['mean_test_f1_weighted'][best_index],
+                        'std': cv['std_test_f1_weighted'][best_index]},
+                 'precision': {'mean':
+                               cv['mean_test_pr_weighted'][best_index],
+                               'std': cv['std_test_pr_weighted'][best_index]},
+                 'recall': {'mean': cv['mean_test_rc_weighted'][best_index],
+                            'std': cv['std_test_rc_weighted'][best_index]}}
         for label in all_labels:
             stats.update({label:
                           {'f1':

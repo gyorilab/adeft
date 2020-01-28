@@ -296,16 +296,35 @@ class AdeftDisambiguator(object):
             return output
 
         model_stats = self.classifier.stats
-        output += 'Training data had class balance:\n'
+        output += 'Class level metrics:\n'
+        output += '--------------------\n'
         label_distribution = model_stats['label_distribution']
+        # number of digits after the decimal place to report when
+        # displaying value of a metric
+        metric_digits = 5
+        name_pad = max((len(val) for val in self.names.values()))
+        count_pad = max(len(str(count)) for count
+                        in label_distribution.values())
+        metric_pad = metric_digits + 2
+        header = '%s\t%s\t%s\n' % ('Grounding'.ljust(name_pad),
+                                   'Count'.ljust(count_pad),
+                                   'F1'.ljust(metric_pad))
+        output += header
         for grounding, count in sorted(label_distribution.items(),
                                        key=lambda x: - x[1]):
             name = (self.names[grounding]
                     if grounding in self.names else 'Ungrounded')
             pos = '*' if grounding in self.pos_labels else ''
-            output += '\t%s%s\t%s\n' % (name, pos, count)
+            try:
+                f1 = round(model_stats[grounding]['f1']['mean'], metric_digits)
+            except KeyError:
+                f1 = ''
+            output += '%s%s\t%s\t%s\n' % (name.rjust(name_pad), pos,
+                                          str(count).rjust(count_pad),
+                                          str(f1).rjust(metric_pad))
         output += '\n'
-        output += 'Classification Metrics:\n'
+        output += 'Weighted Metrics:\n'
+        output += '-----------------\n'
         f1 = round(model_stats['f1']['mean'], 5)
         output += '\tF1 score:\t%s\n' % f1
 
