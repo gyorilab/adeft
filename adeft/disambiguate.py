@@ -2,6 +2,7 @@
 
 import os
 import json
+from hashlib import md5
 import logging
 
 from adeft.locations import ADEFT_MODELS_PATH
@@ -180,7 +181,7 @@ class AdeftDisambiguator(object):
             self.grounding_dict = {shortform:
                                    {phrase:
                                     (new_groundings[grounding]
-                                    if grounding in new_groundings
+                                     if grounding in new_groundings
                                      else grounding)
                                     for phrase, grounding in
                                     grounding_map.items()}
@@ -244,6 +245,24 @@ class AdeftDisambiguator(object):
                                % model_name), 'w') as f:
             json.dump(names, f)
 
+    def version(self):
+        model = self.classifier
+        try:
+            timestamp = model.timestamp
+            training_set_digest = model.training_set_digest
+            params = model.params
+            adeft_version = model.version
+        except AttributeError:
+            logger.warning('Information is not available to calculate'
+                           ' model version')
+            return None
+        gdict = json.dumps(self.grounding_dict, sort_keys=True)
+        gdict_hash = md5(gdict.encode('utf-8')).hexdigest()
+        params_hash = md5(json.dumps(params).encode('utf-8')).hexdigest()
+        model_info_hash = gdict_hash + params_hash + training_set_digest
+        model_info_hash = md5(model_info_hash.encode('utf-8')).hexdigest()
+        return '%s::%s::%s' % (adeft_version, timestamp, model_info_hash)
+
     def info(self):
         """Get information about disambiguator and its performance.
 
@@ -252,7 +271,7 @@ class AdeftDisambiguator(object):
         crossvalidated F1 score, precision, and recall on training data.
         Classification metrics are given by the weighted average of these
         metrics over positive labels, weighted by number of examples in
-        each class in test data. Positive labels are appended with \*s in
+        each class in test data. Positive labels are appended with *s in
         the displayed info. Classification metrics may not be available
         depending upon how model was trained.
 
@@ -338,14 +357,15 @@ def load_disambiguator(shortform, path=ADEFT_MODELS_PATH):
 
 def load_disambiguator_directly(path):
     """Returns disambiguator located at path
-    
+
     Parameters
     ----------
     path : str
         Path to a disambiguation model. Must be a path to a directory
        <model_name> containing the files
-       <model_name>_model.gz, <model_name>_grounding_dict.json, <model_name>_names.json
-       
+       <model_name>_model.gz, <model_name>_grounding_dict.json,
+       <model_name>_names.json
+
     Returns
     -------
     py:class:`adeft.disambiguate.AdeftDisambiguator`
@@ -359,4 +379,3 @@ def load_disambiguator_directly(path):
         names = json.load(f)
     output = AdeftDisambiguator(model, grounding_dict, names)
     return output
-    
