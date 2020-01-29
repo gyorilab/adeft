@@ -212,4 +212,21 @@ def test_serialize():
     assert classifier1.feature_importances() == \
         classifier2.feature_importances() == \
         classifier3.feature_importances()
+    # Check timestamps are unchanged
+    assert classifier1.timestamp == classifier2.timestamp == \
+        classifier3.timestamp
+    # Check hash of training set is unchanged
+    assert classifier1.training_set_digest == \
+        classifier2.training_set_digest == \
+        classifier3.training_set_digest
+    # Check standard deviations of feature values are unchanged
+    assert np.array_equal(classifier1._std,
+                          classifier2._std)
+    assert np.array_equal(classifier2._std,
+                          classifier3._std)
+    # Check classifier versions are unchanged
+    assert classifier1.version == classifier2.version == \
+        classifier3.version
+    # Check that model params are unchanged
+    assert classifier1.params == classifier2.params == classifier3.params
     os.remove(temp_filename)
