@@ -267,8 +267,8 @@ class AdeftDisambiguator(object):
             logger.warning('Information is not available to calculate'
                            ' model version')
             return None
-        gdict_hash = md5(json.dumps(self.grounding_dict,
-                                    sort_keys=True)).hexdigest()
+        gdict_json = json.dumps(self.grounding_dict, sort_keys=True)
+        gdict_hash = md5(gdict_json.encode('utf-8')).hexdigest()
         return '%s::%s::%s' % (adeft_version, timestamp, gdict_hash)
 
     def info(self):
