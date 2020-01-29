@@ -3,7 +3,7 @@ import shutil
 
 from adeft.locations import ADEFT_MODELS_PATH, TEST_RESOURCES_PATH
 from adeft.download import download_models, get_available_models, \
-    get_s3_models, download_test_resources, setup_test_resource_folder
+    get_s3_models, setup_test_resource_folder
 
 
 def test_get_s3_models():
