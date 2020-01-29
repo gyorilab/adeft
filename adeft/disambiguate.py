@@ -246,6 +246,16 @@ class AdeftDisambiguator(object):
             json.dump(names, f)
 
     def version(self):
+        """Returns version string for disambiguator
+
+        Returns
+        -------
+        str
+            String of the form
+            <adeft_version>::<timestamp>::<hash>
+            where <hash> is the md5 hash of the grounding_dict
+            jsonified with sorted keys.
+        """
         model = self.classifier
         try:
             timestamp = model.timestamp
