@@ -249,19 +249,14 @@ class AdeftDisambiguator(object):
         model = self.classifier
         try:
             timestamp = model.timestamp
-            training_set_digest = model.training_set_digest
-            params = model.params
             adeft_version = model.version
         except AttributeError:
             logger.warning('Information is not available to calculate'
                            ' model version')
             return None
-        gdict = json.dumps(self.grounding_dict, sort_keys=True)
-        gdict_hash = md5(gdict.encode('utf-8')).hexdigest()
-        params_hash = md5(json.dumps(params).encode('utf-8')).hexdigest()
-        model_info_hash = gdict_hash + params_hash + training_set_digest
-        model_info_hash = md5(model_info_hash.encode('utf-8')).hexdigest()
-        return '%s::%s::%s' % (adeft_version, timestamp, model_info_hash)
+        gdict_hash = md5(json.dumps(self.grounding_dict,
+                                    sort_keys=True)).hexdigest()
+        return '%s::%s::%s' % (adeft_version, timestamp, gdict_hash)
 
     def info(self):
         """Get information about disambiguator and its performance.
