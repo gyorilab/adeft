@@ -50,14 +50,36 @@ class AdeftClassifier(object):
     estimator : py:class:`sklearn.pipeline.Pipeline`
         An sklearn pipeline that transforms text data with a TfidfVectorizer
         and fits a logistic regression.
-    stats : str
+    stats : dict
        Statistics describing model performance. Only available after model is
        fit with crossvalidation
-
     stop : list of str
         List of stopwords to exclude when performing tfidf vectorization.
         These consist of the set of stopwords in adeft.nlp.english_stopwords
         along with the shortform(s) for which the model is being built
+    params : dict
+        Dictionary mapping parameters to their values. If fit with cv, this
+        contains the parameters with best weighted f1 score over
+        crossvalidation runs.
+    best_score : float
+        Best weighted average f1 score for positive labels over crossvalidation
+        runs. This information can also be found in the stats dict and is not
+        included when models are serialized. Only available if model is fit
+        with the cv method.
+    grid_search : py:class:`sklearn.model_selection.GridSearchCV`
+        sklearn gridsearch object if model was fit with cv. This is not
+        included when model is serialized.
+    version : str
+        Adeft version used when model was fit
+    timestamp : str
+        Human readable timestamp for when model was fit
+    training_set_digest : str
+        Digest of training set calculated using md5 hashing. Can be
+        used at a glance to determine if two models used the same
+        training set.
+    _std : py:class:`numpy.ndarray`
+        Array of standard deviations of feature values over training
+        set. This is used to calculate feature importance
     """
     def __init__(self, shortforms, pos_labels, random_state=None):
         # handle case where single string is passed
@@ -66,19 +88,18 @@ class AdeftClassifier(object):
         self.shortforms = shortforms
         self.pos_labels = pos_labels
         self.random_state = random_state
-        self.version = __version__
-        self.stats = None
         self.estimator = None
+        self.stats = None
+        # Add shortforms to list of stopwords
+        self.stop = set(english_stopwords).union([sf.lower() for sf
+                                                  in self.shortforms])
         self.best_score = None
         self.grid_search = None
+        self.version = __version__
         self._std = None
         self.params = None
         self.timestamp = None
         self.training_set_digest = None
-
-        # Add shortforms to list of stopwords
-        self.stop = set(english_stopwords).union([sf.lower() for sf
-                                                  in self.shortforms])
 
     def train(self, texts, y, C=1.0, ngram_range=(1, 2), max_features=1000):
         """Fits a disambiguation model
