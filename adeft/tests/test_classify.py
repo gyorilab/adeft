@@ -1,6 +1,7 @@
 import os
 import uuid
 import json
+import random
 import numpy as np
 from collections import Counter
 from nose.plugins.attrib import attr
@@ -162,6 +163,27 @@ def test_feature_importance_binary():
     assert all([score > 0 for feature, score
                 in feature_importances['HGNC:6091']
                 if feature in ['irs1', 'igf1r', 'phosphorylation']])
+
+
+@attr('slow')
+def test_training_set_digest():
+    params = {'C': 1.0,
+              'ngram_range': (1, 2),
+              'max_features': 1000}
+    classifier = AdeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'],
+                                 random_state=1729)
+    texts1, labels1 = data['texts'], data['labels']
+    texts2, labels2 = zip(*random.sample(list(zip(texts1, labels1)),
+                                         len(texts1)))
+    texts3, labels3, = texts1[:-1], labels1[:-1]
+    classifier.train(texts1, labels1, **params)
+    digest1 = classifier.training_set_digest
+    classifier.train(texts2, labels2, **params)
+    digest2 = classifier.training_set_digest
+    classifier.train(texts3, labels3, **params)
+    digest3 = classifier.training_set_digest
+    assert digest1 == digest2
+    assert digest1 != digest3
 
 
 def test_serialize():
