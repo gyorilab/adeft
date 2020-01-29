@@ -14,10 +14,7 @@ logger = logging.getLogger(__file__)
 
 
 def setup_models_folder():
-    """Make test resource folders and download content
-
-    Replaces content in existing test_resource_folders if they already
-    exist.
+    """Create models folder if it does not exist and download models
     """
     if os.path.isdir(ADEFT_MODELS_PATH):
         shutil.rmtree(ADEFT_MODELS_PATH)
@@ -39,12 +36,7 @@ def download_models(models=None):
     upper and lower case for compatibility with case insensitive file systems.
 
     Parameters
-    ---------
-    update : Optional[bool]
-        If True, replace all existing models with versions on S3
-        otherwise only download models that aren't currently available.
-        Default: False
-
+    --------
     models : Optional[iterable of str]
         List of models to be downloaded. Allows user to select specific
         models to download. If this option is set, update will be treated
@@ -55,7 +47,7 @@ def download_models(models=None):
     if models is None:
         models = s3_models
     else:
-        models = set(models) & set(s3_models) 
+        models = set(models) & set(s3_models)
     for model in models:
         # create model directory if it does not currently exist
         if not os.path.exists(os.path.join(ADEFT_MODELS_PATH, model)):
