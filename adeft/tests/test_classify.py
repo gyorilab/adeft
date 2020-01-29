@@ -28,7 +28,8 @@ def test_train():
     params = {'C': 1.0,
               'ngram_range': (1, 2),
               'max_features': 1000}
-    classifier = AdeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'])
+    classifier = AdeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'],
+                                 random_state=1729)
     texts = data['texts']
     labels = data['labels']
     classifier.train(texts, labels, **params)
@@ -42,7 +43,8 @@ def test_train():
 def test_cv_multiclass():
     params = {'C': [1.0],
               'max_features': [1000]}
-    classifier = AdeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'])
+    classifier = AdeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'],
+                                 random_state=1729)
     texts = data['texts']
     labels = data['labels']
     classifier.cv(texts, labels, param_grid=params, cv=2)
@@ -58,7 +60,7 @@ def test_cv_binary():
     texts = data['texts']
     labels = [label if label == 'HGNC:6091' else 'ungrounded'
               for label in data['labels']]
-    classifier = AdeftClassifier('IR', ['HGNC:6091'])
+    classifier = AdeftClassifier('IR', ['HGNC:6091'], random_state=1729)
     classifier.cv(texts, labels, param_grid=params, cv=2)
     assert classifier.best_score > 0.5
     assert classifier.stats['label_distribution'] == dict(Counter(labels))
@@ -70,7 +72,8 @@ def test_feature_importance_multiclass():
     params = {'C': 1.0,
               'ngram_range': (1, 2),
               'max_features': 1000}
-    classifier = AdeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'])
+    classifier = AdeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'],
+                                 random_state=1729)
     texts = data['texts']
     labels = data['labels']
     classifier.train(texts, labels, **params)
@@ -100,7 +103,7 @@ def test_feature_importance_binary():
     params = {'C': 1.0,
               'ngram_range': (1, 2),
               'max_features': 1000}
-    classifier = AdeftClassifier('IR', ['HGNC:6091'])
+    classifier = AdeftClassifier('IR', ['HGNC:6091'], random_state=1729)
     texts = data['texts']
     labels = [label if label == 'HGNC:6091' else 'ungrounded'
               for label in data['labels']]
