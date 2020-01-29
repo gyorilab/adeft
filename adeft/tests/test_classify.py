@@ -68,6 +68,44 @@ def test_cv_binary():
 
 
 @attr('slow')
+def test_repeatability_train():
+    params = {'C': 1.0,
+              'ngram_range': (1, 2),
+              'max_features': 100}
+    classifier = AdeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'],
+                                 random_state=1729)
+    texts = data['texts']
+    labels = data['labels']
+    classifier.train(texts, labels, **params)
+    coefs1 = classifier.estimator.named_steps['logit'].coef_
+    fi1 = classifier.feature_importances()
+    classifier.train(texts, labels, **params)
+    coefs2 = classifier.estimator.named_steps['logit'].coef_
+    fi2 = classifier.feature_importances()
+    assert np.array_equal(coefs1, coefs2)
+    assert fi1 == fi2
+
+
+@attr('slow')
+def test_repeatability_cv():
+    params = {'C': [1.0],
+              'ngram_range': [(1, 2)],
+              'max_features': [10, 100]}
+    classifier = AdeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'],
+                                 random_state=1729)
+    texts = data['texts']
+    labels = data['labels']
+    classifier.cv(texts, labels, param_grid=params, cv=2)
+    coefs1 = classifier.estimator.named_steps['logit'].coef_
+    fi1 = classifier.feature_importances()
+    classifier.cv(texts, labels, param_grid=params, cv=2)
+    coefs2 = classifier.estimator.named_steps['logit'].coef_
+    fi2 = classifier.feature_importances()
+    assert np.array_equal(coefs1, coefs2)
+    assert fi1 == fi2
+
+
+@attr('slow')
 def test_feature_importance_multiclass():
     params = {'C': 1.0,
               'ngram_range': (1, 2),
