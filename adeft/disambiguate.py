@@ -35,6 +35,9 @@ class AdeftDisambiguator(object):
         searching for a defining pattern.
     labels : set
         Set of labels that the classifier is able to predict.
+    pos_labels : list of str
+        List of labels of interest. Only these are considered when
+        calculating the weighted f1 score for a classifier.
     """
     def __init__(self, classifier, grounding_dict, names):
         self.classifier = classifier
