@@ -421,6 +421,10 @@ class AdeftClassifier(object):
         return datetime.fromtimestamp(unix_timestamp).isoformat()
 
     def _training_set_digest(self, texts):
+        """Returns a hash corresponding to training set
+
+        Does not depend on order of texts
+        """
         hashed_texts = ''.join(md5(text.encode('utf-8')).hexdigest()
                                for text in sorted(texts))
         return md5(hashed_texts.encode('utf-8')).hexdigest()
