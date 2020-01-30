@@ -2,7 +2,6 @@ import os
 import uuid
 import json
 import numpy as np
-from collections import Counter
 from nose.plugins.attrib import attr
 from sklearn.metrics import f1_score
 
@@ -27,8 +26,9 @@ with open(os.path.join(TEST_RESOURCES_PATH,
 def test_train():
     params = {'C': 1.0,
               'ngram_range': (1, 2),
-              'max_features': 1000}
-    classifier = AdeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'])
+              'max_features': 10}
+    classifier = AdeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'],
+                                 random_state=1729)
     texts = data['texts']
     labels = data['labels']
     classifier.train(texts, labels, **params)
@@ -36,91 +36,67 @@ def test_train():
     assert (f1_score(labels, classifier.predict(texts),
                      labels=['HGNC:6091', 'MESH:D011839'],
                      average='weighted') > 0.5)
+    importances = classifier.feature_importances()
+    INSR_features, INSR_scores = zip(*importances['HGNC:6091'])
+    assert set(['irs', 'igf', 'insulin']) < set(INSR_features)
+    irs_score = [score for feature, score in importances['HGNC:6091']
+                 if feature == 'irs'][0]
+    assert irs_score > 0
+    # test that results are repeatable
+    coef1 = classifier.estimator.named_steps['logit'].coef_
+    classifier.train(texts, labels, **params)
+    coef2 = classifier.estimator.named_steps['logit'].coef_
+    assert np.array_equal(coef1, coef2)
 
 
 @attr('slow')
 def test_cv_multiclass():
     params = {'C': [1.0],
-              'max_features': [1000]}
-    classifier = AdeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'])
+              'max_features': [10]}
+    classifier = AdeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'],
+                                 random_state=1729)
     texts = data['texts']
     labels = data['labels']
     classifier.cv(texts, labels, param_grid=params, cv=2)
-    assert classifier.best_score > 0.5
-    assert classifier.stats['label_distribution'] == dict(Counter(labels))
-    assert classifier.stats['precision']['mean'] > 0.5
+    assert classifier.stats['f1']['mean'] > 0.5
+    assert classifier.stats['ungrounded']['f1']['mean'] > 0.5
+    # Test that results are repeatable
+    coef1 = classifier.estimator.named_steps['logit'].coef_
+    classifier.cv(texts, labels, param_grid=params, cv=2)
+    coef2 = classifier.estimator.named_steps['logit'].coef_
+    assert np.array_equal(coef1, coef2)
 
 
 @attr('slow')
 def test_cv_binary():
     params = {'C': [1.0],
-              'max_features': [1000]}
+              'max_features': [10]}
     texts = data['texts']
     labels = [label if label == 'HGNC:6091' else 'ungrounded'
               for label in data['labels']]
-    classifier = AdeftClassifier('IR', ['HGNC:6091'])
+    classifier = AdeftClassifier('IR', ['HGNC:6091'], random_state=1729)
     classifier.cv(texts, labels, param_grid=params, cv=2)
-    assert classifier.best_score > 0.5
-    assert classifier.stats['label_distribution'] == dict(Counter(labels))
-    assert classifier.stats['precision']['mean'] > 0.5
+    assert classifier.stats['f1']['mean'] > 0.5
+    assert classifier.stats['HGNC:6091']['f1']['mean'] > 0.5
+    importances = classifier.feature_importances()
+    INSR_features, INSR_scores = zip(*importances['HGNC:6091'])
+    ungrounded_features, ungrounded_scores = zip(*importances['ungrounded'])
+    assert set(INSR_features) == set(ungrounded_features)
+    assert INSR_scores == tuple(-x for x in ungrounded_scores[::-1])
+    assert [score for feature, score in importances['HGNC:6091']
+            if feature == 'insulin'][0] > 0
+    assert [score for feature, score in importances['HGNC:6091']
+            if feature == 'group'][0] < 0
 
 
-@attr('slow')
-def test_feature_importance_multiclass():
-    params = {'C': 1.0,
-              'ngram_range': (1, 2),
-              'max_features': 1000}
-    classifier = AdeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'])
+def test_training_set_digest():
+    classifier = AdeftClassifier('?', ['??', '???'])
     texts = data['texts']
-    labels = data['labels']
-    classifier.train(texts, labels, **params)
-    feature_importances = classifier.feature_importances()
-    assert isinstance(feature_importances, dict)
-    assert set(feature_importances.keys()) == set(labels)
-    for label, importances in feature_importances.items():
-        # check that importances are sorted
-        assert importances == sorted(importances, key=lambda x: -x[1])
-        # check that output is of the correct type
-        assert all(isinstance(x, tuple) and
-                   len(x) == 2 and
-                   isinstance(x[0], str) and
-                   isinstance(x[1], float)
-                   for x in importances)
-    # check if selected important features have positive score
-    assert all([score > 0 for feature, score
-                in feature_importances['HGNC:6091']
-                if feature in ['irs1', 'igf1r', 'signaling']])
-    assert all([score > 0 for feature, score
-                in feature_importances['MESH:D011839']
-                if feature in ['radiation', 'exposure', 'dna']])
-
-
-@attr('slow')
-def test_feature_importance_binary():
-    params = {'C': 1.0,
-              'ngram_range': (1, 2),
-              'max_features': 1000}
-    classifier = AdeftClassifier('IR', ['HGNC:6091'])
-    texts = data['texts']
-    labels = [label if label == 'HGNC:6091' else 'ungrounded'
-              for label in data['labels']]
-    classifier.train(texts, labels, **params)
-    feature_importances = classifier.feature_importances()
-    assert isinstance(feature_importances, dict)
-    assert set(feature_importances.keys()) == set(labels)
-    for label, importances in feature_importances.items():
-        # check that importances are sorted
-        assert importances == sorted(importances, key=lambda x: -x[1])
-        # check that output is of the correct type
-        assert all(isinstance(x, tuple) and
-                   len(x) == 2 and
-                   isinstance(x[0], str) and
-                   isinstance(x[1], float)
-                   for x in importances)
-    # check if selected important features have positive score
-    assert all([score > 0 for feature, score
-                in feature_importances['HGNC:6091']
-                if feature in ['irs1', 'igf1r', 'phosphorylation']])
+    digest1 = classifier._training_set_digest(texts)
+    digest2 = classifier._training_set_digest(texts[::-1])
+    digest3 = classifier._training_set_digest(texts[:-1])
+    assert digest1 == digest2
+    assert digest1 != digest3
 
 
 def test_serialize():
@@ -149,4 +125,21 @@ def test_serialize():
     assert classifier1.feature_importances() == \
         classifier2.feature_importances() == \
         classifier3.feature_importances()
+    # Check timestamps are unchanged
+    assert classifier1.timestamp == classifier2.timestamp == \
+        classifier3.timestamp
+    # Check hash of training set is unchanged
+    assert classifier1.training_set_digest == \
+        classifier2.training_set_digest == \
+        classifier3.training_set_digest
+    # Check standard deviations of feature values are unchanged
+    assert np.array_equal(classifier1._std,
+                          classifier2._std)
+    assert np.array_equal(classifier2._std,
+                          classifier3._std)
+    # Check classifier versions are unchanged
+    assert classifier1.version == classifier2.version == \
+        classifier3.version
+    # Check that model params are unchanged
+    assert classifier1.params == classifier2.params == classifier3.params
     os.remove(temp_filename)

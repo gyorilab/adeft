@@ -13,7 +13,17 @@ from adeft.locations import ADEFT_MODELS_PATH, S3_BUCKET_URL, \
 logger = logging.getLogger(__file__)
 
 
-def download_models(update=False, models=None):
+def setup_models_folder():
+    """Create models folder if it does not exist and download models
+    """
+    if os.path.isdir(ADEFT_MODELS_PATH):
+        shutil.rmtree(ADEFT_MODELS_PATH)
+    os.mkdir(ADEFT_MODELS_PATH)
+    download_models()
+    return
+
+
+def download_models(models=None):
     """Download models from S3
 
     Models are downloaded and placed into a models directory in the users
@@ -26,12 +36,7 @@ def download_models(update=False, models=None):
     upper and lower case for compatibility with case insensitive file systems.
 
     Parameters
-    ---------
-    update : Optional[bool]
-        If True, replace all existing models with versions on S3
-        otherwise only download models that aren't currently available.
-        Default: False
-
+    --------
     models : Optional[iterable of str]
         List of models to be downloaded. Allows user to select specific
         models to download. If this option is set, update will be treated
@@ -42,14 +47,8 @@ def download_models(update=False, models=None):
     if models is None:
         models = s3_models
     else:
-        models = set(models) & s3_models
-        update = True
-
-    downloaded_models = get_available_models()
+        models = set(models) & set(s3_models)
     for model in models:
-        # if update is False do not download model
-        if not update and model in downloaded_models:
-            continue
         # create model directory if it does not currently exist
         if not os.path.exists(os.path.join(ADEFT_MODELS_PATH, model)):
             os.makedirs(os.path.join(ADEFT_MODELS_PATH, model))
@@ -65,7 +64,7 @@ def download_models(update=False, models=None):
                           out=resource_path)
 
 
-def setup_test_resource_folders():
+def setup_test_resource_folder():
     """Make test resource folders and download content
 
     Replaces content in existing test_resource_folders if they already

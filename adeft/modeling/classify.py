@@ -1,19 +1,22 @@
-import os
 import gzip
 import json
 import logging
 import warnings
 import numpy as np
+from hashlib import md5
+from datetime import datetime
 from collections import Counter
 
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import GridSearchCV
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import LogisticRegression
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.metrics import f1_score, precision_score, recall_score,\
     make_scorer
 
+
+from adeft import __version__
 from adeft.nlp import english_stopwords
 
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
@@ -38,34 +41,65 @@ class AdeftClassifier(object):
         interest in an application. For adeft pretrained models these are
         typically genes and other relevant biological terms.
 
+    random_state : Optional[int]
+        Optional specification of seed used when calculating crossvalidation
+        folds and fitting the logistic regression model. Default: None
+
     Attributes
     ----------
     estimator : py:class:`sklearn.pipeline.Pipeline`
         An sklearn pipeline that transforms text data with a TfidfVectorizer
         and fits a logistic regression.
-    stats : str
+    stats : dict
        Statistics describing model performance. Only available after model is
        fit with crossvalidation
-
     stop : list of str
         List of stopwords to exclude when performing tfidf vectorization.
         These consist of the set of stopwords in adeft.nlp.english_stopwords
         along with the shortform(s) for which the model is being built
+    params : dict
+        Dictionary mapping parameters to their values. If fit with cv, this
+        contains the parameters with best weighted f1 score over
+        crossvalidation runs.
+    best_score : float
+        Best weighted average f1 score for positive labels over crossvalidation
+        runs. This information can also be found in the stats dict and is not
+        included when models are serialized. Only available if model is fit
+        with the cv method.
+    grid_search : py:class:`sklearn.model_selection.GridSearchCV`
+        sklearn gridsearch object if model was fit with cv. This is not
+        included when model is serialized.
+    version : str
+        Adeft version used when model was fit
+    timestamp : str
+        Human readable timestamp for when model was fit
+    training_set_digest : str
+        Digest of training set calculated using md5 hashing. Can be
+        used at a glance to determine if two models used the same
+        training set.
+    _std : py:class:`numpy.ndarray`
+        Array of standard deviations of feature values over training
+        set. This is used to calculate feature importance
     """
-    def __init__(self, shortforms, pos_labels):
+    def __init__(self, shortforms, pos_labels, random_state=None):
         # handle case where single string is passed
         if isinstance(shortforms, str):
             shortforms = [shortforms]
         self.shortforms = shortforms
         self.pos_labels = pos_labels
-        self.stats = None
+        self.random_state = random_state
         self.estimator = None
-        self.best_score = None
-        self.grid_search = None
-        self._std = None
+        self.stats = None
         # Add shortforms to list of stopwords
         self.stop = set(english_stopwords).union([sf.lower() for sf
                                                   in self.shortforms])
+        self.best_score = None
+        self.grid_search = None
+        self.version = __version__
+        self._std = None
+        self.params = None
+        self.timestamp = None
+        self.training_set_digest = None
 
     def train(self, texts, y, C=1.0, ngram_range=(1, 2), max_features=1000):
         """Fits a disambiguation model
@@ -89,6 +123,7 @@ class AdeftClassifier(object):
             model. Selects top_features by term frequency Default: 1000
         """
         # Initialize pipeline
+        seed = self.random_state
         logit_pipeline = Pipeline([('tfidf',
                                     TfidfVectorizer(ngram_range=ngram_range,
                                                     max_features=max_features,
@@ -97,12 +132,19 @@ class AdeftClassifier(object):
                                     LogisticRegression(C=C,
                                                        solver='saga',
                                                        penalty='l1',
-                                                       multi_class='auto'))])
+                                                       multi_class='auto',
+                                                       random_state=seed))])
 
         logit_pipeline.fit(texts, y)
+
+        self.params = {'C': C, 'ngram_grange': ngram_range,
+                       'max_features': max_features,
+                       'random_state': self.random_state}
         self.estimator = logit_pipeline
         self.best_score = None
         self.grid_search = None
+        self.timestamp = self._get_current_time()
+        self.training_set_digest = self._training_set_digest(texts)
         self._set_variance(texts)
 
     def cv(self, texts, y, param_grid, n_jobs=1, cv=5):
@@ -132,6 +174,7 @@ class AdeftClassifier(object):
         >>> classifier.train(texts, labels, param_grid=params, n_jobs=4)
         """
         # Initialize pipeline
+        seed = self.random_state
         logit_pipeline = Pipeline([('tfidf',
                                     TfidfVectorizer(ngram_range=(1, 2),
                                                     max_features=1000,
@@ -140,68 +183,111 @@ class AdeftClassifier(object):
                                     LogisticRegression(C=100.,
                                                        solver='saga',
                                                        penalty='l1',
-                                                       multi_class='auto'))])
+                                                       multi_class='auto',
+                                                       random_state=seed))])
 
-        # Create scorer for use in grid search. Uses f1 score. The positive
-        # labels are specified at the time of construction. Takes the average
-        # of the f1 scores for each positive label weighted by the frequency in
-        # which it appears in the training data.
-        if len(set(y)) > 2:
-            f1_scorer = make_scorer(f1_score, labels=self.pos_labels,
-                                    average='weighted')
-            precision_scorer = make_scorer(precision_score,
-                                           labels=self.pos_labels,
-                                           average='weighted')
-            recall_scorer = make_scorer(recall_score,
-                                        labels=self.pos_labels,
-                                        average='weighted')
+        # Create scorer for use in grid search. Best params decided using
+        # f1 score. The positive labels are specified when the classifier is
+        # initialized. Uses the average of the f1 scores for each positive
+        # label weighted by the frequency in which it appears in the training
+        # data.
+        if len(self.pos_labels) > 1:
+            weighted_f1_scorer = make_scorer(f1_score, labels=self.pos_labels,
+                                             average='weighted')
+            weighted_pr_scorer = make_scorer(precision_score,
+                                             labels=self.pos_labels,
+                                             average='weighted')
+            weighted_rc_scorer = make_scorer(recall_score,
+                                             labels=self.pos_labels,
+                                             average='weighted')
         else:
-            f1_scorer = make_scorer(f1_score, pos_label=self.pos_labels[0],
-                                    average='binary')
-            precision_scorer = make_scorer(precision_score,
-                                           pos_label=self.pos_labels[0],
-                                           average='binary')
-            recall_scorer = make_scorer(recall_score,
-                                        pos_label=self.pos_labels[0],
-                                        average='binary')
+            weighted_f1_scorer = make_scorer(f1_score,
+                                             pos_label=self.pos_labels[0],
+                                             average='binary')
+            weighted_pr_scorer = make_scorer(precision_score,
+                                             pos_label=self.pos_labels[0],
+                                             average='binary')
+            weighted_rc_scorer = make_scorer(recall_score,
+                                             pos_label=self.pos_labels[0],
+                                             average='binary')
 
-        scorer = {'f1': f1_scorer, 'pr': precision_scorer,
-                  'rc': recall_scorer}
-
+        scorer = {'f1_weighted': weighted_f1_scorer,
+                  'pr_weighted': weighted_pr_scorer,
+                  'rc_weighted': weighted_rc_scorer}
+        all_labels = set(y)
+        for label in all_labels:
+            f1 = make_scorer(f1_score, labels=[label], average=None)
+            pr = make_scorer(recall_score, labels=[label], average=None)
+            rc = make_scorer(precision_score, labels=[label], average=None)
+            scorer.update({'f1_%s' % label: f1,
+                           'pr_%s' % label: pr,
+                           'rc_%s' % label: rc})
         logger.info('Beginning grid search in parameter space:\n'
                     '%s' % param_grid)
 
         param_mapping = {'C': 'logit__C',
                          'max_features': 'tfidf__max_features',
                          'ngram_range':  'tfidf__ngram_range'}
+        inverse_param_mapping = {value: key
+                                 for key, value in param_mapping.items()}
 
         param_grid = {param_mapping[key]: value
                       for key, value in param_grid.items()}
 
+        cv = StratifiedKFold(n_splits=cv, shuffle=True, random_state=seed)
         # Fit grid_search and set the estimator for the instance of the class
         grid_search = GridSearchCV(logit_pipeline, param_grid,
                                    cv=cv, n_jobs=n_jobs, scoring=scorer,
-                                   refit='f1', iid=False,
+                                   refit='f1_weighted', iid=False,
                                    return_train_score=False)
         grid_search.fit(texts, y)
         logger.info('Best f1 score of %s found for' % grid_search.best_score_
                     + ' parameter values:\n%s' % grid_search.best_params_)
 
         cv = grid_search.cv_results_
-        best_index = cv['rank_test_f1'][0] - 1
+        best_index = cv['rank_test_f1_weighted'][0] - 1
         labels = dict(Counter(y))
         stats = {'label_distribution': labels,
-                 'f1': {'mean': cv['mean_test_f1'][best_index],
-                        'std': cv['std_test_f1'][best_index]},
-                 'precision': {'mean': cv['mean_test_pr'][best_index],
-                               'std': cv['std_test_pr'][best_index]},
-                 'recall': {'mean': cv['mean_test_rc'][best_index],
-                            'std': cv['std_test_rc'][best_index]}}
-
+                 'f1': {'mean':
+                        np.round(cv['mean_test_f1_weighted'][best_index], 6),
+                        'std':
+                        np.round(cv['std_test_f1_weighted'][best_index], 6)},
+                 'precision': {'mean':
+                               np.round(cv['mean_test_pr_weighted']
+                                        [best_index], 6),
+                               'std': np.round(cv['std_test_pr_weighted']
+                                               [best_index], 6)},
+                 'recall': {'mean': np.round(cv['mean_test_rc_weighted']
+                                             [best_index], 6),
+                            'std': np.round(cv['std_test_rc_weighted']
+                                            [best_index], 6)}}
+        for label in all_labels:
+            stats.update({label:
+                          {'f1':
+                           {'mean': np.round(cv['mean_test_f1_%s'
+                                                % label][best_index], 6),
+                            'std': np.round(cv['std_test_f1_%s'
+                                               % label][best_index], 6)},
+                           'pr':
+                           {'mean': np.round(cv['mean_test_pr_%s'
+                                                % label][best_index], 6),
+                            'std': np.round(cv['std_test_pr_%s'
+                                               % label][best_index], 6)},
+                           'rc':
+                           {'mean': np.round(cv['mean_test_rc_%s'
+                                                % label][best_index], 6),
+                            'std': np.round(cv['std_test_rc_%s'
+                                               % label][best_index], 6)}}})
+        params = {inverse_param_mapping[key]: value for key, value
+                  in grid_search.best_params_.items()}
+        params['random_state'] = self.random_state
+        self.params = params
         self.estimator = grid_search.best_estimator_
         self.best_score = grid_search.best_score_
         self.grid_search = grid_search
         self.stats = stats
+        self.timestamp = self._get_current_time()
+        self.training_set_digest = self._training_set_digest(texts)
         self._set_variance(texts)
 
     def predict_proba(self, texts):
@@ -225,6 +311,8 @@ class AdeftClassifier(object):
             to make it portable/serializable and enabling its reload.
         """
         logit = self.estimator.named_steps['logit']
+        if not hasattr(logit, 'coef_'):
+            raise RuntimeError('Estimator has not been fit.')
         classes_ = logit.classes_.tolist()
         intercept_ = logit.intercept_.tolist()
         coef_ = logit.coef_.tolist()
@@ -242,13 +330,22 @@ class AdeftClassifier(object):
                                 'ngram_range': ngram_range},
                       'shortforms': self.shortforms,
                       'pos_labels': self.pos_labels}
-        # Add model statistics if they are available
+        # Model statistics may not be available depending on
+        # how the model was fit
         if hasattr(self, 'stats') and self.stats is not None:
             model_info['stats'] = self.stats
-        # Add standard deviations used for calculating feature importances
-        # if they are available
+        # These attributes may not exist in older models
         if hasattr(self, '_std') and self._std is not None:
             model_info['std'] = self._std.tolist()
+        if hasattr(self, 'timestamp') and self.timestamp is not None:
+            model_info['timestamp'] = self.timestamp
+        if hasattr(self, 'training_set_digest') and \
+           self.training_set_digest is not None:
+            model_info['training_set_digest'] = self.training_set_digest
+        if hasattr(self, 'params') and self.params is not None:
+            model_info['params'] = self.params
+        if hasattr(self, 'version') and self.version is not None:
+            model_info['version'] = self.version
         return model_info
 
     def dump_model(self, filepath):
@@ -286,6 +383,10 @@ class AdeftClassifier(object):
             are lists of two element tuples each with first element an ngram
             feature and second element a feature importance score
         """
+        if not hasattr(self, '_std') or self._std is None:
+            logger.warning('Feature importance information not available for'
+                           ' this model.')
+            return None
         output = {}
         tfidf = self.estimator.named_steps['tfidf']
         logit = self.estimator.named_steps['logit']
@@ -298,11 +399,11 @@ class AdeftClassifier(object):
         # only one row of coefficients corresponding to the label classes[1]
         if len(classes) > 2:
             for index, label in enumerate(classes):
-                importance = logit.coef_[index] * self._std
+                importance = np.round(logit.coef_[index] * self._std, 4)
                 output[label] = sorted(zip(feature_names, importance),
                                        key=lambda x: -x[1])
         else:
-            importance = np.squeeze(logit.coef_) * self._std
+            importance = np.round(np.squeeze(logit.coef_) * self._std, 4)
             output[classes[1]] = sorted(zip(feature_names, importance),
                                         key=lambda x: -x[1])
             output[classes[0]] = [(feature, -value)
@@ -326,6 +427,19 @@ class AdeftClassifier(object):
         first_moment_squared = np.square(X.mean(0))
         result = second_moment - first_moment_squared
         self._std = np.sqrt(np.squeeze(np.asarray(result)))
+
+    def _get_current_time(self):
+        unix_timestamp = datetime.now().timestamp()
+        return datetime.fromtimestamp(unix_timestamp).isoformat()
+
+    def _training_set_digest(self, texts):
+        """Returns a hash corresponding to training set
+
+        Does not depend on order of texts
+        """
+        hashed_texts = ''.join(md5(text.encode('utf-8')).hexdigest()
+                               for text in sorted(texts))
+        return md5(hashed_texts.encode('utf-8')).hexdigest()
 
 
 def load_model(filepath):
@@ -380,11 +494,18 @@ def load_model_info(model_info):
     estimator = Pipeline([('tfidf', tfidf),
                           ('logit', logit)])
     longform_model.estimator = estimator
-    # Load model statistics if they are available
+    # These attributes do not exist in older adeft models.
+    # For backwards compatibility we check if they are present
     if 'stats' in model_info:
         longform_model.stats = model_info['stats']
-    # Load standard deviations for calculating feature importances
-    # if they are available
     if 'std' in model_info:
         longform_model._std = np.array(model_info['std'])
+    if 'timestamp' in model_info:
+        longform_model.timestamp = model_info['timestamp']
+    if 'training_set_digest' in model_info:
+        longform_model.training_set_digest = model_info['training_set_digest']
+    if 'params' in model_info:
+        longform_model.params = model_info['params']
+    if 'version' in model_info:
+        longform_model.version == model_info['version']
     return longform_model

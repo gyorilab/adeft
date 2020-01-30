@@ -2,6 +2,7 @@
 
 import os
 import json
+from hashlib import md5
 import logging
 
 from adeft.locations import ADEFT_MODELS_PATH
@@ -34,6 +35,9 @@ class AdeftDisambiguator(object):
         searching for a defining pattern.
     labels : set
         Set of labels that the classifier is able to predict.
+    pos_labels : list of str
+        List of labels of interest. Only these are considered when
+        calculating the weighted f1 score for a classifier.
     """
     def __init__(self, classifier, grounding_dict, names):
         self.classifier = classifier
@@ -180,7 +184,7 @@ class AdeftDisambiguator(object):
             self.grounding_dict = {shortform:
                                    {phrase:
                                     (new_groundings[grounding]
-                                    if grounding in new_groundings
+                                     if grounding in new_groundings
                                      else grounding)
                                     for phrase, grounding in
                                     grounding_map.items()}
@@ -244,6 +248,29 @@ class AdeftDisambiguator(object):
                                % model_name), 'w') as f:
             json.dump(names, f)
 
+    def version(self):
+        """Returns version string for disambiguator
+
+        Returns
+        -------
+        str
+            String of the form
+            <adeft_version>::<timestamp>::<hash>
+            where <hash> is the md5 hash of the grounding_dict
+            jsonified with sorted keys.
+        """
+        model = self.classifier
+        try:
+            timestamp = model.timestamp
+            adeft_version = model.version
+        except AttributeError:
+            logger.warning('Information is not available to calculate'
+                           ' model version')
+            return None
+        gdict_json = json.dumps(self.grounding_dict, sort_keys=True)
+        gdict_hash = md5(gdict_json.encode('utf-8')).hexdigest()
+        return '%s::%s::%s' % (adeft_version, timestamp, gdict_hash)
+
     def info(self):
         """Get information about disambiguator and its performance.
 
@@ -252,7 +279,7 @@ class AdeftDisambiguator(object):
         crossvalidated F1 score, precision, and recall on training data.
         Classification metrics are given by the weighted average of these
         metrics over positive labels, weighted by number of examples in
-        each class in test data. Positive labels are appended with \*s in
+        each class in test data. Positive labels are appended with *s in
         the displayed info. Classification metrics may not be available
         depending upon how model was trained.
 
@@ -277,16 +304,35 @@ class AdeftDisambiguator(object):
             return output
 
         model_stats = self.classifier.stats
-        output += 'Training data had class balance:\n'
+        output += 'Class level metrics:\n'
+        output += '--------------------\n'
         label_distribution = model_stats['label_distribution']
+        # number of digits after the decimal place to report when
+        # displaying value of a metric
+        metric_digits = 5
+        name_pad = max((len(val) for val in self.names.values()))
+        count_pad = max(len(str(count)) for count
+                        in label_distribution.values())
+        metric_pad = metric_digits + 2
+        header = '%s\t%s\t%s\n' % ('Grounding'.ljust(name_pad),
+                                   'Count'.ljust(count_pad),
+                                   'F1'.ljust(metric_pad))
+        output += header
         for grounding, count in sorted(label_distribution.items(),
                                        key=lambda x: - x[1]):
             name = (self.names[grounding]
                     if grounding in self.names else 'Ungrounded')
             pos = '*' if grounding in self.pos_labels else ''
-            output += '\t%s%s\t%s\n' % (name, pos, count)
+            try:
+                f1 = round(model_stats[grounding]['f1']['mean'], metric_digits)
+            except KeyError:
+                f1 = ''
+            output += '%s%s\t%s\t%s\n' % (name.rjust(name_pad), pos,
+                                          str(count).rjust(count_pad),
+                                          str(f1).rjust(metric_pad))
         output += '\n'
-        output += 'Classification Metrics:\n'
+        output += 'Weighted Metrics:\n'
+        output += '-----------------\n'
         f1 = round(model_stats['f1']['mean'], 5)
         output += '\tF1 score:\t%s\n' % f1
 
@@ -338,14 +384,15 @@ def load_disambiguator(shortform, path=ADEFT_MODELS_PATH):
 
 def load_disambiguator_directly(path):
     """Returns disambiguator located at path
-    
+
     Parameters
     ----------
     path : str
         Path to a disambiguation model. Must be a path to a directory
        <model_name> containing the files
-       <model_name>_model.gz, <model_name>_grounding_dict.json, <model_name>_names.json
-       
+       <model_name>_model.gz, <model_name>_grounding_dict.json,
+       <model_name>_names.json
+
     Returns
     -------
     py:class:`adeft.disambiguate.AdeftDisambiguator`
@@ -359,4 +406,3 @@ def load_disambiguator_directly(path):
         names = json.load(f)
     output = AdeftDisambiguator(model, grounding_dict, names)
     return output
-    

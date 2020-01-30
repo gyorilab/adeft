@@ -52,6 +52,7 @@ def test_dump_disambiguator():
     assert (array_equal(ad1.classifier.estimator.named_steps['logit'].coef_,
                         ad2.classifier.estimator.named_steps['logit'].coef_))
     assert ad1.info() == ad2.info(), (ad1.info(), ad2.info())
+    assert ad1.version() == ad2.version()
     try:
         shutil.rmtree(os.path.join(SCRATCH_PATH, tempname))
     except Exception:
