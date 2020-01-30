@@ -2,6 +2,7 @@
 algorithm."""
 from collections import deque
 import logging
+import numpy as np
 
 from adeft.nlp import WatchfulStemmer
 from adeft.util import get_candidate_fragments, get_candidate
@@ -72,7 +73,8 @@ class _TrieNode(object):
         ancestor of node with best score
     """
     __slots__ = ['longform', 'count', 'sum_ft', 'sum_ft2', 'score',
-                 'parent', 'children', 'best_ancestor_score', 'best_ancestor']
+                 'norm_score', 'parent', 'children',
+                 'best_ancestor_norm_score', 'best_ancestor']
 
     def __init__(self, longform=(), parent=None):
         self.longform = longform
@@ -80,9 +82,10 @@ class _TrieNode(object):
             self.count = 1
             self.sum_ft = self.sum_ft2 = 0
             self.score = 1
+            self.norm_score = _norm_score(1, 1)
         self.parent = parent
         self.children = {}
-        self.best_ancestor_score = -1.
+        self.best_ancestor_norm_score = -1.
         self.best_ancestor = None
 
     def is_root(self):
@@ -112,6 +115,9 @@ class _TrieNode(object):
         self.sum_ft += 1
         self.sum_ft2 += 2*count - 1
         self.score -= self.sum_ft2/self.sum_ft
+
+    def update_norm_score(self):
+        self.norm_score = _norm_score(self.score, self.count)
 
 
 class AdeftMiner(object):
@@ -219,18 +225,18 @@ class AdeftMiner(object):
                       for longform, score in candidates]
         return candidates
 
-    def get_longforms(self, cutoff=1):
+    def get_longforms(self, cutoff=0):
         """Return a list of extracted longforms with their scores
 
         Runs a breadth first search to search for nodes with score
-        greater than or equal to the scores of all children and strictly less
-        than the scores of all ancestors.
+        greater than or equal to the scores of all children and strictly
+        greater than the scores of all ancestors.
 
         Parameters
         ----------
         cutoff : Optional[int]
             Return only longforms with a score greater than the cutoff.
-            Default: 1
+            Default: 0
 
         Returns
         -------
@@ -248,27 +254,23 @@ class AdeftMiner(object):
             node = queue.popleft()
             # if a node has a better score than its parent's best
             # ancestor it becomes its own best ancestor
-            if node.score > node.parent.best_ancestor_score:
-                node.best_ancestor_score = node.score
+            if node.norm_score > node.parent.best_ancestor_norm_score:
+                node.best_ancestor_norm_score = node.norm_score
                 node.best_ancestor = node
             # otherwise set its best ancestor to its parents best ancestor
             else:
-                node.best_ancestor_score = node.parent.best_ancestor_score
+                node.best_ancestor_norm_score = \
+                    node.parent.best_ancestor_norm_score
                 node.best_ancestor = node.parent.best_ancestor
             # a nodes score cannot exceed the count of its expected longform.
             # if the count for a child is less or equal to the best ancestor
             # score, the node is not added to the queue. track how many
             # children are added to the queue
-            worthy = 0
-            for child in node.children.values():
-                if child.count > node.best_ancestor_score:
-                    queue.append(child)
-                    worthy += 1
-            # if no children are added, the becomes a leaf. the optimal
-            # longforms are given by the best ancestors of the leaves.
-            if worthy == 0:
+            if not node.children:
                 longforms.add((node.best_ancestor.longform,
-                               node.best_ancestor.score))
+                               node.best_ancestor.norm_score))
+            for child in node.children.values():
+                queue.append(child)
 
         # Convert longforms as tuples in reverse order into reader strings
         # mapping stems back to the most frequent token that had been mapped
@@ -314,9 +316,11 @@ class AdeftMiner(object):
                 # child unless current node is the root
                 if not current.is_root():
                     current.update_likelihood(1)
-                    self._longforms[current.longform[::-1]] = current.score
+                    current.update_norm_score()
+                    self._longforms[current.longform[::-1]] = \
+                        current.norm_score
                 # Add newly observed longform to the dictionary of candidates
-                self._longforms[new.longform[::-1]] = new.score
+                self._longforms[new.longform[::-1]] = new.norm_score
                 # set newly observed longform to be the child of current node
                 current.children[token] = new
                 # update current node to the newly formed node
@@ -325,19 +329,21 @@ class AdeftMiner(object):
                 # candidate longform has been observed before
                 # update count for candidate longform and associated LH value
                 current.children[token].increment_count()
+                current.children[token].update_norm_score()
                 # Update entry for candidate longform in the candidates
                 # dictionary
                 self._longforms[current.children[token].longform[::-1]] = \
-                    current.children[token].score
+                    current.children[token].norm_score
                 if not current.is_root():
                     # we are not at the top of the trie. observed candidate
                     # has a parent
-
                     # update likelihood of candidate's parent
                     count = current.children[token].count
                     current.update_likelihood(count)
+                    current.update_norm_score()
                     # Update candidates dictionary
-                    self._longforms[current.longform[::-1]] = current.score
+                    self._longforms[current.longform[::-1]] = \
+                        current.norm_score
                 current = current.children[token]
 
     def _make_readable(self, tokens):
@@ -345,3 +351,7 @@ class AdeftMiner(object):
         """
         return ' '.join(self._stemmer.most_frequent(token)
                         for token in tokens[::-1])
+
+
+def _norm_score(score, count):
+    return max(0, (score-1)/count)
