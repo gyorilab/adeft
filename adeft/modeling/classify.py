@@ -248,24 +248,36 @@ class AdeftClassifier(object):
         best_index = cv['rank_test_f1_weighted'][0] - 1
         labels = dict(Counter(y))
         stats = {'label_distribution': labels,
-                 'f1': {'mean': cv['mean_test_f1_weighted'][best_index],
-                        'std': cv['std_test_f1_weighted'][best_index]},
+                 'f1': {'mean':
+                        np.round(cv['mean_test_f1_weighted'][best_index], 6),
+                        'std':
+                        np.round(cv['std_test_f1_weighted'][best_index], 6)},
                  'precision': {'mean':
-                               cv['mean_test_pr_weighted'][best_index],
-                               'std': cv['std_test_pr_weighted'][best_index]},
-                 'recall': {'mean': cv['mean_test_rc_weighted'][best_index],
-                            'std': cv['std_test_rc_weighted'][best_index]}}
+                               np.round(cv['mean_test_pr_weighted']
+                                        [best_index], 6),
+                               'std': np.round(cv['std_test_pr_weighted']
+                                               [best_index], 6)},
+                 'recall': {'mean': np.round(cv['mean_test_rc_weighted']
+                                             [best_index], 6),
+                            'std': np.round(cv['std_test_rc_weighted']
+                                            [best_index], 6)}}
         for label in all_labels:
             stats.update({label:
                           {'f1':
-                           {'mean': cv['mean_test_f1_%s' % label][best_index],
-                            'std': cv['std_test_f1_%s' % label][best_index]},
+                           {'mean': np.round(cv['mean_test_f1_%s'
+                                                % label][best_index], 6),
+                            'std': np.round(cv['std_test_f1_%s'
+                                               % label][best_index], 6)},
                            'pr':
-                           {'mean': cv['mean_test_pr_%s' % label][best_index],
-                            'std': cv['std_test_pr_%s' % label][best_index]},
+                           {'mean': np.round(cv['mean_test_pr_%s'
+                                                % label][best_index], 6),
+                            'std': np.round(cv['std_test_pr_%s'
+                                               % label][best_index], 6)},
                            'rc':
-                           {'mean': cv['mean_test_rc_%s' % label][best_index],
-                            'std': cv['std_test_rc_%s' % label][best_index]}}})
+                           {'mean': np.round(cv['mean_test_rc_%s'
+                                                % label][best_index], 6),
+                            'std': np.round(cv['std_test_rc_%s'
+                                               % label][best_index], 6)}}})
         params = {inverse_param_mapping[key]: value for key, value
                   in grid_search.best_params_.items()}
         params['random_state'] = self.random_state
