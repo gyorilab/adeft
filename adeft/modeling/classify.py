@@ -387,11 +387,11 @@ class AdeftClassifier(object):
         # only one row of coefficients corresponding to the label classes[1]
         if len(classes) > 2:
             for index, label in enumerate(classes):
-                importance = logit.coef_[index] * self._std
+                importance = np.round(logit.coef_[index] * self._std, 4)
                 output[label] = sorted(zip(feature_names, importance),
                                        key=lambda x: -x[1])
         else:
-            importance = np.squeeze(logit.coef_) * self._std
+            importance = np.round(np.squeeze(logit.coef_) * self._std, 4)
             output[classes[1]] = sorted(zip(feature_names, importance),
                                         key=lambda x: -x[1])
             output[classes[0]] = [(feature, -value)
