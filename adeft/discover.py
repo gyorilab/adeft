@@ -71,7 +71,7 @@ class _TrieNode(object):
         ancestor of node with best score
     """
     __slots__ = ['longform', 'count', 'sum_ft', 'sum_ft2', 'score',
-                 'norm_score', 'parent', 'children']
+                 'parent', 'children']
 
     def __init__(self, longform=(), parent=None):
         self.longform = longform
@@ -79,7 +79,6 @@ class _TrieNode(object):
             self.count = 1
             self.sum_ft = self.sum_ft2 = 0
             self.score = 1
-            self.norm_score = 0
         self.parent = parent
         self.children = {}
 
@@ -110,9 +109,6 @@ class _TrieNode(object):
         self.sum_ft += 1
         self.sum_ft2 += 2*count - 1
         self.score -= self.sum_ft2/self.sum_ft
-
-    def update_norm_score(self, beta):
-        self.norm_score = _norm_score(self.score, self.count, beta)
 
 
 class AdeftMiner(object):
@@ -155,13 +151,12 @@ class AdeftMiner(object):
         given word has been mapped to a given stem. Wraps the class
         EnglishStemmer from nltk.stem.snowball
     """
-    def __init__(self, shortform, window=100, exclude=None, beta=4):
+    def __init__(self, shortform, window=100, exclude=None):
         self.shortform = shortform
         self._internal_trie = _TrieNode()
         self._longforms = {}
         self._stemmer = WatchfulStemmer()
         self.window = window
-        self.beta = beta
         if exclude is None:
             self.exclude = set()
         else:
@@ -221,10 +216,10 @@ class AdeftMiner(object):
                       for longform, score in candidates]
         return candidates
 
-    def get_longforms(self, cutoff=0):
+    def get_longforms(self, cutoff=0, scale=True, smoothing_param=4):
         """Return a list of extracted longforms with their scores
 
-        Runs a breadth first search to search for nodes with score
+        Traverse the candidates trie to search for nodes with score
         greater than or equal to the scores of all children and strictly
         greater than the scores of all ancestors.
 
@@ -234,6 +229,15 @@ class AdeftMiner(object):
             Return only longforms with a score greater than the cutoff.
             Default: 0
 
+        scale : Optional[bool]
+            Whether or not to scale likelihood scores. If True, a likelihood
+            score is transformed to (score-1)/(count + smoothing_param-1) where
+            smoothing_param can be supplied by the user. Default: True
+
+        smoothing_param : Optional[float]
+            Value of smoothing parameter to use in scaling transformation. This
+            is ignored if scale is set to False. Default: 4
+
         Returns
         -------
         longforms : list of tuple
@@ -241,8 +245,14 @@ class AdeftMiner(object):
             descending order by score, then by the length of the longform from
             shortest to longest, and finally by lexicographic order.
         """
+        if scale:
+            def score_func(score, count):
+                return (score-1)/(count+smoothing_param-1)
+        else:
+            def score_func(score, count):
+                return score
         root = self._internal_trie
-        longforms = self._get_longform_helper(root)
+        longforms = self._get_longform_helper(root, score_func)
 
         # Convert longforms as tuples in reverse order into reader strings
         # mapping stems back to the most frequent token that had been mapped
@@ -265,18 +275,18 @@ class AdeftMiner(object):
         # successfully in subsequent calls to this method
         return longforms
 
-    def _get_longform_helper(self, node):
+    def _get_longform_helper(self, node, score_func):
         if not node.children:
-            return [(node.longform, node.norm_score)]
+            return [(node.longform, score_func(node.score, node.count))]
         else:
             result = []
             for child in node.children.values():
-                child_longforms = self._get_longform_helper(child)
+                child_longforms = self._get_longform_helper(child, score_func)
                 result.extend([(longform, score) for longform, score in
                                child_longforms if node.is_root() or
-                               score > node.norm_score])
+                               score > score_func(node.score, node.count)])
             if not result:
-                result = [(node.longform, node.norm_score)]
+                result = [(node.longform, score_func(node.score, node.count))]
             return result
 
     def _add(self, tokens):
@@ -302,11 +312,9 @@ class AdeftMiner(object):
                 # child unless current node is the root
                 if not current.is_root():
                     current.update_likelihood(1)
-                    current.update_norm_score(self.beta)
-                    self._longforms[current.longform[::-1]] = \
-                        current.norm_score
+                    self._longforms[current.longform[::-1]] = current.score
                 # Add newly observed longform to the dictionary of candidates
-                self._longforms[new.longform[::-1]] = new.norm_score
+                self._longforms[new.longform[::-1]] = new.score
                 # set newly observed longform to be the child of current node
                 current.children[token] = new
                 # update current node to the newly formed node
@@ -315,21 +323,19 @@ class AdeftMiner(object):
                 # candidate longform has been observed before
                 # update count for candidate longform and associated LH value
                 current.children[token].increment_count()
-                current.children[token].update_norm_score(self.beta)
                 # Update entry for candidate longform in the candidates
                 # dictionary
                 self._longforms[current.children[token].longform[::-1]] = \
-                    current.children[token].norm_score
+                    current.children[token].score
                 if not current.is_root():
                     # we are not at the top of the trie. observed candidate
                     # has a parent
                     # update likelihood of candidate's parent
                     count = current.children[token].count
                     current.update_likelihood(count)
-                    current.update_norm_score(self.beta)
                     # Update candidates dictionary
                     self._longforms[current.longform[::-1]] = \
-                        current.norm_score
+                        current.score
                 current = current.children[token]
 
     def _make_readable(self, tokens):
