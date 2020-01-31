@@ -1,8 +1,6 @@
 """Discover candidate longforms from a given corpus using the Acromine
 algorithm."""
-from collections import deque
 import logging
-import numpy as np
 
 from adeft.nlp import WatchfulStemmer
 from adeft.util import get_candidate_fragments, get_candidate
@@ -73,8 +71,7 @@ class _TrieNode(object):
         ancestor of node with best score
     """
     __slots__ = ['longform', 'count', 'sum_ft', 'sum_ft2', 'score',
-                 'norm_score', 'parent', 'children',
-                 'best_ancestor_norm_score', 'best_ancestor']
+                 'norm_score', 'parent', 'children']
 
     def __init__(self, longform=(), parent=None):
         self.longform = longform
@@ -82,11 +79,9 @@ class _TrieNode(object):
             self.count = 1
             self.sum_ft = self.sum_ft2 = 0
             self.score = 1
-            self.norm_score = _norm_score(1, 1)
+            self.norm_score = 0
         self.parent = parent
         self.children = {}
-        self.best_ancestor_norm_score = -1.
-        self.best_ancestor = None
 
     def is_root(self):
         """True if node is at the root of the trie"""
@@ -116,8 +111,8 @@ class _TrieNode(object):
         self.sum_ft2 += 2*count - 1
         self.score -= self.sum_ft2/self.sum_ft
 
-    def update_norm_score(self):
-        self.norm_score = _norm_score(self.score, self.count)
+    def update_norm_score(self, beta):
+        self.norm_score = _norm_score(self.score, self.count, beta)
 
 
 class AdeftMiner(object):
@@ -160,12 +155,13 @@ class AdeftMiner(object):
         given word has been mapped to a given stem. Wraps the class
         EnglishStemmer from nltk.stem.snowball
     """
-    def __init__(self, shortform, window=100, exclude=None):
+    def __init__(self, shortform, window=100, exclude=None, beta=4):
         self.shortform = shortform
         self._internal_trie = _TrieNode()
         self._longforms = {}
         self._stemmer = WatchfulStemmer()
         self.window = window
+        self.beta = beta
         if exclude is None:
             self.exclude = set()
         else:
@@ -245,32 +241,8 @@ class AdeftMiner(object):
             descending order by score, then by the length of the longform from
             shortest to longest, and finally by lexicographic order.
         """
-        # Forward pass
-        longforms = set()
-        # The root contains no longform. Initialize queue with all of its
-        # children
-        queue = deque(self._internal_trie.children.values())
-        while queue:
-            node = queue.popleft()
-            # if a node has a better score than its parent's best
-            # ancestor it becomes its own best ancestor
-            if node.norm_score > node.parent.best_ancestor_norm_score:
-                node.best_ancestor_norm_score = node.norm_score
-                node.best_ancestor = node
-            # otherwise set its best ancestor to its parents best ancestor
-            else:
-                node.best_ancestor_norm_score = \
-                    node.parent.best_ancestor_norm_score
-                node.best_ancestor = node.parent.best_ancestor
-            # a nodes score cannot exceed the count of its expected longform.
-            # if the count for a child is less or equal to the best ancestor
-            # score, the node is not added to the queue. track how many
-            # children are added to the queue
-            if not node.children:
-                longforms.add((node.best_ancestor.longform,
-                               node.best_ancestor.norm_score))
-            for child in node.children.values():
-                queue.append(child)
+        root = self._internal_trie
+        longforms = self._get_longform_helper(root)
 
         # Convert longforms as tuples in reverse order into reader strings
         # mapping stems back to the most frequent token that had been mapped
@@ -292,6 +264,20 @@ class AdeftMiner(object):
         # of the root. This is required for the algorithm to be able to run
         # successfully in subsequent calls to this method
         return longforms
+
+    def _get_longform_helper(self, node):
+        if not node.children:
+            return [(node.longform, node.norm_score)]
+        else:
+            result = []
+            for child in node.children.values():
+                child_longforms = self._get_longform_helper(child)
+                result.extend([(longform, score) for longform, score in
+                               child_longforms if node.is_root() or
+                               score > node.norm_score])
+            if not result:
+                result = [(node.longform, node.norm_score)]
+            return result
 
     def _add(self, tokens):
         """Add a list of tokens to the internal trie and update likelihoods.
@@ -316,7 +302,7 @@ class AdeftMiner(object):
                 # child unless current node is the root
                 if not current.is_root():
                     current.update_likelihood(1)
-                    current.update_norm_score()
+                    current.update_norm_score(self.beta)
                     self._longforms[current.longform[::-1]] = \
                         current.norm_score
                 # Add newly observed longform to the dictionary of candidates
@@ -329,7 +315,7 @@ class AdeftMiner(object):
                 # candidate longform has been observed before
                 # update count for candidate longform and associated LH value
                 current.children[token].increment_count()
-                current.children[token].update_norm_score()
+                current.children[token].update_norm_score(self.beta)
                 # Update entry for candidate longform in the candidates
                 # dictionary
                 self._longforms[current.children[token].longform[::-1]] = \
@@ -340,7 +326,7 @@ class AdeftMiner(object):
                     # update likelihood of candidate's parent
                     count = current.children[token].count
                     current.update_likelihood(count)
-                    current.update_norm_score()
+                    current.update_norm_score(self.beta)
                     # Update candidates dictionary
                     self._longforms[current.longform[::-1]] = \
                         current.norm_score
@@ -353,5 +339,7 @@ class AdeftMiner(object):
                         for token in tokens[::-1])
 
 
-def _norm_score(score, count):
-    return max(0, (score-1)/count)
+def _norm_score(score, count, beta):
+    numerator = score-1
+    denominator = count+beta-1
+    return 0 if denominator == 0 else numerator/denominator
