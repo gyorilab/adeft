@@ -216,7 +216,7 @@ class AdeftMiner(object):
                       for longform, score in candidates]
         return candidates
 
-    def get_longforms(self, cutoff=0, scale=True, smoothing_param=4):
+    def get_longforms(self, cutoff=1, scale=False, smoothing_param=4):
         """Return a list of extracted longforms with their scores
 
         Traverse the candidates trie to search for nodes with score
@@ -227,12 +227,12 @@ class AdeftMiner(object):
         ----------
         cutoff : Optional[int]
             Return only longforms with a score greater than the cutoff.
-            Default: 0
+            Default: 1
 
         scale : Optional[bool]
             Whether or not to scale likelihood scores. If True, a likelihood
             score is transformed to (score-1)/(count + smoothing_param-1) where
-            smoothing_param can be supplied by the user. Default: True
+            smoothing_param can be supplied by the user. Default: False
 
         smoothing_param : Optional[float]
             Value of smoothing parameter to use in scaling transformation. This
