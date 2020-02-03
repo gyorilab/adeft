@@ -63,12 +63,6 @@ class _TrieNode(object):
 
     children : dict of :py:class:`adeft.discover._TrieNode`
         dictionary of child nodes
-
-    best_ancestor_score : float
-        best score among all of nodes ancestors
-
-    best_ancestor : :py:class:`adeft.discover._TrieNode`
-        ancestor of node with best score
     """
     __slots__ = ['longform', 'count', 'sum_ft', 'sum_ft2', 'score',
                  'parent', 'children']
@@ -109,6 +103,35 @@ class _TrieNode(object):
         self.sum_ft += 1
         self.sum_ft2 += 2*count - 1
         self.score -= self.sum_ft2/self.sum_ft
+
+    def to_dict(self):
+        if not self.children:
+            return {}
+        out = {}
+        for token, child in self.children.items():
+            out[token] = {'count': child.count, 'score': child.score,
+                          'sum_ft': child.sum_ft, 'sum_ft2': child.sum_ft2,
+                          'longform': child.longform,
+                          'children': child.to_dict()}
+        return out
+
+
+def load_trie(dictionary):
+    root = _TrieNode()
+    for key, value in dictionary.items():
+        root.children[key] = _load_trie_helper(value, root)
+    return root
+
+
+def _load_trie_helper(entry, parent):
+    node = _TrieNode(longform=entry['longform'], parent=parent)
+    node.count = entry['count']
+    node.score = entry['score']
+    node.sum_ft = entry['sum_ft']
+    node.sum_ft2 = entry['sum_ft2']
+    for key, value in entry['children'].items():
+        node.children[key] = _load_trie_helper(value, parent=node)
+    return node
 
 
 class AdeftMiner(object):
@@ -346,3 +369,21 @@ class AdeftMiner(object):
         """
         return ' '.join(self._stemmer.most_frequent(token)
                         for token in tokens[::-1])
+
+    def dump(self):
+        out = {}
+        out['shortform'] = self.shortform
+        out['internal_trie'] = self._internal_trie.to_dict()
+        out['longforms'] = self._longforms
+
+        out['stemmer'] = self._stemmer.dump()
+        out['window'] = self.window
+        return out
+
+
+def load_adeft_miner_from_dict(dictionary):
+    out = AdeftMiner(dictionary['shortform'], window=dictionary['window'])
+    out._internal_trie = load_trie(dictionary['internal_trie'])
+    out._longforms = dictionary['longforms']
+    out._stemmer = WatchfulStemmer(dictionary['stemmer'])
+    return out

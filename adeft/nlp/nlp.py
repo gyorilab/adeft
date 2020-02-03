@@ -1,4 +1,3 @@
-import os
 import re
 import json
 from collections import defaultdict
@@ -22,9 +21,11 @@ class WatchfulStemmer(object):
         mapped to from a particular stem by the wrapped stemmer. Of the form
         counts[stem:str][word:str] = count:int
     """
-    def __init__(self):
+    def __init__(self, counts=None):
+        if counts is None:
+            counts = {}
         self.__snowball = EnglishStemmer()
-        self.counts = defaultdict(lambda: defaultdict(int))
+        self.counts = defaultdict(lambda: defaultdict(int), counts)
 
     def stem(self, word):
         """Returns stemmed form of word.
@@ -69,6 +70,9 @@ class WatchfulStemmer(object):
         else:
             raise ValueError('stem %s has not been observed' % stemmed)
         return output
+
+    def dump(self):
+        return dict(self.counts)
 
 
 def tokenize(text):
