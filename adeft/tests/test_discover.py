@@ -64,10 +64,10 @@ def test_process_texts():
     """
     miner = AdeftMiner('INDRA')
     miner.process_texts([example_text1, example_text2,
-                      example_text3, example_text4])
+                         example_text3, example_text4])
     assert miner.top()[0] == ('indonesian debt restructuring agency', 1.0)
     assert miner.top()[3] == ('integrated network and dynamical'
-                           ' reasoning assembler', 1.0)
+                              ' reasoning assembler', 1.0)
     assert miner.top()[7] == ('reasoning assembler', 0.0)
 
     # check that top works with limit
@@ -78,7 +78,7 @@ def test_process_with_exclude():
     """Test processing of texts with excluded words"""
     miner = AdeftMiner('INDRA', exclude='and')
     miner.process_texts([example_text1, example_text2,
-                      example_text3, example_text4])
+                         example_text3, example_text4])
     assert miner.top()[0] == ('dynamical reasoning assembler', 2.0)
     assert miner.top()[1] == ('indonesian debt restructuring agency', 1.0)
 
@@ -91,7 +91,7 @@ def test_get_longforms():
     assert miner.top() == []
 
     miner.process_texts([example_text1, example_text2,
-                      example_text3, example_text4])
+                         example_text3, example_text4])
     longforms = miner.get_longforms(cutoff=0.5)
     assert(len(longforms) == 2)
     assert longforms[0] == ('indonesian debt restructuring agency', 1.0)

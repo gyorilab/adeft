@@ -68,7 +68,7 @@ cdef class AdeftLongformScorer:
     within the longform and penalties are given for characters in the
     shortform that are not matched to any character in the longform. Prizes
     within tokens are context dependent, depending on the pattern of previous
-    matches in the current token. The maximum character prize is 1.0. A 
+    matches in the current token. The maximum character prize is 1.0. A
     character score is calculated by taking the sum of prizes for all
     characters matched in the longform subtracted by the sum of penalties
     for all characters in the shortform that are not matched and then dividing
@@ -122,7 +122,7 @@ cdef class AdeftLongformScorer:
         within a token. Suppose a captured token T has its first match at
         position i. The prize for this first match will be alpha**i. The
         prize for the following character will then also be alpha**i and
-        prizes for additional characters will decay exponentially 
+        prizes for additional characters will decay exponentially
         from there at rate beta. When additional matches are made,
         the prizes for the additional characters are divided by a constant
         gamma with 0 <= beta <= gamma <= 1. Thus decay is slowed for each
@@ -226,7 +226,7 @@ cdef class AdeftLongformScorer:
         candidates : list
             List of tokens that appear in a defining pattern (DP)
             ['that', 'appear', 'in', 'a', 'defining', 'pattern']
- 
+
         Returns
         -------
         encoded_candidates : list of list

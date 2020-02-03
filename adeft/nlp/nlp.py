@@ -5,6 +5,7 @@ from collections import defaultdict
 
 from nltk.stem.snowball import EnglishStemmer
 
+
 class WatchfulStemmer(object):
     """Wraps the nltk.snow EnglishStemmer.
 
