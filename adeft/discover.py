@@ -216,7 +216,8 @@ class AdeftMiner(object):
                       for longform, score in candidates]
         return candidates
 
-    def get_longforms(self, cutoff=1, scale=False, smoothing_param=4):
+    def get_longforms(self, cutoff=1, scale=False, smoothing_param=4,
+                      max_length=None):
         """Return a list of extracted longforms with their scores
 
         Traverse the candidates trie to search for nodes with score
@@ -238,6 +239,11 @@ class AdeftMiner(object):
             Value of smoothing parameter to use in scaling transformation. This
             is ignored if scale is set to False. Default: 4
 
+        max_length : Optional[str|int|None]
+            Maximum number of tokens in an accepted longform. If None, accepted
+            longforms can be arbitrarily long. If 'auto', max_length is set
+            to 2*len(self.shortform)+1
+
         Returns
         -------
         longforms : list of tuple
@@ -245,9 +251,13 @@ class AdeftMiner(object):
             descending order by score, then by the length of the longform from
             shortest to longest, and finally by lexicographic order.
         """
+        if max_length == 'auto':
+            max_length = 2*len(self.shortform)+1
         if scale:
             def score_func(score, count):
-                return (score-1)/(count+smoothing_param-1)
+                numerator = score-1
+                denominator = count+smoothing_param-1
+                return 0 if denominator <= 0 else numerator/denominator
         else:
             def score_func(score, count):
                 return score
@@ -265,7 +275,8 @@ class AdeftMiner(object):
         # mapped to them. tuple of stemmed tokens can be recovered by
         # tokenizing, stemming, and reversing
         longforms = [(self._make_readable(longform), score)
-                     for longform, score in longforms]
+                     for longform, score in longforms
+                     if max_length is None or len(longform) <= max_length]
 
         # Sort in preferred order
         longforms = sorted(longforms, key=lambda x: (-x[1], len(x[0]), x[0]))
@@ -343,9 +354,3 @@ class AdeftMiner(object):
         """
         return ' '.join(self._stemmer.most_frequent(token)
                         for token in tokens[::-1])
-
-
-def _norm_score(score, count, beta):
-    numerator = score-1
-    denominator = count+beta-1
-    return 0 if denominator == 0 else numerator/denominator
