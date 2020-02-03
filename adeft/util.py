@@ -4,7 +4,7 @@
 import re
 from unicodedata import category
 
-from adeft.nlp import tokenize
+from adeft.nlp import tokenize, untokenize
 
 
 def get_candidate_fragments(text, shortform, window=100):
@@ -54,11 +54,16 @@ def get_candidate(fragment):
     ----------
     fragment : str
         The fragment to return tokens from.
-    exclude : Optional[set of str]
-        Terms that are to be excluded from candidate longforms.
-        Default: None
     """
-    tokens = [token.lower() for token, _
-              in tokenize(fragment)
-              if len(token) > 1 or not category(token).startswith('P')]
-    return tokens
+    tokens = tokenize(fragment)
+    longform_map = {}
+    i, j = len(tokens) - 1, 0
+    processed_tokens = []
+    while i >= 0:
+        if len(tokens[i][0]) > 1 or not category(tokens[i][0]).startswith('P'):
+            processed_tokens.append(tokens[i][0].lower())
+            longform_map[j+1] = untokenize(tokens[i:])
+            j += 1
+        i -= 1
+    processed_tokens.reverse()
+    return processed_tokens, longform_map

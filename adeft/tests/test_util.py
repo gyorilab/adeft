@@ -48,13 +48,13 @@ def test_get_candidate_fragments():
     for text, result in zip([text1, text2, text3, text4, text5],
                             [result1, result2, result3, result4, result5]):
         fragments = get_candidate_fragments(text, 'INDRA')
-        candidates = [get_candidate(fragment) for fragment in fragments]
+        candidates = [get_candidate(fragment)[0] for fragment in fragments]
         assert candidates == result
 
     # Case where pattern is at start of the sentence
     fragments1 = get_candidate_fragments('(INDRA) is an ambiguous acronym',
                                          'INDRA')
-    candidate1 = get_candidate(fragments1[0])
+    candidate1, _ = get_candidate(fragments1[0])
     assert not candidate1
     # Case where pattern is not found
     assert not get_candidate_fragments('Integrated Network'

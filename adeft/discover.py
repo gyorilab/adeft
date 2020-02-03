@@ -174,7 +174,7 @@ class AdeftMiner(object):
                                                 self.window)
             for fragment in fragments:
                 if fragment:
-                    candidate = get_candidate(fragment)
+                    candidate, _ = get_candidate(fragment)
                     self._add(candidate)
 
     def top(self, limit=None):

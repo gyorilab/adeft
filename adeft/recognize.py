@@ -62,7 +62,7 @@ class BaseRecognizer(object):
         for fragment in fragments:
             if not fragment:
                 continue
-            tokens = get_candidate(fragment)
+            tokens, _ = get_candidate(fragment)
             # search for longform in trie
             longform = self._search(tokens)
             # if a longform is recognized, add it to output list
