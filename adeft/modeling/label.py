@@ -75,7 +75,7 @@ class AdeftLabeler(object):
         """
         groundings = set()
         for recognizer in self.recognizers:
-            groundings.update(recognizer.recognize(text))
+            groundings.update({x[0] for x in recognizer.recognize(text)})
         if not groundings:
             return None
         for recognizer in self.recognizers:

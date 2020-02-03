@@ -62,13 +62,15 @@ class BaseRecognizer(object):
         for fragment in fragments:
             if not fragment:
                 continue
-            tokens, _ = get_candidate(fragment)
+            tokens, longform_map = get_candidate(fragment)
             # search for longform in trie
             longform = self._search(tokens)
             # if a longform is recognized, add it to output list
             if longform:
+                num_tokens = len(tokenize(longform))
+                longform_text = longform_map[num_tokens]
                 expansion = self._post_process(longform)
-                expansions.add(expansion)
+                expansions.add((expansion, longform_text))
         return expansions
 
     def strip_defining_patterns(self, text):
