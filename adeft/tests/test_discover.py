@@ -1,4 +1,4 @@
-from adeft.discover import AdeftMiner
+from adeft.discover import AdeftMiner, load_adeft_miner_from_dict
 
 
 example_text1 = ('The Integrated Network and Dynamical Reasoning Assembler'
@@ -88,3 +88,13 @@ def test_get_longforms():
     assert longforms[0] == ('indonesian debt restructuring agency', 1.0)
     assert longforms[1] == ('integrated network and dynamical'
                             ' reasoning assembler', 1.0)
+
+
+def test_miner_to_dict():
+    miner = AdeftMiner('INDRA')
+    miner.process_texts([example_text1, example_text2,
+                         example_text3, example_text4])
+    miner_dict = miner.to_dict()
+    miner2 = load_adeft_miner_from_dict(miner_dict)
+    assert miner.top() == miner2.top()
+    assert miner.get_longforms() == miner2.get_longforms()

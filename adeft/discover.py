@@ -385,7 +385,7 @@ class AdeftMiner(object):
         return ' '.join(self._stemmer.most_frequent(token)
                         for token in tokens[::-1])
 
-    def dump(self):
+    def to_dict(self):
         """Returns dictionary serialization of AdeftMiner
         """
         out = {}
