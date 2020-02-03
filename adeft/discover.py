@@ -105,6 +105,8 @@ class _TrieNode(object):
         self.score -= self.sum_ft2/self.sum_ft
 
     def to_dict(self):
+        """Returns a dictionary representation of trie
+        """
         if not self.children:
             return {}
         out = {}
@@ -116,9 +118,22 @@ class _TrieNode(object):
         return out
 
 
-def load_trie(dictionary):
+def load_trie(trie_dict):
+    """Load a Trie from dictionary representation
+
+    Parameters
+    ---------
+    trie_dict : dict
+        Dictionary representation of trie as returned by to_dict method of
+        py:class`adeft.discover._TrieNode`
+
+    Returns
+    -------
+    py:class:`adeft.discover._TrieNode`
+        root of trie built from input dictionary
+    """
     root = _TrieNode()
-    for key, value in dictionary.items():
+    for key, value in trie_dict.items():
         root.children[key] = _load_trie_helper(value, root)
     return root
 
@@ -371,6 +386,8 @@ class AdeftMiner(object):
                         for token in tokens[::-1])
 
     def dump(self):
+        """Returns dictionary serialization of AdeftMiner
+        """
         out = {}
         out['shortform'] = self.shortform
         out['internal_trie'] = self._internal_trie.to_dict()
@@ -382,6 +399,18 @@ class AdeftMiner(object):
 
 
 def load_adeft_miner_from_dict(dictionary):
+    """Loads an AdeftMiner from dictionary serialization
+
+    Parameters
+    ---------
+    dictionary : dict
+        Dictionary representation of AdeftMiner as returned by its
+        dump method
+
+    Returns
+    -------
+    py:class`AdeftMiner`
+    """
     out = AdeftMiner(dictionary['shortform'], window=dictionary['window'])
     out._internal_trie = load_trie(dictionary['internal_trie'])
     out._longforms = dictionary['longforms']

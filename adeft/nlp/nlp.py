@@ -12,6 +12,12 @@ class WatchfulStemmer(object):
     stems by the wrapped stemmer. Extraction of longforms works with stemmed
     tokens but it is necessary to recover actual words from stems.
 
+    Parameters
+    ----------
+    counts : Optional[dict]
+        counts dictionary as used internally in WatchfulStemmer. Allows for
+        loading a previously saved WatchfulStemmer
+
     Attributes
     ----------
     __snowball : :py:class:`nltk.stem.snowball.EnglishStemmer`
@@ -72,6 +78,7 @@ class WatchfulStemmer(object):
         return output
 
     def dump(self):
+        """Returns dictionary of info needed to reconstruct stemmer"""
         return dict(self.counts)
 
 
