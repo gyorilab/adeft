@@ -1,4 +1,13 @@
-from adeft.discover import AdeftMiner, load_adeft_miner_from_dict
+import os
+import uuid
+
+from adeft.locations import TEST_RESOURCES_PATH
+from adeft.discover import AdeftMiner, load_adeft_miner_from_dict, \
+    load_adeft_miner
+
+
+# Path to scratch directory to write files to during tests
+SCRATCH_PATH = os.path.join(TEST_RESOURCES_PATH, 'scratch')
 
 
 example_text1 = ('The Integrated Network and Dynamical Reasoning Assembler'
@@ -96,5 +105,18 @@ def test_miner_to_dict():
                          example_text3, example_text4])
     miner_dict = miner.to_dict()
     miner2 = load_adeft_miner_from_dict(miner_dict)
+    assert miner.top() == miner2.top()
+    assert miner.get_longforms() == miner2.get_longforms()
+
+
+def test_serialize_adeft_miner():
+    miner = AdeftMiner('INDRA')
+    miner.process_texts([example_text1, example_text2,
+                         example_text3, example_text4])
+    temp_filename = os.path.join(SCRATCH_PATH, uuid.uuid4().hex)
+    with open(temp_filename, 'w') as f:
+        miner.dump(f)
+    with open(temp_filename) as f:
+        miner2 = load_adeft_miner(f)
     assert miner.top() == miner2.top()
     assert miner.get_longforms() == miner2.get_longforms()
