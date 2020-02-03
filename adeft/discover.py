@@ -1,6 +1,8 @@
 """Discover candidate longforms from a given corpus using the Acromine
 algorithm."""
+import json
 import logging
+from ast import literal_eval
 
 from adeft.nlp import WatchfulStemmer
 from adeft.util import get_candidate_fragments, get_candidate
@@ -391,11 +393,16 @@ class AdeftMiner(object):
         out = {}
         out['shortform'] = self.shortform
         out['internal_trie'] = self._internal_trie.to_dict()
-        out['longforms'] = self._longforms
+        out['longforms'] = {str(key): value
+                            for key, value in self._longforms.items()}
 
         out['stemmer'] = self._stemmer.dump()
         out['window'] = self.window
         return out
+
+    def dump(self, f):
+        """Serialize AdeftMiner to json into file f"""
+        json.dump(self.to_dict(), f)
 
 
 def load_adeft_miner_from_dict(dictionary):
@@ -413,6 +420,12 @@ def load_adeft_miner_from_dict(dictionary):
     """
     out = AdeftMiner(dictionary['shortform'], window=dictionary['window'])
     out._internal_trie = load_trie(dictionary['internal_trie'])
-    out._longforms = dictionary['longforms']
+    out._longforms = {literal_eval(key): value
+                      for key, value in dictionary['longforms'].items()}
     out._stemmer = WatchfulStemmer(dictionary['stemmer'])
     return out
+
+
+def load_adeft_miner(f):
+    """Load AdeftMiner from file f"""
+    return load_adeft_miner_from_dict(json.load(f))
