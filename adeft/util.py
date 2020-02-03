@@ -47,7 +47,7 @@ def get_candidate_fragments(text, shortform, window=100):
     return result
 
 
-def get_candidate(fragment, exclude=None):
+def get_candidate(fragment):
     """Return tokens in candidate fragment up until last excluded word
 
     Parameters
@@ -58,17 +58,7 @@ def get_candidate(fragment, exclude=None):
         Terms that are to be excluded from candidate longforms.
         Default: None
     """
-    if exclude is None:
-        exclude = set()
     tokens = [token.lower() for token, _
               in tokenize(fragment)
               if len(token) > 1 or not category(token).startswith('P')]
-    index = len(tokens)
-    # Take only tokens from end up to but not including the last
-    # excluded in the fragment
-    while index > 0:
-        index -= 1
-        if tokens[index] in exclude:
-            tokens = tokens[index+1:]
-            break
     return tokens

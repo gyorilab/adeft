@@ -36,17 +36,10 @@ class BaseRecognizer(object):
         to consider when finding longforms. Should be set to the same value
         that was used in the AdeftMiner that was used to find longforms.
         Default: 100
-    exclude : Optional[set]
-        set of tokens to ignore when searching for longforms.
-        Default: None
     """
-    def __init__(self, shortform, window=100, exclude=None):
+    def __init__(self, shortform, window=100):
         self.shortform = shortform
         self.window = window
-        if exclude is None:
-            self.exclude = set([])
-        else:
-            self.exclude = exclude
 
     def recognize(self, text):
         """Find longforms in text by searching for defining patterns (DPs)
@@ -69,7 +62,7 @@ class BaseRecognizer(object):
         for fragment in fragments:
             if not fragment:
                 continue
-            tokens = get_candidate(fragment, self.exclude)
+            tokens = get_candidate(fragment)
             # search for longform in trie
             longform = self._search(tokens)
             # if a longform is recognized, add it to output list
@@ -182,9 +175,6 @@ class AdeftRecognizer(BaseRecognizer):
         to consider when finding longforms. Should be set to the same value
         that was used in the AdeftMiner that was used to find longforms.
         Default: 100
-    exclude : Optional[set]
-        set of tokens to ignore when searching for longforms.
-        Default: None
 
     Attributes
     ----------
@@ -193,10 +183,10 @@ class AdeftRecognizer(BaseRecognizer):
         from longforms. They appear in reverse order to the bottom of the trie
         with terminal nodes containing the associated longform in their data.
     """
-    def __init__(self, shortform, grounding_map, window=100, exclude=None):
+    def __init__(self, shortform, grounding_map, window=100):
         self.grounding_map = grounding_map
         self._trie = self._init_trie()
-        super().__init__(shortform, window, exclude)
+        super().__init__(shortform, window)
 
     def _init_trie(self):
         """Initialize search trie with longforms in grounding map
@@ -230,8 +220,7 @@ class AdeftRecognizer(BaseRecognizer):
         ----------
         tokens : list of str
             contains tokens that precede the occurence of the pattern
-            "<longform> (<shortform>)" up until the start of the containing
-            sentence or an excluded word is reached.
+            "<longform> (<shortform>)" up until start of window
 
         Returns
         -------
@@ -267,20 +256,17 @@ class OneShotRecognizer(BaseRecognizer):
         to consider when finding longforms. Should be set to the same value
         that was used in the AdeftMiner that was used to find longforms.
         Default: 100
-    exclude : Optional[set]
-        set of tokens to ignore when searching for longforms.
-        Default: None
     **params
         Parameters for :py:class`adeft.score.AdeftLongformScorer`
     """
-    def __init__(self, shortform, window=100, exclude=None, **params):
+    def __init__(self, shortform, window=100, **params):
         try:
             self.scorer = AdeftLongformScorer(shortform, **params)
         except NameError:
             logger.exception('OneShotRecognizer not available.'
                              ' AdeftLongformScorer has not been built'
                              ' successfully.')
-        super().__init__(shortform, window, exclude)
+        super().__init__(shortform, window)
 
     def _search(self, tokens):
         """Use AdeftLongformScorer to identify expansions"""

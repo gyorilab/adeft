@@ -45,7 +45,6 @@ stopwords = set(['a', 'an', 'the', 'and', 'or', 'of', 'with', 'at', 'from',
 def test_get_candidate_fragments():
     """Test extraction of maximal longform candidate from text
     """
-    # Test with no excluded words
     for text, result in zip([text1, text2, text3, text4, text5],
                             [result1, result2, result3, result4, result5]):
         fragments = get_candidate_fragments(text, 'INDRA')
@@ -61,13 +60,3 @@ def test_get_candidate_fragments():
     assert not get_candidate_fragments('Integrated Network'
                                        'and dynamical reasoning assembler',
                                        'INDRA')
-
-    # Test with excluded words
-    fragments2 = get_candidate_fragments(text1, 'INDRA')
-    candidate2 = get_candidate(fragments2[0], exclude=stopwords)
-    assert candidate2 == ['dynamical',  'reasoning', 'assembler']
-
-    fragments3 = get_candidate_fragments('Is (INDRA) ambiguous?',
-                                         'INDRA')
-    candidate3 = get_candidate(fragments3[0], exclude=stopwords)
-    assert not candidate3

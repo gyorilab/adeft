@@ -77,12 +77,6 @@ def test_recognizer():
     assert not rec.recognize('(ER) stress')
 
 
-def test_exclude():
-    """Test that using excluded words works"""
-    rec = AdeftRecognizer('ER', grounding_map, exclude=['emergency'])
-    assert not rec.recognize(example3[0])
-
-
 def test_strip_defining_patterns():
     rec = AdeftRecognizer('ER', grounding_map)
     test_cases = ['The endoplasmic reticulum (ER) is a transmembrane',

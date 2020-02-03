@@ -133,10 +133,6 @@ class AdeftMiner(object):
         longforms would be taken from the string
         "ters before a defining pattern". Default: 100
 
-    exclude : Optional[set of str]
-        Terms that are to be excluded from candidate longforms.
-        Default: None
-
     Attributes
     ----------
     _internal_trie : :py:class:`adeft.discover._TrieNode`
@@ -151,16 +147,12 @@ class AdeftMiner(object):
         given word has been mapped to a given stem. Wraps the class
         EnglishStemmer from nltk.stem.snowball
     """
-    def __init__(self, shortform, window=100, exclude=None):
+    def __init__(self, shortform, window=100):
         self.shortform = shortform
         self._internal_trie = _TrieNode()
         self._longforms = {}
         self._stemmer = WatchfulStemmer()
         self.window = window
-        if exclude is None:
-            self.exclude = set()
-        else:
-            self.exclude = exclude
 
     def process_texts(self, texts):
         """Update longform candidate scores from a corpus of texts
@@ -182,7 +174,7 @@ class AdeftMiner(object):
                                                 self.window)
             for fragment in fragments:
                 if fragment:
-                    candidate = get_candidate(fragment, self.exclude)
+                    candidate = get_candidate(fragment)
                     self._add(candidate)
 
     def top(self, limit=None):
