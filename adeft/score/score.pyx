@@ -847,6 +847,43 @@ cdef void stitch(candidates_array *candidates, int *permutation,
     result.W = candidates.W_array[len_perm - 1]
 
 
+def optimize_alignment(woven_encoded_tokens, woven_indices, encoded_shortform,
+                       word_boundaries, word_prizes, W, penalties,
+                       alpha, beta, gamma, lambda_):
+    cdef:
+        int i
+        double score
+        list char_prizes
+        opt_input *input_
+        opt_shortform *shortform
+        opt_params *params
+        opt_results *result
+
+    input_ = make_opt_input(len(woven_encoded_tokens), 1)
+    result = make_opt_results(len(encoded_shortform))
+    params = make_opt_params(alpha, beta, gamma, lambda_)
+    shortform = make_opt_shortform(len(encoded_shortform))
+    for i in range(len(encoded_shortform)):
+        shortform.y.array[i] = encoded_shortform[i]
+        shortform.penalties.array[i] = penalties[i]
+    for i in range(len(woven_encoded_tokens)):
+        input_.x.array[i] = woven_encoded_tokens[i]
+        input_.indices.array[i] = woven_indices[i]
+    for i in range(len(word_boundaries)):
+        input_.word_prizes.array[i] = word_prizes[i]
+        input_.word_boundaries[i] = word_boundaries[i]
+    input_.W = W
+    optimize(input_, shortform, params, result)
+    score = result.score
+    char_prizes = [result.char_prizes[i]
+                   for i in range(len(encoded_shortform))]
+    free_opt_input(input_)
+    free_opt_params(params)
+    free_opt_shortform(shortform)
+    free_opt_results(result)
+    return score, char_prizes
+
+
 @boundscheck(False)
 @wraparound(False)
 cdef void optimize(opt_input *input_, opt_shortform *shortform,
