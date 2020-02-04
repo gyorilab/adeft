@@ -19,7 +19,7 @@ else:
 ext = '.pyx' if USE_CYTHON else '.c'
 
 extensions = [
-    Extension('adeft.score.score', ['adeft/score/score' + ext]),
+    Extension('adeft.score._score', ['adeft/score/_score' + ext]),
     ]
 
 if USE_CYTHON:

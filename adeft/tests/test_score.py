@@ -1,4 +1,4 @@
-from adeft.score.score import OptimizationTestCase, StitchTestCase, \
+from adeft.score._score import OptimizationTestCase, StitchTestCase, \
     PermSearchTestCase
 
 
