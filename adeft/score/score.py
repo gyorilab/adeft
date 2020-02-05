@@ -65,8 +65,9 @@ class AlignmentBasedScorer(object):
             upper_bound = (char_score_upper_bound**self.lambda_ *
                            word_score_upper_bound**1-self.lambda_)
             if upper_bound < best_score:
-                scores[i-1] = (scores[i-2]*(cumsum_word_scores - word_score) /
-                               cumsum_word_scores)
+                multiplier = (scores[i-2]*(cumsum_word_scores - word_score) /
+                              cumsum_word_scores)**(1 - self.lambda_)
+                scores[i-1] = scores[i-2]*multiplier
                 continue
             max_inversions = 2**16-1 if best_score <= 0 else \
                 math.floor(math.log(best_score/upper_bound, self.rho))
