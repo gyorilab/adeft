@@ -687,6 +687,29 @@ cdef void free_opt_shortform(opt_shortform *shortform):
     PyMem_Free(shortform)
 
 
+def score(encoded_tokens, indices, encoded_shortform, word_prizes,
+          W, penalties, max_inversions, alpha, beta, gamma, lambda_, rho):
+    cdef:
+        candidates_array *candidates
+        opt_shortform *shortform
+        opt_params *params
+        opt_results *result
+    candidates = make_candidates_array(encoded_tokens, indices, word_prizes, W)
+    shortform = create_shortform(encoded_shortform, penalties)
+    params = make_opt_params(alpha, beta, gamma, lambda_)
+    result = make_opt_results(len(encoded_shortform))
+    opt_search(candidates, shortform, params, rho, len(encoded_tokens),
+               max_inversions, result)
+    score = result.score
+    char_prizes = [result.char_prizes[i]
+                   for i in range(len(encoded_shortform))]
+    free_candidates_array(candidates)
+    free_opt_params(params)
+    free_opt_shortform(shortform)
+    free_opt_results(result)
+    return score, char_prizes
+
+
 cdef void opt_search(candidates_array *candidates,
                      opt_shortform *shortform,
                      opt_params *params,
