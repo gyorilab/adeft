@@ -13,7 +13,7 @@ from adeft.util import get_candidate_fragments, get_candidate
 logger = logging.getLogger(__file__)
 
 try:
-    from adeft.score import AdeftLongformScorer
+    from adeft.score._score import AdeftLongformScorer
 except Exception:
     logger.info('OneShotRecognizer not available. AdeftLongformScorer'
                 ' has not been built successfully.')
