@@ -1,5 +1,7 @@
+import math
+
 from adeft.nlp import stopwords_min
-from adeft.score._score import optimize_alignment
+from adeft.score._score import score, optimize_alignment
 
 
 class AlignmentBasedScorer(object):
@@ -32,6 +34,50 @@ class AlignmentBasedScorer(object):
             self.word_scores = {word: 0.2 for word in stopwords_min}
         else:
             self.word_scores = word_scores
+
+    def expanding_score(self, tokens):
+        if not tokens:
+            return []
+        encoded_shortform = self.encoded_shortform
+        n, m = len(tokens), len(encoded_shortform)
+        scores = [None]*n
+        best_score = -1
+        cumsum_word_scores = 0
+        word_scores_so_far = []
+        best_char_scores = [-1e20]*m
+        for i in range(1, len(tokens)+1):
+            word_score = self._get_word_score(tokens[n-i])
+            cumsum_word_scores += word_score
+            if not (set(tokens[n-i]) & set(self.char_map)):
+                scores[i-1] = 0 if i == 1 else \
+                    (scores[i-2]*(cumsum_word_scores - word_score) /
+                     cumsum_word_scores)
+                continue
+            token_char_scores = self.probe(tokens[n-i])
+            char_score_upper_bound = sum(max(a, b, 0) for a, b in
+                                         zip(best_char_scores,
+                                             token_char_scores))
+            word_score_upper_bound = \
+                self._opt_selection(word_scores_so_far,
+                                    len(encoded_shortform)-1)
+            word_score_upper_bound += word_score
+            word_score_upper_bound /= cumsum_word_scores
+            upper_bound = (char_score_upper_bound**self.lambda_ *
+                           word_score_upper_bound**1-self.lambda_)
+            if upper_bound < best_score:
+                scores[i-1] = (scores[i-2]*(cumsum_word_scores - word_score) /
+                               cumsum_word_scores)
+                continue
+            max_inversions = 2**16-1 if best_score <= 0 else \
+                math.floor(math.log(best_score/upper_bound, self.rho))
+            current_score, char_scores = \
+                self.score(tokens[len(tokens)-i:], max_inversions)
+            scores[i-1] = current_score
+            if current_score >= best_score:
+                best_score = current_score
+                best_char_scores = char_scores
+            word_scores_so_far.append(word_score)
+        return scores
 
     def process_candidates(self, candidates):
         """Convert list of tokens to info needed to solve optimization problem
@@ -102,7 +148,7 @@ class AlignmentBasedScorer(object):
         encoded_token, indices, _, _, = self.process_candidates([token])
         encoded_shortform = self.encoded_shortform
         if not encoded_token:
-            return (0.0, [0.0]*len(encoded_shortform))
+            return [0.0]*len(encoded_shortform)
         encoded_token, indices = encoded_token[0], indices[0]
         woven_token = [-1]*(len(encoded_shortform)-1)
         woven_indices = [-1]*(len(encoded_shortform)-1)
@@ -115,10 +161,35 @@ class AlignmentBasedScorer(object):
         word_prizes = [0.0]
         word_boundaries = [len(woven_indices)-1]
         W = 1.0
-        return optimize_alignment(woven_token, woven_indices,
-                                  encoded_shortform, word_boundaries,
-                                  word_prizes, W, penalties, self.alpha,
-                                  self.beta, self.gamma, 1.0)
+        score, char_scores = \
+            optimize_alignment(woven_token, woven_indices,
+                               encoded_shortform, word_boundaries,
+                               word_prizes, W, penalties, self.alpha,
+                               self.beta, self.gamma, 1.0)
+        return char_scores
+
+    def score(self, tokens, max_inversions):
+        encoded_tokens, indices, word_prizes, W_array = \
+            self.process_candidates(tokens)
+        encoded_shortform = self.encoded_shortform
+        if not encoded_tokens:
+            return (0, [0.0]*len(encoded_shortform))
+        return score(encoded_tokens, indices, encoded_shortform, word_prizes,
+                     W_array, self.penalties, max_inversions, self.alpha,
+                     self.beta, self.gamma, self.lambda_, self.rho)
+
+    def _opt_selection(self, word_prizes, k):
+        """Find the sum of the largest k elements in list"""
+        if k >= len(word_prizes):
+            return sum(word_prizes)
+        for i in range(k):
+            max_value = word_prizes[i]
+            for j in range(i+1, len(word_prizes)):
+                if word_prizes[j] > max_value:
+                    max_value = word_prizes[j]
+                    word_prizes[i], word_prizes[j] = \
+                        word_prizes[j], word_prizes[i]
+        return sum(word_prizes[:k])
 
     def _get_word_score(self, token):
         """Calculate scores for tokens in longform"""
