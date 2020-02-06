@@ -13,10 +13,10 @@ from adeft.util import get_candidate_fragments, get_candidate
 logger = logging.getLogger(__file__)
 
 try:
-    from adeft.score._score import AdeftLongformScorer
+    from adeft.score import AlignmentBasedScorer
 except Exception:
-    logger.info('OneShotRecognizer not available. AdeftLongformScorer'
-                ' has not been built successfully.')
+    logger.info('OneShotRecognizer not available. Extension module for'
+                ' AlignmentBasedScorer is missing')
 
 _stemmer = EnglishStemmer()
 
@@ -263,14 +263,17 @@ class OneShotRecognizer(BaseRecognizer):
     """
     def __init__(self, shortform, window=100, **params):
         try:
-            self.scorer = AdeftLongformScorer(shortform, **params)
+            self.scorer = AlignmentBasedScorer(shortform, **params)
         except NameError:
             logger.exception('OneShotRecognizer not available.'
-                             ' AdeftLongformScorer has not been built'
-                             ' successfully.')
+                             ' Extension module for AlignmentBasedScorer'
+                             ' is missing')
         super().__init__(shortform, window)
 
     def _search(self, tokens):
         """Use AdeftLongformScorer to identify expansions"""
-        result = self.scorer.score(tokens)
-        return result[0]
+        scores = self.scorer.expanding_score(tokens)
+        n = len(tokens)
+        i = max(range(len(scores)), key=lambda i: scores[i])
+        result = ' '.join(tokens[n-i-1:])
+        return result
