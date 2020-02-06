@@ -653,7 +653,6 @@ cdef class StitchTestCase:
             opt_input *input_
             int_array *perm
             candidates_array *candidates
-
         candidates = make_candidates_array(self.encoded_tokens,
                                            self.word_prizes,
                                            self.W)
