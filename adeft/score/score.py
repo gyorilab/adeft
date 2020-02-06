@@ -7,7 +7,8 @@ from adeft.score._score import score, optimize_alignment
 class AlignmentBasedScorer(object):
     def __init__(self, shortform, penalties=None,
                  alpha=0.2, beta=0.85, gamma=0.9, delta=1.0,
-                 epsilon=0.4, lambda_=0.6, rho=0.95, word_scores=None):
+                 epsilon=0.4, lambda_=0.6, rho=0.95, zeta=0.9,
+                 word_scores=None):
         self.shortform = shortform.lower()
         self.alpha = alpha
         self.beta = beta
@@ -16,6 +17,7 @@ class AlignmentBasedScorer(object):
         self.epsilon = epsilon
         self.rho = rho
         self.lambda_ = lambda_
+        self.zeta = zeta
         char_map = {}
         encoded_shortform = []
         j = 0
@@ -47,13 +49,16 @@ class AlignmentBasedScorer(object):
         word_prizes = []
         best_char_scores = [-1e20]*m
         for i in range(1, len(tokens)+1):
+            stop_count = self.count_leading_stopwords(tokens[n-i:])
+            leading_stop_penalty = self.zeta**stop_count
             word_score = self._get_word_score(tokens[n-i])
             cumsum_word_scores += word_score
             word_prizes.append(word_score)
             if not (set(tokens[n-i]) & set(self.char_map)):
                 multiplier = ((cumsum_word_scores - word_score) /
                               cumsum_word_scores)**(1 - self.lambda_)
-                scores[i-1] = 0 if i == 1 else scores[i-2]*multiplier
+                scores[i-1] = 0 if i == 1 else scores[i-2]*multiplier * \
+                    leading_stop_penalty
                 continue
             encoded_token = self.encode_token(tokens[n-i])
             encoded_tokens.append(encoded_token)
@@ -72,14 +77,15 @@ class AlignmentBasedScorer(object):
             if upper_bound < best_score:
                 multiplier = ((cumsum_word_scores - word_score) /
                               cumsum_word_scores)**(1 - self.lambda_)
-                scores[i-1] = scores[i-2]*multiplier
+                scores[i-1] = scores[i-2] * multiplier * leading_stop_penalty
                 continue
             max_inversions = 2**16-1 if best_score <= 0 else \
                 math.floor(math.log(best_score/upper_bound, self.rho))
             current_score, char_scores = \
                 self.score(encoded_tokens[::-1], word_prizes[::-1],
                            cumsum_word_scores, max_inversions)
-            scores[i-1] = current_score
+            stop_count = self.count_leading_stopwords(tokens[n-i:])
+            scores[i-1] = current_score * leading_stop_penalty
             if current_score >= best_score:
                 best_score = current_score
                 best_char_scores = char_scores
@@ -160,6 +166,15 @@ class AlignmentBasedScorer(object):
                      max_word_score, self.penalties, max_inversions,
                      self.alpha, self.beta, self.gamma, self.lambda_,
                      self.rho)
+
+    def count_leading_stopwords(self, tokens, stopwords=stopwords_min):
+        count = 0
+        for token in tokens:
+            if token in stopwords:
+                count += 1
+            else:
+                break
+        return count
 
     def _opt_selection(self, word_prizes, k):
         """Find the sum of the largest k elements in list"""
