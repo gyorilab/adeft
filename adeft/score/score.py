@@ -44,7 +44,6 @@ class AlignmentBasedScorer(object):
         best_score = -1
         cumsum_word_scores = 0
         encoded_tokens = []
-        W_array = []
         word_prizes = []
         best_char_scores = [-1e20]*m
         for i in range(1, len(tokens)+1):
@@ -58,7 +57,6 @@ class AlignmentBasedScorer(object):
                 continue
             encoded_token = self.encode_token(tokens[n-i])
             encoded_tokens.append(encoded_token)
-            W_array.append(cumsum_word_scores)
             token_char_scores = self.probe(encoded_token)
             char_score_upper_bound = sum(max(a, b, 0) for a, b in
                                          zip(best_char_scores,
@@ -80,7 +78,7 @@ class AlignmentBasedScorer(object):
                 math.floor(math.log(best_score/upper_bound, self.rho))
             current_score, char_scores = \
                 self.score(encoded_tokens[::-1], word_prizes[::-1],
-                           W_array, max_inversions)
+                           cumsum_word_scores, max_inversions)
             scores[i-1] = current_score
             if current_score >= best_score:
                 best_score = current_score
@@ -153,13 +151,15 @@ class AlignmentBasedScorer(object):
                                self.beta, self.gamma, 1.0)
         return char_scores
 
-    def score(self, encoded_tokens, word_prizes, W_array, max_inversions):
+    def score(self, encoded_tokens, word_prizes, max_word_score,
+              max_inversions):
         encoded_shortform = self.encoded_shortform
         if not encoded_tokens:
             return (0, [0.0]*len(encoded_shortform))
         return score(encoded_tokens, encoded_shortform, word_prizes,
-                     W_array, self.penalties, max_inversions, self.alpha,
-                     self.beta, self.gamma, self.lambda_, self.rho)
+                     max_word_score, self.penalties, max_inversions,
+                     self.alpha, self.beta, self.gamma, self.lambda_,
+                     self.rho)
 
     def _opt_selection(self, word_prizes, k):
         """Find the sum of the largest k elements in list"""

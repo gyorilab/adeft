@@ -33,8 +33,8 @@ cdef struct candidates_array:
     int_array **array
     int_array **indices
     double *word_prizes
-    double *W_array
     int *cum_lengths
+    double W
     int length
 
 
@@ -118,7 +118,7 @@ cdef void free_double_array(double_array *x):
 
 cdef candidates_array *make_candidates_array(list encoded_tokens,
                                              list word_prizes,
-                                             list W):
+                                             float W):
     """Create candidates_array data-structure
 
     This is the core data-structure that contains all information needed
@@ -139,7 +139,7 @@ cdef candidates_array *make_candidates_array(list encoded_tokens,
         PyMem_Malloc(n * sizeof(double_array*))
     candidates.word_prizes = <double *> PyMem_Malloc(n * sizeof(double))
     candidates.cum_lengths = <int *> PyMem_Malloc(n * sizeof(int))
-    candidates.W_array = <double *> PyMem_Malloc(n * sizeof(double))
+    candidates.W = W
     candidates.length = n
     cum_length = 0
     for i in range(n):
@@ -150,7 +150,6 @@ cdef candidates_array *make_candidates_array(list encoded_tokens,
         cum_length += m2
         candidates.cum_lengths[i] = cum_length
         candidates.word_prizes[i] = word_prizes[i]
-        candidates.W_array[i] = W[i]
         for j in range(m1):
             candidates.array[i].array[j] = encoded_tokens[i][j][0]
             candidates.indices[i].array[j] = encoded_tokens[i][j][1]
@@ -165,7 +164,6 @@ cdef void free_candidates_array(candidates_array *candidates):
         free_int_array(candidates.array[i])
         free_int_array(candidates.indices[i])
     PyMem_Free(candidates.word_prizes)
-    PyMem_Free(candidates.W_array)
     PyMem_Free(candidates.array)
     PyMem_Free(candidates.indices)
     PyMem_Free(candidates.cum_lengths)
@@ -250,8 +248,8 @@ cdef void free_opt_shortform(opt_shortform *shortform):
     PyMem_Free(shortform)
 
 
-def score(encoded_tokens, encoded_shortform, word_prizes,
-          W, penalties, max_inversions, alpha, beta, gamma, lambda_, rho):
+def score(encoded_tokens, encoded_shortform, word_prizes, W, penalties,
+          max_inversions, alpha, beta, gamma, lambda_, rho):
     cdef:
         candidates_array *candidates
         opt_shortform *shortform
@@ -261,8 +259,7 @@ def score(encoded_tokens, encoded_shortform, word_prizes,
     shortform = create_shortform(encoded_shortform, penalties)
     params = make_opt_params(alpha, beta, gamma, lambda_)
     result = make_opt_results(len(encoded_shortform))
-    opt_search(candidates, shortform, params, rho, len(encoded_tokens),
-               max_inversions, result)
+    opt_search(candidates, shortform, params, rho, max_inversions, result)
     score = result.score
     char_prizes = [result.char_prizes[i]
                    for i in range(len(encoded_shortform))]
@@ -277,7 +274,6 @@ cdef void opt_search(candidates_array *candidates,
                      opt_shortform *shortform,
                      opt_params *params,
                      float rho,
-                     int n,
                      int max_inversions,
                      opt_results *output):
     """Calculates score for all permutations of tokens in candidate longform
@@ -300,6 +296,7 @@ cdef void opt_search(candidates_array *candidates,
         opt_input *current
         opt_results *results
         permuter *perms
+    n = candidates.length
     perms = make_permuter(n)
     results = make_opt_results(shortform.y.length)
     total_length = candidates.cum_lengths[n - 1]
@@ -308,7 +305,7 @@ cdef void opt_search(candidates_array *candidates,
     else:
         input_size = 2*total_length + 1
     current = make_opt_input(input_size, n)
-    stitch(candidates, perms.P, n, current)
+    stitch(candidates, perms.P, current)
     optimize(current, shortform, params, results)
     output.score = results.score
     for i in range(shortform.y.length):
@@ -318,7 +315,7 @@ cdef void opt_search(candidates_array *candidates,
             update_permuter(perms)
             if perms.inversions > max_inversions:
                 continue
-            stitch(candidates, perms.P, n, current)
+            stitch(candidates, perms.P, current)
             optimize(current, shortform, params, results)
             inv_penalty = cpow(rho, perms.inversions)
             current_score = results.score * inv_penalty
@@ -331,7 +328,7 @@ cdef void opt_search(candidates_array *candidates,
             temp = perms.P[i]
             perms.P[i] = perms.P[i+1]
             perms.P[i+1] = temp
-            stitch(candidates, perms.P, n, current)
+            stitch(candidates, perms.P, current)
             optimize(current, shortform, params, results)
             inv_penalty = cpow(rho, perms.inversions)
             current_score = results.score * inv_penalty
@@ -350,7 +347,7 @@ cdef void opt_search(candidates_array *candidates,
 @boundscheck(False)
 @wraparound(False)
 cdef void stitch(candidates_array *candidates, int *permutation,
-                 int len_perm, opt_input *result):
+                 opt_input *result):
     """Stitch together information in candidates array into opt_input
 
     Forms opt_input for a permutation of the tokens in a candidate
@@ -362,25 +359,25 @@ cdef void stitch(candidates_array *candidates, int *permutation,
     result.indices.array[0] = -1
     i = 0
     j = 1
-    for i in range(len_perm):
+    for i in range(n):
         p = permutation[i]
-        current_length = candidates.array[n-len_perm+p].length
+        current_length = candidates.array[p].length
         for k in range(current_length):
             result.x.array[j] = \
-                candidates.array[n-len_perm+p].array[k]
+                candidates.array[p].array[k]
             result.indices.array[j] = \
-                candidates.indices[n-len_perm+p].array[k]
+                candidates.indices[p].array[k]
             # insert wildcard after each element from input
             result.x.array[j+1] = -1
             result.indices.array[j+1] = -1
             j += 2
         result.word_boundaries[i] = j - 1
-        result.word_prizes.array[i] = candidates.word_prizes[n-len_perm+p]
+        result.word_prizes.array[i] = candidates.word_prizes[p]
     while j < result.x.length:
         result.x.array[j] = -1
         result.indices.array[j] = -1
         j += 1
-    result.W = candidates.W_array[len_perm - 1]
+    result.W = candidates.W
 
 
 def optimize_alignment(woven_encoded_tokens, woven_indices, encoded_shortform,
