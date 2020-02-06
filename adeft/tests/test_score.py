@@ -3,34 +3,31 @@ from adeft.score._score import OptimizationTestCase, StitchTestCase, \
 
 
 def test_perm_search():
-    case1 = PermSearchTestCase(candidates=[[1], [1, 0], [1, 1, 0], [1, 1],
-                                           [0]],
+    case1 = PermSearchTestCase(encoded_tokens=[[(1, 0)], [(1, 0), (0, 1)],
+                                               [(1, 0), (1, 1), (0, 2)],
+                                               [(1, 0), (1, 1)], [(0, 0)]],
                                shortform=[0, 1],
-                               indices=[[0], [0, 1], [0, 1, 2],
-                                       [0, 1], [0]],
                                penalties=[0.4, 0.2],
                                word_prizes=[1.0]*5,
-                               word_penalties=[1.0, 2.0, 3.0, 4.0, 5.0],
+                               W=5.0,
                                alpha=0.5,
                                beta=0.8,
                                gamma=0.85,
                                lambda_=0.75,
                                rho=0.9,
-                               len_perm=5,
                                result_score=(2/5)**(1/4) * (9/10))
-    case2 = PermSearchTestCase(candidates=[[0, 1, 0], [1, 0, 0, 1]],
+    case2 = PermSearchTestCase(encoded_tokens=[[(0, 0), (1, 3), (0, 5)],
+                                               [(1, 0), (0, 1),
+                                                (0, 3), (1, 6)]],
                                shortform=[0, 1],
-                               indices=[[0, 3, 5],
-                                       [0, 1, 3, 6]],
                                penalties=[1.0, 0.4],
                                word_prizes=[1.0, 1.0],
-                               word_penalties=[1.0, 2.0],
+                               W=2.0,
                                alpha=0.5,
                                beta=0.8,
                                gamma=0.85,
                                lambda_=0.6,
                                rho=0.9,
-                               len_perm=2,
                                result_score=1.0)
     for case in [case1, case2]:
         case.run_test()
