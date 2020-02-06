@@ -34,34 +34,20 @@ def test_perm_search():
 
 
 def test_make_candidates_array():
-    case1 = StitchTestCase(candidates=[[0], [0, 1], [1, 1, 0], [0, 0], [1]],
-                           indices=[[0], [0, 1], [0, 1, 2],
-                                   [0, 1], [0]],
+    case1 = StitchTestCase(encoded_tokens=[[(0, 0)], [(0, 0), (1, 1)],
+                                           [(1, 0), (1, 1), (0, 2)],
+                                           [(0, 0), (0, 1)], [(1, 0)]],
                            word_prizes=[1., 0.9, 0.8, 0.7, 0.6],
-                           W_array=[0.6, 1.3, 2.1, 3., 4.],
+                           W=4.0,
                            permutation=[2, 0, 1, 3, 4],
                            result_x=[-1, 1, -1, 1, -1, 0, -1, 0, -1, 0,
                                      -1, 1, -1, 0, -1, 0, -1, 1, -1],
                            result_indices=[-1, 0, -1, 1, -1, 2,
-                                          -1, 0, -1, 0, -1, 1, -1,
+                                           -1, 0, -1, 0, -1, 1, -1,
                                            0, -1, 1, -1, 0, -1],
                            result_word_prizes=[0.8, 1., 0.9, 0.7, 0.6],
                            result_word_boundaries=[6, 8, 12, 16, 18])
-
-    case2 = StitchTestCase(candidates=[[0], [0, 1], [1, 1, 0], [0, 0], [1]],
-                           indices=[[0], [0, 1], [0, 1, 2],
-                                   [0, 1], [0]],
-                           word_prizes=[1., 0.9, 0.8, 0.7, 0.6],
-                           W_array=[0.6, 1.3, 2.1, 3., 4.],
-                           permutation=[2, 0, 1],
-                           result_x=[-1, 1, -1, 1, -1, 1, -1, 0, -1, 0,
-                                     -1, 0, -1],
-                           result_indices=[-1, 0, -1, 0, -1, 1,
-                                          -1, 2, -1, 0, -1, 1, -1],
-                           result_word_prizes=[0.6, 0.8, 0.7],
-                           result_word_boundaries=[2, 8, 12])
-
-    cases = [case1, case2]
+    cases = [case1]
     for case in cases:
         case.run_test()
 

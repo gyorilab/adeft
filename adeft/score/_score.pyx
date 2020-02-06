@@ -630,9 +630,10 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
 cdef class StitchTestCase:
     """Test construction of candidates array and stitching"""
     cdef:
+        double W
         list encoded_tokens, word_prizes,
         list permutation, result_x, result_word_prizes, result_indices
-        list result_word_boundaries, W_array
+        list result_word_boundaries
     def __init__(self, encoded_tokens=None,
                  word_prizes=None,
                  permutation=None, W=None,
