@@ -59,442 +59,6 @@ cdef struct perm_out:
     double score
 
 
-cdef class AdeftLongformScorer:
-    """Scorer for longform expansions based on character matching
-
-    Searches for shortform as a subsequence of the characters within
-    longform candidates. Longform candidates are given by sequences of tokens
-    preceding a defining pattern (DP). Prizes are given for characters matched
-    within the longform and penalties are given for characters in the
-    shortform that are not matched to any character in the longform. Prizes
-    within tokens are context dependent, depending on the pattern of previous
-    matches in the current token. The maximum character prize is 1.0. A
-    character score is calculated by taking the sum of prizes for all
-    characters matched in the longform subtracted by the sum of penalties
-    for all characters in the shortform that are not matched and then dividing
-    by the length of the shortform. The character score is then the max of
-    this number and zero.
-
-    Character prizes are controlled by three parameters, alpha, beta, and
-    gamma. Penalties for unmatched characters from the shortform are controlled
-    by the parameters delta, and epsilon. More information in the description
-    of parameters below.
-
-    The algorithm considers candidate longforms one at a time, preceding
-    from right to left from the defining pattern (DP). Each token has an
-    associated score. If a character is matched in a given token, we say that
-    token has been captured. A token score is calculated as the sum of scores
-    for all captured tokens divided by the sum of scores for all tokens.
-
-    The character scores and token scores described above each fall between
-    0 and 1. The total score for a longform is given by a weighted geometric
-    mean of these two values, with the weight being controlled by a user
-    supplied parameter lambda_.
-
-    Given a candidate, all permutations of its tokens are considered as
-    potential matches to the shortform. This allows the algorithm to identify
-    cases such as beta-2 adrenergic receptor (ADRB2). A multiplicative penalty,
-    rho, is applied for each inversion of the permutation. A number of
-    optimizations and heuristics are performed that allow the algorithm to
-    efficiently despite the possibility of super-factorial complexity.
-
-    Attributes
-    ----------
-    shortform : str
-        Shortform for which longforms are sought
-    penalties : list of double
-        Penalties for characters in the shortform that are not matched.
-        If None, then penalties are calculated based on the parameters
-        delta and epsilon
-        Default: None
-    alpha : double
-        Real value in [0, 1]
-        Controls prize for the first character within a token that is
-        matched to a character in the shortform. The prize for matching
-        the first character in a token is always 1.0. Prizes then decay
-        exponentially at rate alpha for additional characters in the token.
-        Captures the idea that most acronyms are based on the first characters
-        within the longform.
-        Default: 0.2
-    beta : double
-        Real value in (0, 1]
-        Along with gamma, controls prizes for additional characters matched
-        within a token. Suppose a captured token T has its first match at
-        position i. The prize for this first match will be alpha**i. The
-        prize for the following character will then also be alpha**i and
-        prizes for additional characters will decay exponentially
-        from there at rate beta. When additional matches are made,
-        the prizes for the additional characters are divided by a constant
-        gamma with 0 <= beta <= gamma <= 1. Thus decay is slowed for each
-        additional match. beta and gamma allow matches to longforms with
-        tokens containing multiple matching characters such as
-        adiponectin (ADP).
-        Default: 0.85
-    gamma : double
-        Real value in [0, 1]
-        Along with beta, controls prizes for additional characters matched
-        within a token. See the description for the parameter beta. For the
-        algorithm to work, we must have gamma > beta.
-        Default: 0.9
-    delta : double
-        Real value in [0, 1]
-        If no explicit penalties are given for shortform characters, the
-        penalty for the first character in the shortform will have value
-        delta.
-        Default: 1.0
-    epsilon : double
-        Real value in [0, 1]
-        Penalties for additional characters in the shortform decay
-        exponentially at rate epsilon
-    lambda_ : double
-        Real value in [0, 1]
-        Weighting for character based scoring vs token based scoring. Larger
-        values of lambda_ correspond to more importance being given to
-        character matching
-        Default: 0.6
-    rho : double
-        Multiplicative penalty for number of inversions in permutation of
-        tokens If trying a match with a permution P of the tokens in a
-        candidate, multiply score by rho**inv where inv is the number
-        of inversions in P
-        Default: 0.95
-    word_scores : dict
-        Scores associated to each token. Higher scores correspond to a higher
-        penalty for not being included in a match with the shortform. The
-        scores for words not in the word_scores dictionary default to 1.
-        If None, uses a dict assigning the value 0.2 to the stopwords in
-        adeft.nlp.stopwords_min
-    """
-    cdef:
-        public str shortform
-        public list penalties
-        public double alpha, beta, gamma, delta, epsilon, lambda_, rho
-        public dict word_scores
-        int len_shortform
-        dict char_map
-        opt_shortform *shortform_c
-        opt_params *params_c
-
-    def __init__(self, shortform, penalties=None, alpha=0.2, beta=0.85,
-                 gamma=0.9, delta=1.0, epsilon=0.4, lambda_=0.6, rho=0.95,
-                 word_scores=None):
-        self.shortform = shortform.lower()
-        self.len_shortform = len(shortform)
-        self.alpha = alpha
-        self.beta = beta
-        self.gamma = gamma
-        self.delta = delta
-        self.epsilon = epsilon
-        self.rho = rho
-        self.lambda_ = lambda_
-        self.params_c = make_opt_params(alpha, beta, gamma, lambda_)
-        # Encode shortform chars as integers and build map for encoding
-        # longform candidates
-        self.char_map = {}
-        cdef list encoded_shortform = []
-        cdef int i = 0, j = 0
-        for i in range(self.len_shortform):
-            if self.shortform[i] not in self.char_map:
-                self.char_map[self.shortform[i]] = j
-                j += 1
-            encoded_shortform.append(self.char_map[self.shortform[i]])
-        if penalties is not None:
-            self.penalties = penalties
-        else:
-            self.penalties = [delta*epsilon**i
-                              for i in range(self.len_shortform)]
-        self.shortform_c = create_shortform(encoded_shortform,
-                                            self.penalties)
-        self.params_c = make_opt_params(alpha, beta, gamma, lambda_)
-        if word_scores is None:
-            self.word_scores = {word: 0.2 for word in stopwords_min}
-        else:
-            self.word_scores = word_scores
-
-    cdef double get_word_score(self, str token):
-        """Calculate scores for tokens in longform"""
-        if token in self.word_scores:
-            return self.word_scores[token]
-        else:
-            return 1.0
-
-    cdef tuple process_candidates(self, list candidates):
-        """Convert list of tokens to info needed to solve optimization problem
-
-        Parameters
-        ----------
-        candidates : list
-            List of tokens that appear in a defining pattern (DP)
-            ['that', 'appear', 'in', 'a', 'defining', 'pattern']
-
-        Returns
-        -------
-        encoded_candidates : list of list
-            Characters in shortform are encoded with natural numbers
-            Each element of encoded_candidates corresponds to a token
-            in candidates that contains one of the characters in the
-            shortform. These elements contain the natural number encodings
-            for all characters in the token that are also in the shortform,
-            in the order in which the appear in the longform. For example,
-            in DP, D would be encoded as 0 and P as 1. The encoded_candidates
-            corresponding to ['that', 'appear', 'in', 'a', 'defining',
-                              'pattern']
-            are [[1, 1], [0], [1]].
-        indices : list of list
-            List of lists of the same shape as encoded_candidates. For each
-            token, the associated list contains the indices of the characters
-            in the token that are also in the shortform. The indices list for
-            the above example is [[1, 2], [0], [0]].
-        word_prizes : list
-            Token prizes for each token in candidates that contains a character
-            overlapping with the shortform. For the above example this will be
-            [1.0, 1.0, 1.0] if 'appear', 'defining', and 'pattern' do not
-            appear in self.word_scores
-        W_array : list of double
-            The kth element contains the sum of all prizes for the last k+1
-            tokens in candidates, regardless of whether they have a character
-            in common with the shortform. These are used for calculating word
-            scores for a match. The word score is the sum of prizes for all
-            captured tokens divided by the sum of all prizes for tokens in
-            a candidate.
-        """
-        cdef:
-            double word_score
-            str token
-            list encoded_candidates, indices, encoded_token
-            list token_indices, word_prizes, W_array
-            int n, i, j
-        encoded_candidates = []
-        indices = []
-        word_prizes = []
-        n = len(candidates)
-        for i in range(n):
-            encoded_token = []
-            token_indices = []
-            token = candidates[i].lower()
-            m = len(token)
-            for j in range(m):
-                if token[j] in self.char_map:
-                    encoded_token.append(self.char_map[token[j]])
-                    token_indices.append(j)
-            if encoded_token:
-                encoded_candidates.append(encoded_token)
-                indices.append(token_indices)
-                word_score = self.get_word_score(token)
-                word_prizes.append(word_score)
-        if not encoded_candidates:
-            return ([], [], [], [])
-        W_array = [word_prizes[-1]]
-        for i in range(1, len(word_prizes)):
-            W_array.append(W_array[i-1] + word_prizes[-i])
-        return (encoded_candidates, indices, word_prizes, W_array)
-
-    cdef tuple get_score_results(self,
-                                 list candidates,
-                                 list scores,
-                                 list W_array):
-        """Produce output from raw optimization results
-
-        This function is needed because tokens that do not have a character
-        in common with the shortform are not considered when solving the
-        core optimization problem, but we still need to produce scores for
-        these candidates.
-
-        Parameters
-        ----------
-        candidates : list of str
-            List of tokens preceding defining pattern
-        scores : list of double
-            List of scores for tokens in candidates that have a character in
-            common with the shortform
-        W_array : list of double
-            Same as W_array in self.process_candidates
-
-        Returns
-        -------
-        best_candidate : str
-            Highest scoring longform candidate
-        best_score : double
-            Score associated to best_candidate
-        results : list of tuple
-            longform candidate, score pairs for each longform candidate
-        """
-        shortform_chars = set(self.shortform)
-        results = []
-        best_score = -1.0
-        current_score = 0.0
-        current_candidates_list = []
-        best_candidate = ''
-        # i indexes into the list of candidates
-        # j indexes into the list of scores for candidates with a
-        # character overlapping with the shortform
-        i = j = 0
-        # loop through candidates
-        n = len(candidates)
-        while i < n:
-            # append elements to current candidate, working from right to
-            # left
-            current_candidates_list.append(candidates[n-i-1])
-            current_candidate = ' '.join(current_candidates_list[::-1])
-            if set(candidates[n-i-1]) & shortform_chars:
-                # Token overlaps with shortform, we already know the score
-                current_score = scores[j]
-                # since token overlaps with shortform, increment j
-                j += 1
-            else:
-                # Token does not overlap with shortform. Calculate score
-                # from previous score, using known word_score for this
-                # additional token. Since there is no overlap, it could not
-                # have been captured.
-                W = W_array[j-1] if j > 0 else 0.0
-                w = self.get_word_score(candidates[n-i-1])
-                # Update step when adding an uncaptured token with prize w
-                current_score *= (W/(W + w))**(1 - self.lambda_)
-                # since no overlap, do not increment j
-            results += (current_candidate, current_score)
-            # Check if current_candidate improves upon existing ones
-            if current_score > best_score:
-                best_score = current_score
-                best_candidate = current_candidate
-            i += 1
-        return (best_candidate, best_score, results)
-
-    def score(self, candidates):
-        """Find optimal scoring candidate longform
-
-        Parameters
-        ----------
-        candidates : list
-            List of tokens preceding defining pattern (DP)
-
-        Returns
-        -------
-        best_candidate : str
-            Highest scoring longform candidate
-        best_score : double
-            Score associated to best_candidate
-        results : list of tuple
-            longform candidate, score pairs for each longform candidate
-        """
-        cdef:
-            int i, j, k, n, max_inversions
-            double current_score, best_score, w, W, ub_char_scores
-            double ub_word_scores
-            double_array *best_char_scores
-            double_array *previous_word_scores
-            list scores, encoded_candidates, indices, word_prizes, W_array
-            tuple out
-            candidates_array *candidates_c
-            opt_results *results
-            opt_results *probe_results
-        results = make_opt_results(self.len_shortform)
-        probe_results = make_opt_results(self.len_shortform)
-        encoded_candidates, indices, word_prizes, W_array = \
-            self.process_candidates(candidates)
-        if not encoded_candidates:
-            return self.get_score_results(candidates, [0.0]*len(candidates),
-                                          [0.0]*len(candidates))
-        candidates_c = make_candidates_array(encoded_candidates,
-                                             indices,
-                                             word_prizes,
-                                             W_array)
-        n = candidates_c.length
-        scores = [None]*n
-        best_score = -1.0
-        best_char_scores = make_double_array(self.len_shortform)
-        for i in range(self.len_shortform):
-            best_char_scores.array[i] = -1e20
-        for i in range(1, n + 1):
-            ub_char_scores = 0.0
-            probe(candidates_c.array[n - i], candidates_c.indices[n - i],
-                  self.shortform_c.y,
-                  self.params_c.alpha, self.params_c.beta, self.params_c.gamma,
-                  probe_results)
-            for j in range(self.len_shortform):
-                if probe_results.char_prizes[j] > best_char_scores.array[j]:
-                    ub_char_scores += probe_results.char_prizes[j]
-                elif best_char_scores.array[j] > 0:
-                    ub_char_scores += best_char_scores.array[j]
-            if i > 1:
-                previous_word_scores = make_double_array(i)
-                for k in range(i):
-                    previous_word_scores.array[k] = \
-                        candidates_c.word_prizes[n-k-1]
-                ub_word_scores = opt_selection(previous_word_scores,
-                                               self.len_shortform-1)
-                free_double_array(previous_word_scores)
-            else:
-                ub_word_scores = 0.0
-            ub_char_scores = ub_char_scores/self.len_shortform
-            W = candidates_c.W_array[i-1]
-            w = candidates_c.word_prizes[n-i]
-            ub_word_scores = (w + ub_word_scores)/W
-            upper_bound = (cpow(ub_char_scores, self.params_c.lambda_) *
-                           cpow(ub_word_scores, 1-self.params_c.lambda_))
-            if upper_bound < best_score:
-                scores[i-1] = scores[i-2]*(W - w)/W
-                continue
-            max_inversions = get_max_inversions(best_score, upper_bound,
-                                                self.rho)
-            opt_search(candidates_c, self.shortform_c,
-                       self.params_c, self.rho,
-                       i, max_inversions, results)
-            current_score = results.score
-            scores[i-1] = current_score
-            if current_score >= best_score:
-                best_score = current_score
-                for j in range(self.len_shortform):
-                    best_char_scores.array[j] = results.char_prizes[j]
-        out = self.get_score_results(candidates, scores,
-                                     [candidates_c.W_array[i]
-                                      for i in range(candidates_c.length)])
-        free_double_array(best_char_scores)
-        free_opt_results(probe_results)
-        free_opt_results(results)
-        free_candidates_array(candidates_c)
-        return out
-
-
-cdef inline int get_max_inversions(double best_score,
-                                   double upper_bound,
-                                   double rho):
-    """Find the largest value of k such that best_score <= upper_bound*rho**k
-    """
-    cdef int k = 0
-    if best_score <= 0.0:
-        return INT_MAX
-    while best_score <= upper_bound * cpow(rho, k):
-        k += 1
-    return k - 1
-
-
-cdef double opt_selection(double_array *word_prizes, int k):
-    """Find the sum of the largest k elements in a double_array
-    """
-    cdef:
-        int max_index, i, j
-        double max_value, temp, output
-    if k >= word_prizes.length:
-        output = 0.0
-        for i in range(word_prizes.length):
-            output += word_prizes.array[i]
-        return output
-    for i in range(k):
-        max_index = i
-        max_value = word_prizes.array[i]
-        for j in range(i+1, word_prizes.length):
-            if word_prizes.array[j] > max_value:
-                max_index = j
-                max_value = word_prizes.array[j]
-                temp = word_prizes.array[max_index]
-                word_prizes.array[max_index] = word_prizes.array[i]
-                word_prizes.array[i] = temp
-    output = 0.0
-    for i in range(k):
-        output += word_prizes.array[i]
-    return output
-
-
 cdef opt_results *make_opt_results(int len_y):
     """Create opt_results data-structure
 
@@ -552,8 +116,7 @@ cdef void free_double_array(double_array *x):
     return
 
 
-cdef candidates_array *make_candidates_array(list encoded_candidates,
-                                             list indices,
+cdef candidates_array *make_candidates_array(list encoded_tokens,
                                              list word_prizes,
                                              list W):
     """Create candidates_array data-structure
@@ -567,9 +130,9 @@ cdef candidates_array *make_candidates_array(list encoded_candidates,
     stored.
     """
     cdef:
-        int i, j, num_candidates, m1,m2, n, cum_length
+        int i, j, num_candidates, m1, m2, n, cum_length
         candidates_array *candidates
-    n = len(encoded_candidates)
+    n = len(encoded_tokens)
     candidates = <candidates_array *> PyMem_Malloc(sizeof(candidates_array))
     candidates.array = <int_array **> PyMem_Malloc(n * sizeof(int_array*))
     candidates.indices = <int_array **> \
@@ -580,8 +143,8 @@ cdef candidates_array *make_candidates_array(list encoded_candidates,
     candidates.length = n
     cum_length = 0
     for i in range(n):
-        m1 = len(encoded_candidates[i])
-        m2 = len(encoded_candidates[n-i-1])
+        m1 = len(encoded_tokens[i])
+        m2 = len(encoded_tokens[n-i-1])
         candidates.array[i] = make_int_array(m1)
         candidates.indices[i] = make_int_array(m1)
         cum_length += m2
@@ -589,8 +152,8 @@ cdef candidates_array *make_candidates_array(list encoded_candidates,
         candidates.word_prizes[i] = word_prizes[i]
         candidates.W_array[i] = W[i]
         for j in range(m1):
-            candidates.array[i].array[j] = encoded_candidates[i][j]
-            candidates.indices[i].array[j] = indices[i][j]
+            candidates.array[i].array[j] = encoded_tokens[i][j][0]
+            candidates.indices[i].array[j] = encoded_tokens[i][j][1]
     return candidates
 
 
@@ -687,14 +250,14 @@ cdef void free_opt_shortform(opt_shortform *shortform):
     PyMem_Free(shortform)
 
 
-def score(encoded_tokens, indices, encoded_shortform, word_prizes,
+def score(encoded_tokens, encoded_shortform, word_prizes,
           W, penalties, max_inversions, alpha, beta, gamma, lambda_, rho):
     cdef:
         candidates_array *candidates
         opt_shortform *shortform
         opt_params *params
         opt_results *result
-    candidates = make_candidates_array(encoded_tokens, indices, word_prizes, W)
+    candidates = make_candidates_array(encoded_tokens, word_prizes, W)
     shortform = create_shortform(encoded_shortform, penalties)
     params = make_opt_params(alpha, beta, gamma, lambda_)
     result = make_opt_results(len(encoded_shortform))
@@ -786,58 +349,8 @@ cdef void opt_search(candidates_array *candidates,
 
 @boundscheck(False)
 @wraparound(False)
-cdef void probe(int_array *next_token, int_array *indices, int_array *y,
-                double alpha, double beta, double gamma,
-                opt_results *probe_results):
-    """Sets up optimization problem to help decide whether test a candidate
-
-    Calculates best possible char scores that can be made obtained by
-    including the next token in an expanding sequence of candidates
-    """
-    cdef:
-        int i, j, input_size
-        opt_input *input_
-        opt_params *params
-        opt_shortform *shortform
-    # First initalize the probe
-    if y.length > next_token.length + 1:
-        input_size = next_token.length + y.length
-    else:
-        input_size = 2*next_token.length + 1
-    input_ = make_opt_input(input_size, 1)
-    result = make_opt_results(y.length)
-    params = make_opt_params(alpha, beta, gamma, 1.0)
-    shortform = make_opt_shortform(y.length)
-    for i in range(y.length):
-        shortform.y.array[i] = y.array[i]
-        shortform.penalties.array[i] = 0.0
-    input_.x.array[0] = -1
-    input_.indices.array[0] = -1
-    i = 0
-    j = 1
-    for i in range(next_token.length):
-        input_.x.array[j] = next_token.array[i]
-        input_.indices.array[j] = indices.array[i]
-        input_.x.array[j+1] = -1
-        input_.indices.array[j+1] = -1
-        j += 2
-    while j < input_.x.length:
-        input_.x.array[j] = -1
-        input_.indices.array[j] = -1
-        j += 1
-    input_.word_prizes.array[0] = 0
-    input_.word_boundaries[0] = j - 1
-    input_.W = 1
-    optimize(input_, shortform, params, probe_results)
-    free_opt_input(input_)
-    free_opt_params(params)
-    free_opt_shortform(shortform)
-
-
-@boundscheck(False)
-@wraparound(False)
 cdef void stitch(candidates_array *candidates, int *permutation,
-                  int len_perm, opt_input *result):
+                 int len_perm, opt_input *result):
     """Stitch together information in candidates array into opt_input
 
     Forms opt_input for a permutation of the tokens in a candidate
@@ -1117,173 +630,173 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
     PyMem_Free(pointers)
 
 
-cdef class StitchTestCase:
-    """Test construction of candidates array and stitching"""
-    cdef:
-        list candidates, indices, word_prizes,
-        list permutation, result_x, result_word_prizes, result_indices
-        list result_word_boundaries, W_array
-    def __init__(self, candidates=None, indices=None,
-                 word_prizes=None,
-                 permutation=None, W_array=None,
-                 result_x=None, result_indices=None, result_word_prizes=None,
-                 result_word_boundaries=None):
-        self.candidates = candidates
-        self.indices = indices
-        self.word_prizes = word_prizes
-        self.W_array = W_array
-        self.permutation = permutation
-        self.result_x = result_x
-        self.result_indices = result_indices
-        self.result_word_prizes = result_word_prizes
-        self.result_word_boundaries = result_word_boundaries
+# cdef class StitchTestCase:
+#     """Test construction of candidates array and stitching"""
+#     cdef:
+#         list candidates, indices, word_prizes,
+#         list permutation, result_x, result_word_prizes, result_indices
+#         list result_word_boundaries, W_array
+#     def __init__(self, candidates=None, indices=None,
+#                  word_prizes=None,
+#                  permutation=None, W_array=None,
+#                  result_x=None, result_indices=None, result_word_prizes=None,
+#                  result_word_boundaries=None):
+#         self.candidates = candidates
+#         self.indices = indices
+#         self.word_prizes = word_prizes
+#         self.W_array = W_array
+#         self.permutation = permutation
+#         self.result_x = result_x
+#         self.result_indices = result_indices
+#         self.result_word_prizes = result_word_prizes
+#         self.result_word_boundaries = result_word_boundaries
 
-    def run_test(self):
-        cdef:
-            opt_input *input_
-            int_array *perm
-            candidates_array *candidates
+#     def run_test(self):
+#         cdef:
+#             opt_input *input_
+#             int_array *perm
+#             candidates_array *candidates
 
-        candidates = make_candidates_array(self.candidates,
-                                           self.indices,
-                                           self.word_prizes,
-                                           self.W_array)
-        n = len(self.permutation)
-        perm = make_int_array(n)
-        for i in range(n):
-            perm.array[i] = self.permutation[i]
-        total_length = candidates.cum_lengths[n - 1]
-        input_ = make_opt_input(2*total_length + 1, n)
-        stitch(candidates, perm.array, n, input_)
-        x, ind, wp, wb = [], [], [], []
-        length = input_.x.length
-        for i in range(length):
-            x.append(input_.x.array[i])
-            ind.append(input_.indices.array[i])
-        for j in range(input_.word_prizes.length):
-            wp.append(input_.word_prizes.array[j])
-            wb.append(input_.word_boundaries[j])
-        free_candidates_array(candidates)
-        free_opt_input(input_)
-        free_int_array(perm)
-        assert x == self.result_x
-        assert ind == self.result_indices
-        assert wp == self.result_word_prizes
-        assert wb == self.result_word_boundaries
-
-
-cdef class PermSearchTestCase:
-    cdef:
-        list shortform, candidates, indices, penalties, word_prizes
-        list word_penalties
-        double alpha, beta, gamma, lambda_, rho, result_score
-        int len_perm
-    def __init__(self, shortform=None, candidates=None, indices=None,
-                 penalties=None, word_prizes=None, word_penalties=None,
-                 alpha=None, beta=None, gamma=None, lambda_=None, rho=None,
-                 len_perm=None,
-                 result_score=None):
-        self.shortform = shortform
-        self.candidates = candidates
-        self.indices = indices
-        self.penalties = penalties
-        self.word_prizes = word_prizes
-        self.word_penalties = word_penalties
-        self.alpha = alpha
-        self.beta = beta
-        self.gamma = gamma
-        self.lambda_ = lambda_
-        self.rho = rho
-        self.len_perm = len_perm
-        self.result_score = result_score
-
-    def run_test(self):
-        cdef:
-            candidates_array *candidates
-            opt_shortform *shortform
-            opt_params *params
-            opt_results *results
-        candidates = make_candidates_array(self.candidates,
-                                           self.indices,
-                                           self.word_prizes,
-                                           self.word_penalties)
-        shortform = create_shortform(self.shortform, self.penalties)
-        params = make_opt_params(self.alpha, self.beta, self.gamma,
-                                 self.lambda_)
-        results = make_opt_results(len(self.shortform))
-        opt_search(candidates, shortform, params, self.rho,
-                   self.len_perm, 100, results)
-        assert abs(results.score - self.result_score) < 1e-7
+#         candidates = make_candidates_array(self.candidates,
+#                                            self.indices,
+#                                            self.word_prizes,
+#                                            self.W_array)
+#         n = len(self.permutation)
+#         perm = make_int_array(n)
+#         for i in range(n):
+#             perm.array[i] = self.permutation[i]
+#         total_length = candidates.cum_lengths[n - 1]
+#         input_ = make_opt_input(2*total_length + 1, n)
+#         stitch(candidates, perm.array, n, input_)
+#         x, ind, wp, wb = [], [], [], []
+#         length = input_.x.length
+#         for i in range(length):
+#             x.append(input_.x.array[i])
+#             ind.append(input_.indices.array[i])
+#         for j in range(input_.word_prizes.length):
+#             wp.append(input_.word_prizes.array[j])
+#             wb.append(input_.word_boundaries[j])
+#         free_candidates_array(candidates)
+#         free_opt_input(input_)
+#         free_int_array(perm)
+#         assert x == self.result_x
+#         assert ind == self.result_indices
+#         assert wp == self.result_word_prizes
+#         assert wb == self.result_word_boundaries
 
 
-cdef class OptimizationTestCase:
-    cdef:
-        list x, y, indices, penalties, word_boundaries, word_prizes
-        list result_char_scores
-        double alpha, beta, gamma, lambda_, C, W, result_score
-        int n, m, num_words
-    def __init__(self, x=None, y=None, indices=None, penalties=None,
-                 word_boundaries=None, word_prizes=None, alpha=None,
-                 beta=None, gamma=None, lambda_=None, W=None,
-                 result_score=None, result_char_scores=None):
-        self.x = x
-        self.y = y
-        self.indices = indices
-        self.penalties = penalties
-        self.word_boundaries = word_boundaries
-        self.word_prizes = word_prizes
-        self.alpha = alpha
-        self.beta = beta
-        self.gamma = gamma
-        self.lambda_ = lambda_
-        self.W = W
-        self.n = len(x)
-        self.m = len(y)
-        self.num_words = len(word_boundaries)
-        self.result_score = result_score
-        self.result_char_scores = result_char_scores
+# cdef class PermSearchTestCase:
+#     cdef:
+#         list shortform, candidates, indices, penalties, word_prizes
+#         list word_penalties
+#         double alpha, beta, gamma, lambda_, rho, result_score
+#         int len_perm
+#     def __init__(self, shortform=None, candidates=None, indices=None,
+#                  penalties=None, word_prizes=None, word_penalties=None,
+#                  alpha=None, beta=None, gamma=None, lambda_=None, rho=None,
+#                  len_perm=None,
+#                  result_score=None):
+#         self.shortform = shortform
+#         self.candidates = candidates
+#         self.indices = indices
+#         self.penalties = penalties
+#         self.word_prizes = word_prizes
+#         self.word_penalties = word_penalties
+#         self.alpha = alpha
+#         self.beta = beta
+#         self.gamma = gamma
+#         self.lambda_ = lambda_
+#         self.rho = rho
+#         self.len_perm = len_perm
+#         self.result_score = result_score
 
-    def check_assertions(self):
-        assert len(self.penalties) == self.m
-        assert len(self.word_prizes) == self.num_words
-        assert self.word_boundaries[-1] == len(self.x) - 1
-        assert self.word_boundaries == sorted(self.word_boundaries)
+#     def run_test(self):
+#         cdef:
+#             candidates_array *candidates
+#             opt_shortform *shortform
+#             opt_params *params
+#             opt_results *results
+#         candidates = make_candidates_array(self.candidates,
+#                                            self.indices,
+#                                            self.word_prizes,
+#                                            self.word_penalties)
+#         shortform = create_shortform(self.shortform, self.penalties)
+#         params = make_opt_params(self.alpha, self.beta, self.gamma,
+#                                  self.lambda_)
+#         results = make_opt_results(len(self.shortform))
+#         opt_search(candidates, shortform, params, self.rho,
+#                    self.len_perm, 100, results)
+#         assert abs(results.score - self.result_score) < 1e-7
 
-    def run_test(self):
-        cdef:
-            opt_input *input_
-            opt_shortform *shortform
-            opt_params *opt_params
-            opt_results *output
 
-        input_ = make_opt_input(self.n, self.num_words)
-        shortform = create_shortform(self.y, self.penalties)
-        params = make_opt_params(self.alpha, self.beta, self.gamma,
-                                 self.lambda_)
-        output = make_opt_results(self.m)
+# cdef class OptimizationTestCase:
+#     cdef:
+#         list x, y, indices, penalties, word_boundaries, word_prizes
+#         list result_char_scores
+#         double alpha, beta, gamma, lambda_, C, W, result_score
+#         int n, m, num_words
+#     def __init__(self, x=None, y=None, indices=None, penalties=None,
+#                  word_boundaries=None, word_prizes=None, alpha=None,
+#                  beta=None, gamma=None, lambda_=None, W=None,
+#                  result_score=None, result_char_scores=None):
+#         self.x = x
+#         self.y = y
+#         self.indices = indices
+#         self.penalties = penalties
+#         self.word_boundaries = word_boundaries
+#         self.word_prizes = word_prizes
+#         self.alpha = alpha
+#         self.beta = beta
+#         self.gamma = gamma
+#         self.lambda_ = lambda_
+#         self.W = W
+#         self.n = len(x)
+#         self.m = len(y)
+#         self.num_words = len(word_boundaries)
+#         self.result_score = result_score
+#         self.result_char_scores = result_char_scores
 
-        input_.W = self.W
-        for i in range(self.n):
-            input_.x.array[i] = self.x[i]
-            input_.indices.array[i] = self.indices[i]
-        for i in range(self.num_words):
-            input_.word_boundaries[i] = self.word_boundaries[i]
-            input_.word_prizes.array[i] = self.word_prizes[i]
-        for i in range(self.m):
-            shortform.y.array[i] = self.y[i]
-            shortform.penalties.array[i] = self.penalties[i]
+#     def check_assertions(self):
+#         assert len(self.penalties) == self.m
+#         assert len(self.word_prizes) == self.num_words
+#         assert self.word_boundaries[-1] == len(self.x) - 1
+#         assert self.word_boundaries == sorted(self.word_boundaries)
 
-        optimize(input_, shortform, params, output)
-        score = output.score
-        cs = output.char_prizes
-        char_scores = []
-        for i in range(self.m):
-            char_scores.append(cs[i])
-        free_opt_results(output)
-        free_opt_shortform(shortform)
-        free_opt_params(params)
-        free_opt_input(input_)
-        assert abs(score - self.result_score) < 1e-7
-        assert all([abs(expected - observed) < 1e-7
-                    for observed, expected in
-                    zip(char_scores, self.result_char_scores)])
+#     def run_test(self):
+#         cdef:
+#             opt_input *input_
+#             opt_shortform *shortform
+#             opt_params *opt_params
+#             opt_results *output
+
+#         input_ = make_opt_input(self.n, self.num_words)
+#         shortform = create_shortform(self.y, self.penalties)
+#         params = make_opt_params(self.alpha, self.beta, self.gamma,
+#                                  self.lambda_)
+#         output = make_opt_results(self.m)
+
+#         input_.W = self.W
+#         for i in range(self.n):
+#             input_.x.array[i] = self.x[i]
+#             input_.indices.array[i] = self.indices[i]
+#         for i in range(self.num_words):
+#             input_.word_boundaries[i] = self.word_boundaries[i]
+#             input_.word_prizes.array[i] = self.word_prizes[i]
+#         for i in range(self.m):
+#             shortform.y.array[i] = self.y[i]
+#             shortform.penalties.array[i] = self.penalties[i]
+
+#         optimize(input_, shortform, params, output)
+#         score = output.score
+#         cs = output.char_prizes
+#         char_scores = []
+#         for i in range(self.m):
+#             char_scores.append(cs[i])
+#         free_opt_results(output)
+#         free_opt_shortform(shortform)
+#         free_opt_params(params)
+#         free_opt_input(input_)
+#         assert abs(score - self.result_score) < 1e-7
+#         assert all([abs(expected - observed) < 1e-7
+#                     for observed, expected in
+#                     zip(char_scores, self.result_char_scores)])

@@ -43,44 +43,51 @@ class AlignmentBasedScorer(object):
         scores = [None]*n
         best_score = -1
         cumsum_word_scores = 0
-        word_scores_so_far = []
+        encoded_tokens = []
+        W_array = []
+        word_prizes = []
         best_char_scores = [-1e20]*m
         for i in range(1, len(tokens)+1):
             word_score = self._get_word_score(tokens[n-i])
             cumsum_word_scores += word_score
+            word_prizes.append(word_score)
             if not (set(tokens[n-i]) & set(self.char_map)):
-                scores[i-1] = 0 if i == 1 else \
-                    (scores[i-2]*(cumsum_word_scores - word_score) /
-                     cumsum_word_scores)
+                multiplier = ((cumsum_word_scores - word_score) /
+                              cumsum_word_scores)**(1 - self.lambda_)
+                scores[i-1] = 0 if i == 1 else scores[i-2]*multiplier
                 continue
-            token_char_scores = self.probe(tokens[n-i])
+            encoded_token = self.encode_token(tokens[n-i])
+            encoded_tokens.append(encoded_token)
+            W_array.append(cumsum_word_scores)
+            token_char_scores = self.probe(encoded_token)
             char_score_upper_bound = sum(max(a, b, 0) for a, b in
                                          zip(best_char_scores,
                                              token_char_scores))
+            char_score_upper_bound /= len(encoded_shortform)
             word_score_upper_bound = \
-                self._opt_selection(word_scores_so_far,
+                self._opt_selection(word_prizes[:-1],
                                     len(encoded_shortform)-1)
             word_score_upper_bound += word_score
             word_score_upper_bound /= cumsum_word_scores
             upper_bound = (char_score_upper_bound**self.lambda_ *
-                           word_score_upper_bound**1-self.lambda_)
+                           word_score_upper_bound**(1-self.lambda_))
             if upper_bound < best_score:
-                multiplier = (scores[i-2]*(cumsum_word_scores - word_score) /
+                multiplier = ((cumsum_word_scores - word_score) /
                               cumsum_word_scores)**(1 - self.lambda_)
                 scores[i-1] = scores[i-2]*multiplier
                 continue
             max_inversions = 2**16-1 if best_score <= 0 else \
                 math.floor(math.log(best_score/upper_bound, self.rho))
             current_score, char_scores = \
-                self.score(tokens[len(tokens)-i:], max_inversions)
+                self.score(encoded_tokens[::-1], word_prizes[::-1],
+                           W_array, max_inversions)
             scores[i-1] = current_score
             if current_score >= best_score:
                 best_score = current_score
                 best_char_scores = char_scores
-            word_scores_so_far.append(word_score)
         return scores
 
-    def process_candidates(self, candidates):
+    def encode_token(self, token):
         """Convert list of tokens to info needed to solve optimization problem
 
         Parameters
@@ -120,40 +127,17 @@ class AlignmentBasedScorer(object):
             captured tokens divided by the sum of all prizes for tokens in
             a candidate.
         """
-        encoded_candidates = []
-        indices = []
-        word_prizes = []
-        n = len(candidates)
-        for i in range(n):
-            encoded_token = []
-            token_indices = []
-            token = candidates[i].lower()
-            m = len(token)
-            for j in range(m):
-                if token[j] in self.char_map:
-                    encoded_token.append(self.char_map[token[j]])
-                    token_indices.append(j)
-            if encoded_token:
-                encoded_candidates.append(encoded_token)
-                indices.append(token_indices)
-                word_score = self._get_word_score(token)
-                word_prizes.append(word_score)
-        if not encoded_candidates:
-            return ([], [], [], [])
-        W_array = [word_prizes[-1]]
-        for i in range(1, len(word_prizes)):
-            W_array.append(W_array[i-1] + word_prizes[-i])
-        return (encoded_candidates, indices, word_prizes, W_array)
+        encoded_token = [(self.char_map[c], i) for i, c in enumerate(token)
+                         if c in self.char_map]
+        return encoded_token
 
-    def probe(self, token):
-        encoded_token, indices, _, _, = self.process_candidates([token])
+    def probe(self, encoded_token):
         encoded_shortform = self.encoded_shortform
         if not encoded_token:
             return [0.0]*len(encoded_shortform)
-        encoded_token, indices = encoded_token[0], indices[0]
         woven_token = [-1]*(len(encoded_shortform)-1)
         woven_indices = [-1]*(len(encoded_shortform)-1)
-        for value, index in zip(encoded_token, indices):
+        for value, index in encoded_token:
             woven_token.append(value)
             woven_indices.append(index)
             woven_token.extend([-1]*(len(encoded_shortform) - 1))
@@ -169,13 +153,11 @@ class AlignmentBasedScorer(object):
                                self.beta, self.gamma, 1.0)
         return char_scores
 
-    def score(self, tokens, max_inversions):
-        encoded_tokens, indices, word_prizes, W_array = \
-            self.process_candidates(tokens)
+    def score(self, encoded_tokens, word_prizes, W_array, max_inversions):
         encoded_shortform = self.encoded_shortform
         if not encoded_tokens:
             return (0, [0.0]*len(encoded_shortform))
-        return score(encoded_tokens, indices, encoded_shortform, word_prizes,
+        return score(encoded_tokens, encoded_shortform, word_prizes,
                      W_array, self.penalties, max_inversions, self.alpha,
                      self.beta, self.gamma, self.lambda_, self.rho)
 
