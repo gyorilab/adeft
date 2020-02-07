@@ -10,6 +10,7 @@ from adeft.nlp import WatchfulStemmer
 from adeft.score import AlignmentBasedScorer
 from adeft.util import get_candidate_fragments, get_candidate
 
+
 logger = logging.getLogger(__file__)
 
 
@@ -303,12 +304,13 @@ class AdeftMiner(object):
                 numerator = score-1
                 denominator = count+smoothing_param-1
                 return 0 if denominator <= 0 else numerator/denominator
+
+            cutoff = 0
         else:
             def score_func(score, count):
                 return score
         root = self._internal_trie
         longforms = self._get_longform_helper(root, score_func)
-
         # Convert longforms as tuples in reverse order into reader strings
         # mapping stems back to the most frequent token that had been mapped
         longforms = [(longform, score) for longform, score in longforms
@@ -356,21 +358,26 @@ class AdeftMiner(object):
                                                               reverse=True)
                 leading_stop_penalty = self._abs.zeta**stopcount
                 best_score = current.best_ancestor_align_score
-                w = child.word_prizes[-1]
+                w = self._abs.get_word_score(token)
+                child.word_prizes = current.word_prizes + [w]
+                child.sum_ancestor_word_scores = \
+                    current.sum_ancestor_word_scores + w
                 W = child.sum_ancestor_word_scores
                 if not (set(token) & set(self._abs.char_map)):
                     multiplier = ((W - w)/W)**(1 - self._abs.lambda_)
                     child.alignment_score = current.alignment_score * \
                         multiplier * leading_stop_penalty
                     child.best_ancestor_align_score = best_score
-                token_char_scores = self._abs.probe(child.encoded_tokens[-1])
+                encoded_token = self._abs.encode_token(token)
+                child.encoded_tokens = current.encoded_tokens + [encoded_token]
+                token_char_scores = self._abs.probe(encoded_token)
                 char_score_upper_bound = sum(max(a, b, 0) for a, b in
                                              zip(current.best_char_scores,
                                                  token_char_scores))
                 char_score_upper_bound /= len(self._abs.encoded_shortform)
                 word_score_upper_bound = \
                     self._abs.opt_selection(current.word_prizes,
-                                            len(self._abs.encoded_shortform)-1)
+                                            len(self.shortform)-1)
                 word_score_upper_bound += w
                 word_score_upper_bound /= W
                 upper_bound = (char_score_upper_bound**self._abs.lambda_ *
@@ -390,8 +397,8 @@ class AdeftMiner(object):
                 current_score *= leading_stop_penalty
                 child.alignment_score = current_score
                 child.best_char_scores = char_scores
-                if current_score > best_score:
-                    current.best_ancestor_align_score = current_score
+                child.best_ancestor_align_score = max(current_score,
+                                                      best_score)
                 queue.appendleft(child)
 
     def _add(self, tokens):
@@ -413,16 +420,6 @@ class AdeftMiner(object):
                 # add a new entry for it in the trie
                 longform = current.longform + (token, )
                 new = _TrieNode(longform, parent=current)
-                encoded_token = self._abs.encode_token(token)
-                word_score = self._abs.get_word_score(token)
-                if encoded_token:
-                    new.encoded_tokens = current.encoded_tokens + \
-                        [encoded_token]
-                else:
-                    new.encoded_tokens = current.encoded_tokens
-                new.word_prizes = current.word_prizes + [word_score]
-                new.sum_ancestor_word_scores = word_score + \
-                    current.sum_ancestor_word_scores
                 # update likelihood of current node to account for the new
                 # child unless current node is the root
                 if not current.is_root():
