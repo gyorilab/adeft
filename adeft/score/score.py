@@ -84,7 +84,6 @@ class AlignmentBasedScorer(object):
             current_score, char_scores = \
                 self.score(encoded_tokens[::-1], word_prizes[::-1],
                            cumsum_word_scores, max_inversions)
-            stop_count = self.count_leading_stopwords(tokens[n-i:])
             scores[i-1] = current_score * leading_stop_penalty
             if current_score >= best_score:
                 best_score = current_score
@@ -167,16 +166,19 @@ class AlignmentBasedScorer(object):
                      self.alpha, self.beta, self.gamma, self.lambda_,
                      self.rho)
 
-    def count_leading_stopwords(self, tokens, stopwords=stopwords_min):
+    def count_leading_stopwords(self, tokens, stopwords=stopwords_min,
+                                reverse=False):
         count = 0
-        for token in tokens:
-            if token in stopwords:
+        n = len(tokens)
+        for i in range(n):
+            index = i if not reverse else n-i-1
+            if tokens[index] in stopwords:
                 count += 1
             else:
                 break
         return count
 
-    def _opt_selection(self, word_prizes, k):
+    def opt_selection(self, word_prizes, k):
         """Find the sum of the largest k elements in list"""
         if k >= len(word_prizes):
             return sum(word_prizes)
@@ -189,7 +191,7 @@ class AlignmentBasedScorer(object):
                         word_prizes[j], word_prizes[i]
         return sum(word_prizes[:k])
 
-    def _get_word_score(self, token):
+    def get_word_score(self, token):
         """Calculate scores for tokens in longform"""
         if token in self.word_scores:
             return self.word_scores[token]
