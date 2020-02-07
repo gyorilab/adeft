@@ -157,14 +157,14 @@ class AlignmentBasedScorer(object):
         return char_scores
 
     def score(self, encoded_tokens, word_prizes, max_word_score,
-              max_inversions):
+              max_inversions, max_perm_length=9):
         encoded_shortform = self.encoded_shortform
         if not encoded_tokens:
             return (0, [0.0]*len(encoded_shortform))
         return score(encoded_tokens, encoded_shortform, word_prizes,
                      max_word_score, self.penalties, max_inversions,
-                     self.alpha, self.beta, self.gamma, self.lambda_,
-                     self.rho)
+                     max_perm_length, self.alpha, self.beta, self.gamma,
+                     self.lambda_, self.rho)
 
     def count_leading_stopwords(self, tokens, stopwords=stopwords_min,
                                 reverse=False):

@@ -249,7 +249,7 @@ cdef void free_opt_shortform(opt_shortform *shortform):
 
 
 def score(encoded_tokens, encoded_shortform, word_prizes, W, penalties,
-          max_inversions, alpha, beta, gamma, lambda_, rho):
+          max_inversions, max_perm_length, alpha, beta, gamma, lambda_, rho):
     cdef:
         candidates_array *candidates
         opt_shortform *shortform
@@ -259,7 +259,8 @@ def score(encoded_tokens, encoded_shortform, word_prizes, W, penalties,
     shortform = create_shortform(encoded_shortform, penalties)
     params = make_opt_params(alpha, beta, gamma, lambda_)
     result = make_opt_results(len(encoded_shortform))
-    opt_search(candidates, shortform, params, rho, max_inversions, result)
+    opt_search(candidates, shortform, params, rho, max_inversions,
+               max_perm_length, result)
     score = result.score
     char_prizes = [result.char_prizes[i]
                    for i in range(len(encoded_shortform))]
@@ -275,6 +276,7 @@ cdef void opt_search(candidates_array *candidates,
                      opt_params *params,
                      float rho,
                      int max_inversions,
+                     int max_perm_length,
                      opt_results *output):
     """Calculates score for all permutations of tokens in candidate longform
 
@@ -310,7 +312,7 @@ cdef void opt_search(candidates_array *candidates,
     output.score = results.score
     for i in range(shortform.y.length):
         output.char_prizes[i] = results.char_prizes[i]
-    if max_inversions > 1:
+    if max_inversions > 1 and n <= max_perm_length:
         while perms.m != 0:
             update_permuter(perms)
             if perms.inversions > max_inversions:
@@ -715,7 +717,7 @@ cdef class PermSearchTestCase:
         params = make_opt_params(self.alpha, self.beta, self.gamma,
                                  self.lambda_)
         results = make_opt_results(len(self.shortform))
-        opt_search(candidates, shortform, params, self.rho, 100, results)
+        opt_search(candidates, shortform, params, self.rho, 100, 8, results)
         assert abs(results.score - self.result_score) < 1e-7
 
 

@@ -382,7 +382,7 @@ class AdeftMiner(object):
                 word_score_upper_bound /= W
                 upper_bound = (char_score_upper_bound**self._abs.lambda_ *
                                word_score_upper_bound**(1-self._abs.lambda_))
-                if upper_bound < best_score:
+                if upper_bound <= best_score:
                     multiplier = ((W - w)/W)**(1 - self._abs.lambda_)
                     child.alignment_score = current.alignment_score * \
                         multiplier * leading_stop_penalty
