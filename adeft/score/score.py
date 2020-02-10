@@ -8,7 +8,7 @@ class AlignmentBasedScorer(object):
     def __init__(self, shortform, penalties=None,
                  alpha=0.2, beta=0.85, gamma=0.9, delta=1.0,
                  epsilon=0.4, lambda_=0.6, rho=0.95, zeta=0.9,
-                 word_scores=None):
+                 word_scores=None, inversions_cap=16):
         self.shortform = shortform.lower()
         self.alpha = alpha
         self.beta = beta
@@ -18,6 +18,7 @@ class AlignmentBasedScorer(object):
         self.rho = rho
         self.lambda_ = lambda_
         self.zeta = zeta
+        self.inversions_cap = inversions_cap
         char_map = {}
         encoded_shortform = []
         j = 0
@@ -79,8 +80,9 @@ class AlignmentBasedScorer(object):
                               cumsum_word_scores)**(1 - self.lambda_)
                 scores[i-1] = scores[i-2] * multiplier * leading_stop_penalty
                 continue
-            max_inversions = 2**16-1 if best_score <= 0 else \
+            max_inversions = self.inversions_cap if best_score <= 0 else \
                 math.floor(math.log(best_score/upper_bound, self.rho))
+            max_inversions = min(self.inversions_cap, max_inversions)
             current_score, char_scores = \
                 self.score(encoded_tokens[::-1], word_prizes[::-1],
                            cumsum_word_scores, max_inversions)

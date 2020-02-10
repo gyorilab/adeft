@@ -388,8 +388,10 @@ class AdeftMiner(object):
                         multiplier * leading_stop_penalty
                     child.best_ancestor_align_score = best_score
                     continue
-                max_inversions = 2**16 - 1 if best_score <= 0 else \
-                    math.floor(math.log(best_score/upper_bound, self._abs.rho))
+                max_inversions = self._abs.inversions_cap if best_score <= 0 \
+                    else math.floor(math.log(best_score/upper_bound,
+                                             self._abs.rho))
+                max_inversions = min(self._abs.inversions_cap, max_inversions)
                 current_score, char_scores = \
                     self._abs.score(child.encoded_tokens[::-1],
                                     child.word_prizes[::-1], W,
