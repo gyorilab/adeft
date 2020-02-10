@@ -94,19 +94,20 @@ class _TrieNode(object):
         """True if node is at the root of the trie"""
         return self.parent is None
 
-    def increment_count(self):
+    def increment_count(self, increment=1):
         """Update count and likelihood when observing a longform again
 
         Update when a previously observed longform is seen again
         """
-        self.count += 1
-        self.score += 1
+        self.count += increment
+        self.score += increment
 
-    def update_likelihood(self, count):
+    def update_likelihood(self, count, increment=1):
         """Update likelihood when observing a child of associated longform
 
         Update when observing a candidate longform which can be obtained
-        by prepending one token to the associated longform.
+        by prepending one token to the associated longform. This must
+        always be ran after incrementing the count
 
         Parameters
         ----------
@@ -114,8 +115,9 @@ class _TrieNode(object):
             Current co-occurence frequency of child longform with shortform
         """
         self.score += self.sum_ft2/self.sum_ft if self.sum_ft else 0
-        self.sum_ft += 1
-        self.sum_ft2 += 2*count - 1
+        self.sum_ft += increment
+        # When this is ran, count will already have been incremented.
+        self.sum_ft2 += 2*count + increment**2 - 2*increment
         self.score -= self.sum_ft2/self.sum_ft
 
     def to_dict(self):
