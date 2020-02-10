@@ -3,6 +3,7 @@ algorithm."""
 import json
 import math
 import logging
+from copy import deepcopy
 from ast import literal_eval
 from collections import deque
 
@@ -476,6 +477,35 @@ class AdeftMiner(object):
     def dump(self, f):
         """Serialize AdeftMiner to json into file f"""
         json.dump(self.to_dict(), f)
+
+    def compose(self, adeft_miner):
+        """Compose two adeft miners trained on separate texts"""
+        output = deepcopy(self)
+        output._stemmer.counts.update(adeft_miner._stemmer.counts)
+        queue = deque([(output._internal_trie, adeft_miner._internal_trie)])
+        output._longforms.update({key: value for key, value in
+                                  adeft_miner._longforms.items()
+                                  if key not in output._longforms})
+        while queue:
+            left, right = queue.pop()
+            print('****')
+            print(left.longform, right.longform)
+            for token, child in right.children.items():
+                if token not in left.children:
+                    left.children[token] = deepcopy(child)
+                    if not left.is_root():
+                        left.update_likelihood(child.count, child.count)
+                        output._longforms[left.longform[::-1]] = left.score
+                else:
+                    current = left.children[token]
+                    current.increment_count(child.count)
+                    output._longforms[current.longform[::-1]] = current.score
+                    if not left.is_root():
+                        count1, count2 = current.count, child.count
+                        left.update_likelihood(count1, count2)
+                        output._longforms[left.longform[::-1]] = left.score
+                    queue.appendleft((current, child))
+        return output
 
 
 def load_adeft_miner_from_dict(dictionary):
