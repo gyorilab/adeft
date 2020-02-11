@@ -118,7 +118,7 @@ class _TrieNode(object):
         self.score += self.sum_ft2/self.sum_ft if self.sum_ft else 0
         self.sum_ft += increment
         # When this is ran, count will already have been incremented.
-        self.sum_ft2 += 2*count + increment**2 - 2*increment
+        self.sum_ft2 += 2*count*increment - increment**2
         self.score -= self.sum_ft2/self.sum_ft
 
     def to_dict(self):
