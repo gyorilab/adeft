@@ -156,7 +156,7 @@ def load_trie(trie_dict):
 
 
 def _load_trie_helper(entry, parent):
-    node = _TrieNode(longform=entry['longform'], parent=parent)
+    node = _TrieNode(longform=tuple(entry['longform']), parent=parent)
     node.count = entry['count']
     node.score = entry['score']
     node.sum_ft = entry['sum_ft']
