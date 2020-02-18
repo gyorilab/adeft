@@ -32,7 +32,9 @@ class WatchfulStemmer(object):
         if counts is None:
             counts = {}
         self.__snowball = EnglishStemmer()
-        self.counts = defaultdict(lambda: defaultdict(int), counts)
+        self.counts = defaultdict(lambda: defaultdict(int),
+                                  {key: defaultdict(int, value)
+                                   for key, value in counts.items()})
 
     def stem(self, word):
         """Returns stemmed form of word.
