@@ -52,7 +52,7 @@ class AlignmentBasedScorer(object):
         for i in range(1, len(tokens)+1):
             stop_count = self.count_leading_stopwords(tokens[n-i:])
             leading_stop_penalty = self.zeta**stop_count
-            word_score = self._get_word_score(tokens[n-i])
+            word_score = self.get_word_score(tokens[n-i])
             cumsum_word_scores += word_score
             word_prizes.append(word_score)
             if not (set(tokens[n-i]) & set(self.char_map)):
@@ -69,8 +69,8 @@ class AlignmentBasedScorer(object):
                                              token_char_scores))
             char_score_upper_bound /= len(encoded_shortform)
             word_score_upper_bound = \
-                self._opt_selection(word_prizes[:-1],
-                                    len(encoded_shortform)-1)
+                self.opt_selection(word_prizes[:-1],
+                                   len(encoded_shortform)-1)
             word_score_upper_bound += word_score
             word_score_upper_bound /= cumsum_word_scores
             upper_bound = (char_score_upper_bound**self.lambda_ *
