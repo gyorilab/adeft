@@ -56,7 +56,7 @@ class BaseRecognizer(object):
             defining pattern is matched. Returns None if no defining patterns
             are found
         """
-        expansions = set()
+        results = []
         fragments = get_candidate_fragments(text, self.shortform,
                                             window=self.window)
         for fragment in fragments:
@@ -64,14 +64,16 @@ class BaseRecognizer(object):
                 continue
             tokens, longform_map = get_candidate(fragment)
             # search for longform in trie
-            longform = self._search(tokens)
+            result = self._search(tokens)
             # if a longform is recognized, add it to output list
-            if longform:
+            if result:
+                longform = result['longform']
                 num_tokens = len(tokenize(longform))
                 longform_text = longform_map[num_tokens]
-                expansion = self._post_process(longform)
-                expansions.add((expansion, longform_text))
-        return expansions
+                result = self._post_process(result)
+                result['longform_text'] = longform_text
+                results.append((result))
+        return results
 
     def strip_defining_patterns(self, text):
         """Return text with defining patterns stripped
@@ -99,12 +101,13 @@ class BaseRecognizer(object):
         for fragment in fragments:
             # Each fragment is tokenized and its longform is identified
             tokens = tokenize(fragment)
-            longform = self._search([token for token, _ in tokens
-                                     if token not in string.punctuation])
-            if longform is None:
+            result = self._search([token for token, _ in tokens
+                                   if token not in string.punctuation])
+            if result is None:
                 # For now, ignore a fragment if its grounding has no longform
                 # from the grounding map
                 continue
+            longform = result['longform']
             # Remove the longform from the fragment, keeping in mind that
             # punctuation is ignored when extracting longforms from text
             num_words = len(longform.split())
@@ -114,7 +117,7 @@ class BaseRecognizer(object):
                 if re.match(r'\w+', tokens[j][0]):
                     i += 1
                 j -= 1
-                if i > 100:
+                if i > self.window:
                     break
             text = text.replace(fragment.strip(),
                                 untokenize(tokens[:j+1]))
@@ -236,11 +239,11 @@ class AdeftRecognizer(BaseRecognizer):
             if current.children[token].longform is None:
                 current = current.children[token]
             else:
-                return current.children[token].longform
+                return {'longform': current.children[token].longform}
 
-    def _post_process(self, longform):
-        """Map longform associated grounding in grounding map"""
-        return self.grounding_map[longform]
+    def _post_process(self, result):
+        """Map longform to associated grounding in grounding map"""
+        return {'grounding': self.grounding_map[result['longform']]}
 
 
 class OneShotRecognizer(BaseRecognizer):
@@ -275,5 +278,8 @@ class OneShotRecognizer(BaseRecognizer):
         scores = self.scorer.expanding_score(tokens)
         n = len(tokens)
         i = max(range(len(scores)), key=lambda i: scores[i])
-        result = ' '.join(tokens[n-i-1:])
-        return result
+        longform = ' '.join(tokens[n-i-1:])
+        return {'longform': longform, 'score': scores[i]}
+
+    def _post_process(self, result):
+        return {'score': result['score']}
