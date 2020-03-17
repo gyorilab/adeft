@@ -86,7 +86,8 @@ class AdeftDisambiguator(object):
         for text in texts:
             grounding = set()
             for recognizer in self.recognizers:
-                grounding.update({x[0] for x in recognizer.recognize(text)})
+                grounding.update({x['grounding']
+                                  for x in recognizer.recognize(text)})
             groundings.append(grounding)
         # For texts without a defining pattern or with inconsistent
         # defining patterns, use the longform classifier.
