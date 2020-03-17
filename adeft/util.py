@@ -29,7 +29,7 @@ def get_candidate_fragments(text, shortform, window=100):
         "ters before a defining pattern". Default: 100
     """
     # Find defining patterns by matching a regular expression
-    matches = re.finditer(r'\(\s*%s\s*\)' % shortform, text)
+    matches = re.finditer(r'\(\s*%s\s*\)' % re.escape(shortform), text)
     # Keep track of the index of the end of the previous
     # Longform candidates cannot contain a previous DP and any text
     # before them
