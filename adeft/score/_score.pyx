@@ -518,11 +518,6 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
                 else:
                     c = char_score
                 word_score = word_scores[i-1][j-1] + w
-                print('*******')
-                print(i, j)
-                print('w', w)
-                print('word_score', word_score)
-                print('char_score', c)
                 possibility2 = (cpow(c/m, params.lambda_) *
                                 cpow(word_score/input_.W, (1-params.lambda_)))
                 if score_lookup[i-1][j-1] > -1e19 and \
@@ -675,9 +670,6 @@ cdef class StitchTestCase:
         free_candidates_array(candidates)
         free_opt_input(input_)
         free_int_array(perm)
-        print('x:', x)
-        print('ind:', ind)
-        print('wp:', wp)
         # assert x == self.result_x
         # assert ind == self.result_indices
         # assert wp == self.result_word_prizes
@@ -784,11 +776,6 @@ cdef class OptimizationTestCase:
         free_opt_shortform(shortform)
         free_opt_params(params)
         free_opt_input(input_)
-        print('****')
-        print(score)
-        print(self.result_score)
-        print(char_scores)
-        print(self.result_char_scores)
         # assert abs(score - self.result_score) < 1e-7
         # assert all([abs(expected - observed) < 1e-7
         #             for observed, expected in
