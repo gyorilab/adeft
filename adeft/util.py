@@ -11,9 +11,9 @@ def get_candidate_fragments(text, shortform, window=100):
     """Return candidate longform fragments from text
 
     Identifies candidate longforms by searching for defining patterns (DP)
-    in the text. Candidate longforms consist of non-punctuation tokens within
-    a specified range of characters before the DP up until either the start
-    of the text, the end of a previous DP or optionally a token from a set of
+    in the text. Candidate longforms consist of tokens within
+    a specified range of characters before the DP, or up until either the start
+    of the text,the end of a previous DP, or optionally a token from a set of
     excluded tokens.
 
     Parameters
