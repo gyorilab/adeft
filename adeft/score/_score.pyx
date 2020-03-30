@@ -342,8 +342,8 @@ cdef void opt_search(candidates_array *candidates,
     free_opt_input(current)
 
 
-#@boundscheck(False)
-#@wraparound(False)
+@boundscheck(False)
+@wraparound(False)
 cdef void stitch(candidates_array *candidates, int *permutation,
                  int len_shortform, opt_input *result):
     """Stitch together information in candidates array into opt_input
@@ -416,8 +416,8 @@ def optimize_alignment(woven_encoded_tokens, woven_indices, encoded_shortform,
     return score, char_prizes
 
 
-#@boundscheck(False)
-#@wraparound(False)
+@boundscheck(False)
+@wraparound(False)
 cdef void optimize(opt_input *input_, opt_shortform *shortform,
                    opt_params *params, opt_results *output):
     """Subsequence match optimization algorithm for longform scoring
@@ -572,7 +572,6 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
                     first_capture_index[i][j] = \
                         first_capture_index[i-1][j]
                     pointers[i-1][j-1] = 0
-
             else:
                 score_lookup[i][j] = score_lookup[i-1][j]
                 char_scores[i][j] = char_scores[i-1][j]
