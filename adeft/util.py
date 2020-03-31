@@ -10,11 +10,10 @@ from adeft.nlp import tokenize, untokenize
 def get_candidate_fragments(text, shortform, window=100):
     """Return candidate longform fragments from text
 
-    Identifies candidate longforms by searching for defining patterns (DP)
-    in the text. Candidate longforms consist of tokens within
-    a specified range of characters before the DP, or up until either the start
-    of the text,the end of a previous DP, or optionally a token from a set of
-    excluded tokens.
+    Gets fragments of text preceding defining patterns (DPs) to search
+    for candidate longforms. Each fragment contains either a specified range
+    of characters before a DP, or characters up until either the start
+    of the text or the end of a previous DP.
 
     Parameters
     ----------
@@ -29,7 +28,7 @@ def get_candidate_fragments(text, shortform, window=100):
         "ters before a defining pattern". Default: 100
     """
     # Find defining patterns by matching a regular expression
-    matches = re.finditer(r'\(\s*%s\s*\)' % re.escape(shortform), text)
+    matches = re.finditer(r'\s\(%s\)' % re.escape(shortform), text)
     # Keep track of the index of the end of the previous
     # Longform candidates cannot contain a previous DP and any text
     # before them
