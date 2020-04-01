@@ -669,9 +669,9 @@ cdef class StitchTestCase:
         free_candidates_array(candidates)
         free_opt_input(input_)
         free_int_array(perm)
-        # assert x == self.result_x
-        # assert ind == self.result_indices
-        # assert wp == self.result_word_prizes
+        assert x == self.result_x
+        assert ind == self.result_indices
+        assert wp == self.result_word_prizes
 
 
 cdef class PermSearchTestCase:
@@ -775,7 +775,7 @@ cdef class OptimizationTestCase:
         free_opt_shortform(shortform)
         free_opt_params(params)
         free_opt_input(input_)
-        # assert abs(score - self.result_score) < 1e-7
-        # assert all([abs(expected - observed) < 1e-7
-        #             for observed, expected in
-        #             zip(char_scores, self.result_char_scores)])
+        assert abs(score - self.result_score) < 1e-7
+        assert all([abs(expected - observed) < 1e-7
+                    for observed, expected in
+                    zip(char_scores, self.result_char_scores)])
