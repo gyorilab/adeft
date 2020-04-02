@@ -1,6 +1,6 @@
 from nose.tools import raises
 
-from adeft.nlp import tokenize, untokenize, WatchfulStemmer
+from adeft.nlp import word_tokenize, word_detokenize, WatchfulStemmer
 
 
 def test_tokenize_untokenize():
@@ -24,11 +24,11 @@ def test_tokenize_untokenize():
 
     for text, result in zip([text1, text2, text3, text4, text5],
                             [result1, result2, result3, result4, result5]):
-        assert tokenize(text) == result
+        assert word_tokenize(text) == result
 
     for text, result in zip([text1, text2, text3, text4, text5],
                             [result1, result2, result3, result4, result5]):
-        assert untokenize(result) == text
+        assert word_detokenize(result) == text
 
 
 @raises(ValueError)

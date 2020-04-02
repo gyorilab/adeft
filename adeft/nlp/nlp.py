@@ -4,6 +4,11 @@ import json
 from collections import defaultdict
 
 from nltk.stem.snowball import EnglishStemmer
+from nltk.tokenize.punkt import PunktParameters, PunktSentenceTokenizer
+
+from adeft.locations import RESOURCES_PATH
+
+TOKENIZER_LOCATION = os.path.join(RESOURCES_PATH, 'tokenizer_params.json')
 
 
 class WatchfulStemmer(object):
@@ -85,7 +90,7 @@ class WatchfulStemmer(object):
         return dict(self.counts)
 
 
-def tokenize(text):
+def word_tokenize(text):
     """Simple word tokenizer based on a regular expression pattern
 
     Everything that is not a block of alphanumeric characters is considered as
@@ -108,7 +113,7 @@ def tokenize(text):
     return [(m.group(), (m.start(), m.end()-1)) for m in matches]
 
 
-def untokenize(tokens):
+def word_detokenize(tokens):
     """Return inverse of the Adeft word tokenizer
 
     The inverse is inexact. For simplicity, all white space characters are
@@ -152,3 +157,33 @@ stopwords_min = set(['a', 'an', 'the', 'and', 'or', 'of', 'with', 'at',
 with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                        'stopwords.json'), 'r') as f:
     english_stopwords = json.load(f)
+
+
+class AdeftSentenceTokenizer(object):
+    """Split text into sentences using custom trained PunktSentenceTokenizer
+
+    Parameters
+    ----------
+    text : str
+
+    Returns
+    -------
+    list of str
+        List of sentences in the input text as decided by the punkt tokenizer
+    """
+    def __init__(self):
+        with open(TOKENIZER_LOCATION) as f:
+            params_dict = json.load(f)
+        params = PunktParameters()
+        params.abbrev_types = set(params_dict['abbrev_types'])
+        params.collocations = set([tuple(colloc)
+                                  for colloc in params_dict['collocations']])
+        params.ortho_context = params_dict['ortho_context']
+        params.sent_starters = set(params_dict['sent_starters'])
+        self.tokenizer = PunktSentenceTokenizer(params)
+
+    def __call__(self, text):
+        return self.tokenizer.tokenize(text)
+
+
+sentence_tokenize = AdeftSentenceTokenizer()

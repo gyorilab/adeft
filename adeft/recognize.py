@@ -7,7 +7,7 @@ import logging
 
 from nltk.stem.snowball import EnglishStemmer
 
-from adeft.nlp import tokenize, untokenize
+from adeft.nlp import word_tokenize, word_detokenize
 from adeft.util import get_candidate_fragments, get_candidate
 
 logger = logging.getLogger(__file__)
@@ -68,7 +68,7 @@ class BaseRecognizer(object):
             # if a longform is recognized, add it to output list
             if result:
                 longform = result['longform']
-                num_tokens = len(tokenize(longform))
+                num_tokens = len(word_tokenize(longform))
                 longform_text = longform_map[num_tokens]
                 result = self._post_process(result)
                 result['longform_text'] = longform_text
@@ -100,7 +100,7 @@ class BaseRecognizer(object):
         fragments = get_candidate_fragments(text, self.shortform)
         for fragment in fragments:
             # Each fragment is tokenized and its longform is identified
-            tokens = tokenize(fragment)
+            tokens = word_tokenize(fragment)
             result = self._search([token for token, _ in tokens
                                    if token not in string.punctuation])
             if result is None:
@@ -120,7 +120,7 @@ class BaseRecognizer(object):
                 if i > self.window:
                     break
             text = text.replace(fragment.strip(),
-                                untokenize(tokens[:j+1]))
+                                word_detokenize(tokens[:j+1]))
         # replace all instances of parenthesized shortform with shortform
         stripped_text = re.sub(r'\(\s*%s\s*\)'
                                % self.shortform,
@@ -204,7 +204,7 @@ class AdeftRecognizer(BaseRecognizer):
         root = _TrieNode()
         for longform, grounding in self.grounding_map.items():
             edges = tuple(_stemmer.stem(token)
-                          for token, _ in tokenize(longform))[::-1]
+                          for token, _ in word_tokenize(longform))[::-1]
             current = root
             for index, token in enumerate(edges):
                 if token not in current.children:
