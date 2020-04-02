@@ -52,7 +52,7 @@ def test_get_candidate_fragments():
         assert candidates == result
 
     # Case where pattern is at start of the sentence
-    fragments1 = get_candidate_fragments('(INDRA) is an ambiguous acronym',
+    fragments1 = get_candidate_fragments(' (INDRA) is an ambiguous acronym',
                                          'INDRA')
     candidate1, _ = get_candidate(fragments1[0])
     assert not candidate1
