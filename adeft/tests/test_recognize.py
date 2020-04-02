@@ -82,12 +82,9 @@ def test_recognizer():
 def test_strip_defining_patterns():
     rec = AdeftRecognizer('ER', grounding_map)
     test_cases = ['The endoplasmic reticulum (ER) is a transmembrane',
-                  'The endoplasmic reticulum(ER) is a transmembrane',
                   'The endoplasmic reticulum (ER)is a transmembrane',
-                  'The endoplasmic reticulum(ER)is a transmembrane',
-                  'The endoplasmic reticulum-(ER) is a transmembrane',
                   'The endoplasmic reticulum (ER)-is a transmembrane']
-    results = (['The ER is a transmembrane']*5 +
+    results = (['The ER is a transmembrane']*2 +
                ['The ER -is a transmembrane'])
 
     for case, result in zip(test_cases, results):
