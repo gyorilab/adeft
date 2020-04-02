@@ -4,7 +4,7 @@
 import re
 from unicodedata import category
 
-from adeft.nlp import word_tokenize, word_detokenize
+from adeft.nlp import word_tokenize, word_detokenize, sentence_tokenize
 
 
 def get_candidate_fragments(text, shortform, window=100):
@@ -13,7 +13,8 @@ def get_candidate_fragments(text, shortform, window=100):
     Gets fragments of text preceding defining patterns (DPs) to search
     for candidate longforms. Each fragment contains either a specified range
     of characters before a DP, or characters up until either the start
-    of the text or the end of a previous DP.
+    of the sentence or the end of a previous DP. Sentence tokenization is
+    performed with a custom trained PunktSentenceTokenizer
 
     Parameters
     ----------
@@ -41,6 +42,10 @@ def get_candidate_fragments(text, shortform, window=100):
         left = max(end_previous+1, span[0]-window)
         # fragment of text in this window
         fragment = text[left:span[0]]
+        if not fragment:
+            continue
+        sentences = sentence_tokenize(fragment)
+        fragment = sentences[-1]
         result.append(fragment)
         end_previous = span[1]
     return result

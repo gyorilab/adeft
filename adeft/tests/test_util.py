@@ -54,8 +54,7 @@ def test_get_candidate_fragments():
     # Case where pattern is at start of the sentence
     fragments1 = get_candidate_fragments(' (INDRA) is an ambiguous acronym',
                                          'INDRA')
-    candidate1, _ = get_candidate(fragments1[0])
-    assert not candidate1
+    assert not fragments1
     # Case where pattern is not found
     assert not get_candidate_fragments('Integrated Network'
                                        'and dynamical reasoning assembler',
