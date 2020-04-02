@@ -201,11 +201,13 @@ class SearchTrie(object):
         current = self._trie
         for token in tuple(_stemmer.stem(token) for token in tokens[::-1]):
             if token not in current.children:
+                if current.longform:
+                    return current.longform
                 break
             if current.children[token].longform is None:
                 current = current.children[token]
             else:
-                return {'longform': current.children[token].longform}
+                return current.children[token].longform
 
 
 class AdeftRecognizer(BaseRecognizer):
@@ -239,7 +241,10 @@ class AdeftRecognizer(BaseRecognizer):
         super().__init__(shortform, window)
 
     def _search(self, tokens):
-        return self.search_trie.search(tokens)
+        res = self.search_trie.search(tokens)
+        if res is not None:
+            res = {'longform': res}
+        return res
 
     def _post_process(self, result):
         """Map longform to associated grounding in grounding map"""
