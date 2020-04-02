@@ -294,14 +294,12 @@ cdef void opt_search(candidates_array *candidates,
         opt_input *current
         opt_results *results
         permuter *perms
+    m = shortform.y.length
     n = candidates.length
     perms = make_permuter(n)
     results = make_opt_results(shortform.y.length)
     total_length = candidates.cum_lengths[n - 1]
-    if shortform.y.length > total_length + 1:
-        input_size = total_length + shortform.y.length
-    else:
-        input_size = 2*total_length + 1
+    input_size = m*total_length + m + n - 1
     current = make_opt_input(input_size, n)
     stitch(candidates, perms.P, shortform.y.length, current)
     optimize(current, shortform, params, results)
