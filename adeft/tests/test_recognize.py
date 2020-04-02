@@ -1,7 +1,7 @@
 from nltk.stem.snowball import EnglishStemmer
 
 from adeft.nlp import word_tokenize
-from adeft.recognize import AdeftRecognizer, OneShotRecognizer
+from adeft.recognize import AdeftRecognizer, OneShotRecognizer, SearchTrie
 
 _stemmer = EnglishStemmer()
 
@@ -43,8 +43,7 @@ example5 = ('A number of studies showed that chemotherapeutic benefits'
 
 def test_init():
     """Test that the recognizers internal trie is initialized correctly"""
-    rec = AdeftRecognizer('ER', grounding_map)
-    trie = rec._trie
+    trie = SearchTrie(grounding_map)._trie
     for longform, grounding in grounding_map.items():
         edges = tuple(_stemmer.stem(token)
                       for token, _ in word_tokenize(longform))[::-1]

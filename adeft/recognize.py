@@ -163,6 +163,51 @@ class _TrieNode(object):
         self.children = {}
 
 
+class SearchTrie(object):
+    def __init__(self, grounding_map):
+        """Initialize search trie with longforms in grounding map
+        """
+        root = _TrieNode()
+        for longform, grounding in grounding_map.items():
+            edges = tuple(_stemmer.stem(token)
+                          for token, _ in word_tokenize(longform))[::-1]
+            current = root
+            for index, token in enumerate(edges):
+                if token not in current.children:
+                    if index == len(edges) - 1:
+                        new = _TrieNode(longform)
+                    else:
+                        new = _TrieNode()
+                    current.children[token] = new
+                    current = new
+                else:
+                    current = current.children[token]
+        self._trie = root
+
+    def search(self, tokens):
+        """Find longform expansion based on grounding map
+
+        Parameters
+        ----------
+        tokens : list of str
+            contains tokens that precede the occurence of the pattern
+            "<longform> (<shortform>)" up until start of window
+
+        Returns
+        -------
+        str
+            Identified longform expansion
+        """
+        current = self._trie
+        for token in tuple(_stemmer.stem(token) for token in tokens[::-1]):
+            if token not in current.children:
+                break
+            if current.children[token].longform is None:
+                current = current.children[token]
+            else:
+                return {'longform': current.children[token].longform}
+
+
 class AdeftRecognizer(BaseRecognizer):
     """Class for recognizing longforms by searching for defining patterns (DP)
 
@@ -190,56 +235,11 @@ class AdeftRecognizer(BaseRecognizer):
     """
     def __init__(self, shortform, grounding_map, window=100):
         self.grounding_map = grounding_map
-        self._trie = self._init_trie()
+        self.search_trie = SearchTrie(grounding_map)
         super().__init__(shortform, window)
 
-    def _init_trie(self):
-        """Initialize search trie with longforms in grounding map
-
-        Returns
-        -------
-        root : :py:class:`adeft.recogize._TrieNode`
-            Root of search trie used to recognize longforms
-        """
-        root = _TrieNode()
-        for longform, grounding in self.grounding_map.items():
-            edges = tuple(_stemmer.stem(token)
-                          for token, _ in word_tokenize(longform))[::-1]
-            current = root
-            for index, token in enumerate(edges):
-                if token not in current.children:
-                    if index == len(edges) - 1:
-                        new = _TrieNode(longform)
-                    else:
-                        new = _TrieNode()
-                    current.children[token] = new
-                    current = new
-                else:
-                    current = current.children[token]
-        return root
-
     def _search(self, tokens):
-        """Find longform expansion based on grounding map
-
-        Parameters
-        ----------
-        tokens : list of str
-            contains tokens that precede the occurence of the pattern
-            "<longform> (<shortform>)" up until start of window
-
-        Returns
-        -------
-        str
-            Identified longform expansion
-        """
-        current = self._trie
-        for token in tuple(_stemmer.stem(token) for token in tokens[::-1]):
-            if token not in current.children:
-                break
-            if current.children[token].longform is None:
-                current = current.children[token]
-            else:
-                return {'longform': current.children[token].longform}
+        return self.search_trie.search(tokens)
 
     def _post_process(self, result):
         """Map longform to associated grounding in grounding map"""
