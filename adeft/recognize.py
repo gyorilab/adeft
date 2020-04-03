@@ -164,12 +164,15 @@ class _TrieNode(object):
 
 
 class SearchTrie(object):
-    def __init__(self, grounding_map):
+    def __init__(self, grounding_map, token_map=None):
         """Initialize search trie with longforms in grounding map
         """
+        if token_map is None:
+            def token_map(x):
+                return x
         root = _TrieNode()
         for longform, grounding in grounding_map.items():
-            edges = tuple(_stemmer.stem(token)
+            edges = tuple(token_map(token)
                           for token, _ in word_tokenize(longform))[::-1]
             current = root
             for index, token in enumerate(edges):
@@ -182,7 +185,10 @@ class SearchTrie(object):
                     current = new
                 else:
                     current = current.children[token]
+                    if index == len(edges) - 1:
+                        current.longform = longform
         self._trie = root
+        self.token_map = token_map
 
     def search(self, tokens):
         """Find longform expansion based on grounding map
@@ -199,15 +205,14 @@ class SearchTrie(object):
             Identified longform expansion
         """
         current = self._trie
-        for token in tuple(_stemmer.stem(token) for token in tokens[::-1]):
+        result = None
+        for token in tuple(self.token_map(token) for token in tokens[::-1]):
             if token not in current.children:
-                if current.longform:
-                    return current.longform
                 break
-            if current.children[token].longform is None:
-                current = current.children[token]
-            else:
-                return current.children[token].longform
+            if current.children[token].longform is not None:
+                result = current.children[token].longform
+            current = current.children[token]
+        return result
 
 
 class AdeftRecognizer(BaseRecognizer):
@@ -237,7 +242,7 @@ class AdeftRecognizer(BaseRecognizer):
     """
     def __init__(self, shortform, grounding_map, window=100):
         self.grounding_map = grounding_map
-        self.search_trie = SearchTrie(grounding_map)
+        self.search_trie = SearchTrie(grounding_map, token_map=_stemmer.stem)
         super().__init__(shortform, window)
 
     def _search(self, tokens):

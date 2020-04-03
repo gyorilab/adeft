@@ -43,7 +43,7 @@ example5 = ('A number of studies showed that chemotherapeutic benefits'
 
 def test_init():
     """Test that the recognizers internal trie is initialized correctly"""
-    trie = SearchTrie(grounding_map)._trie
+    trie = SearchTrie(grounding_map, token_map=_stemmer.stem)._trie
     for longform, grounding in grounding_map.items():
         edges = tuple(_stemmer.stem(token)
                       for token, _ in word_tokenize(longform))[::-1]
@@ -70,8 +70,6 @@ def test_recognizer():
     rec = AdeftRecognizer('ER', grounding_map)
     for text, expected in [example1, example2, example3, example4, example5]:
         result = rec.recognize(text)
-        print('****')
-        print(result)
         assert result.pop()['grounding'] == expected
 
     # Case where defining pattern appears at the start of the fragment
