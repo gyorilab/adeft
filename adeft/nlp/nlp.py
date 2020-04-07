@@ -78,7 +78,7 @@ class WatchfulStemmer(object):
             stemmed form of input word
         """
         stemmed = stem(word)
-        self.counts[stemmed][word] += 1
+        self.counts[stemmed][word.lower()] += 1
         return stemmed
 
     def most_frequent(self, stemmed):
