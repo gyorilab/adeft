@@ -7,6 +7,32 @@ from collections import defaultdict
 from nltk.stem.snowball import EnglishStemmer
 
 
+_stemmer = EnglishStemmer()
+
+
+def stem(word):
+    """Return stem of word
+
+    Stemming attempts to reduce words to their root form in a 
+    crude heuristic way. We add an attional heuristic of stripping
+    a terminal s if the preceding character is upper case. These
+    often denote pluralization in biology (e.g. RNAs)
+
+    Parameters
+    ----------
+    word : str
+
+    Returns
+    str
+        stem of input word converted to lower case
+    """
+    if len(word) > 1 and word[-2].isupper() and word[-1] == 's':
+        updated_word = word[:-1]
+    else:
+        updated_word = word
+    return _stemmer.stem(updated_word).lower()
+
+
 class WatchfulStemmer(object):
     """Wraps the nltk.snow EnglishStemmer.
 
@@ -32,7 +58,6 @@ class WatchfulStemmer(object):
     def __init__(self, counts=None):
         if counts is None:
             counts = {}
-        self.__snowball = EnglishStemmer()
         self.counts = defaultdict(lambda: defaultdict(int),
                                   {key: defaultdict(int, value)
                                    for key, value in counts.items()})
@@ -52,7 +77,7 @@ class WatchfulStemmer(object):
         stemmed : str
             stemmed form of input word
         """
-        stemmed = self.__snowball.stem(word)
+        stemmed = stem(word)
         self.counts[stemmed][word] += 1
         return stemmed
 
@@ -85,7 +110,7 @@ class WatchfulStemmer(object):
         """Returns dictionary of info needed to reconstruct stemmer"""
         return dict(self.counts)
 
-
+    
 def word_tokenize(text):
     """Simple word tokenizer based on a regular expression pattern
 

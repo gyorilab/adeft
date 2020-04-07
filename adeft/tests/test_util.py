@@ -8,34 +8,34 @@ text1 = ('Integrated Network and Dynamical Reasoning Assembler'
 stripped1 = ('Integrated Network and Dynamical Reasoning Assembler'
              ' generates executable models of pathway dynamics'
              ' from natural language.')
-result1 = [['integrated',  'network',  'and',  'dynamical',  'reasoning',
-           'assembler']]
+result1 = [['Integrated',  'Network',  'and',  'Dynamical',  'Reasoning',
+           'Assembler']]
 
 
 text2 = ('The Indonesian Debt Restructuring Agency (INDRA) was'
          ' established by the Jakarta Initiative in 1998.')
-result2 = [['the',  'indonesian',  'debt',  'restructuring',  'agency']]
+result2 = [['The',  'Indonesian',  'Debt',  'Restructuring',  'Agency']]
 
 text3 = ('An Indonesian Debt Restructuring Agency (INDRA) was'
          ' established to provide foreign-exchange cover for'
          ' Indonesian corporations with foreign currency denominated'
          ' debt.')
-result3 = [['an',  'indonesian',  'debt',  'restructuring',  'agency']]
+result3 = [['An',  'Indonesian',  'Debt',  'Restructuring',  'Agency']]
 
 text4 = 'Interior Natural Desert Reclamation and Afforestation (INDRA)'
-result4 = [['interior',  'natural',  'desert',  'reclamation',  'and',
-            'afforestation']]
+result4 = [['Interior',  'Natural',  'Desert',  'Reclamation',  'and',
+            'Afforestation']]
 
 text5 = ('Interior Natural Desert Reclamation and Afforestation (INDRA)'
          ' is not the Integrated Network and Dynamical Reasoning'
          ' Assembler (INDRA). Neither of these is the Indonesian Debt'
          ' Restructuring Agency (INDRA).')
-result5 = [['interior', 'natural', 'desert', 'reclamation', 'and',
-            'afforestation'],
-           ['is', 'not', 'the', 'integrated', 'network', 'and', 'dynamical',
-            'reasoning', 'assembler'],
-           ['neither', 'of', 'these', 'is', 'the', 'indonesian', 'debt',
-            'restructuring', 'agency']]
+result5 = [['Interior', 'Natural', 'Desert', 'Reclamation', 'and',
+            'Afforestation'],
+           ['is', 'not', 'the', 'Integrated', 'Network', 'and', 'Dynamical',
+            'Reasoning', 'Assembler'],
+           ['Neither', 'of', 'these', 'is', 'the', 'Indonesian', 'Debt',
+            'Restructuring', 'Agency']]
 
 stopwords = set(['a', 'an', 'the', 'and', 'or', 'of', 'with', 'at', 'from',
                  'into', 'to', 'for', 'on', 'by', 'be', 'being', 'been', 'am',

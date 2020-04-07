@@ -1,9 +1,6 @@
-from nltk.stem.snowball import EnglishStemmer
-
-from adeft.nlp import word_tokenize
+from adeft.nlp import stem, word_tokenize
 from adeft.recognize import AdeftRecognizer, OneShotRecognizer, SearchTrie
 
-_stemmer = EnglishStemmer()
 
 grounding_map = {'endoplasmic reticulum': 'MESH:D004721',
                  'estrogen receptor': 'HGNC:3467',
@@ -43,9 +40,9 @@ example5 = ('A number of studies showed that chemotherapeutic benefits'
 
 def test_init():
     """Test that the recognizers internal trie is initialized correctly"""
-    trie = SearchTrie(grounding_map, token_map=_stemmer.stem)._trie
+    trie = SearchTrie(grounding_map, token_map=stem)._trie
     for longform, grounding in grounding_map.items():
-        edges = tuple(_stemmer.stem(token)
+        edges = tuple(stem(token)
                       for token, _ in word_tokenize(longform))[::-1]
         current = trie
         for index, token in enumerate(edges):
@@ -116,5 +113,6 @@ def test_one_shot_recognizer():
                                     example10]:
         rec = OneShotRecognizer(shortform)
         print(rec)
+        # print(rec.recognize(text))
         # longform_set = {x[0] for x in rec.recognize(text)}
         # assert longform_set.pop()['long == result

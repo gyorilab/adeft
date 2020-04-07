@@ -9,4 +9,4 @@ detection models.
 
 """
 from .nlp import WatchfulStemmer, word_tokenize, word_detokenize, \
-    english_stopwords, stopwords_min
+    english_stopwords, stopwords_min, stem

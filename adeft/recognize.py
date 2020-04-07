@@ -5,9 +5,8 @@ import re
 import string
 import logging
 
-from nltk.stem.snowball import EnglishStemmer
 
-from adeft.nlp import word_tokenize, word_detokenize
+from adeft.nlp import stem, word_tokenize, word_detokenize
 from adeft.util import get_candidate_fragments, get_candidate
 
 logger = logging.getLogger(__file__)
@@ -17,8 +16,6 @@ try:
 except Exception:
     logger.info('OneShotRecognizer not available. Extension module for'
                 ' AlignmentBasedScorer is missing')
-
-_stemmer = EnglishStemmer()
 
 
 class BaseRecognizer(object):
@@ -242,7 +239,8 @@ class AdeftRecognizer(BaseRecognizer):
     """
     def __init__(self, shortform, grounding_map, window=100):
         self.grounding_map = grounding_map
-        self.search_trie = SearchTrie(grounding_map, token_map=_stemmer.stem)
+        self.search_trie = SearchTrie(grounding_map,
+                                      token_map=lambda x: stem(x).lower())
         super().__init__(shortform, window)
 
     def _search(self, tokens):
