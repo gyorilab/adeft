@@ -94,18 +94,22 @@ class _TrieNode(object):
 
 
 class SearchTrie(object):
-    def __init__(self, grounding_map, token_map=None):
+    def __init__(self, grounding_map, expander=None, token_map=None):
         """Initialize search trie with longforms in grounding map
         """
+        if expander is None:
+            def expander(x):
+                return [x]
         if token_map is None:
             def token_map(x):
                 return x
         root = _TrieNode()
         self._trie = root
         for longform, grounding in grounding_map.items():
-            edges = tuple(token_map(token)
-                          for token, _ in word_tokenize(longform))[::-1]
-            self.add(edges, longform)
+            for expansion in expander(longform):
+                edges = tuple(token_map(token)
+                              for token, _ in word_tokenize(expansion))[::-1]
+                self.add(edges, longform)
         self.token_map = token_map
 
     def add(self, tokens, data):
