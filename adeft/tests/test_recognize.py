@@ -60,7 +60,7 @@ def test_search():
     example = ['for', 'women', ',', 'mandatory', 'hmo', 'programs', 'reduce',
                'some', 'types', 'of', 'non', 'emergency', 'room']
     result = rec._search(example)
-    assert rec._search(example) == {'longform': 'emergency room'}
+    assert result == {'longform': 'emergency room'}
 
 
 def test_recognizer():
