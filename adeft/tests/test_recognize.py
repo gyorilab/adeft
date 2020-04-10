@@ -48,9 +48,9 @@ def test_init():
         for index, token in enumerate(edges):
             assert token in current.children
             if index < len(edges) - 1:
-                assert current.children[token].longform is None
+                assert current.children[token].data is None
             else:
-                assert current.children[token].longform == longform
+                assert current.children[token].data == longform
             current = current.children[token]
 
 
@@ -59,6 +59,7 @@ def test_search():
     rec = AdeftRecognizer('ER', grounding_map)
     example = ['for', 'women', ',', 'mandatory', 'hmo', 'programs', 'reduce',
                'some', 'types', 'of', 'non', 'emergency', 'room']
+    result = rec._search(example)
     assert rec._search(example) == {'longform': 'emergency room'}
 
 

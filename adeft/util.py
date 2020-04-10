@@ -4,7 +4,7 @@
 import re
 from unicodedata import category
 
-from adeft.nlp import stem, word_tokenize, word_detokenize
+from adeft.nlp import word_tokenize, word_detokenize
 
 
 def get_candidate_fragments(text, shortform, window=100):
@@ -72,3 +72,78 @@ def get_candidate(fragment):
         i -= 1
     processed_tokens.reverse()
     return processed_tokens, longform_map
+
+
+class _TrieNode(object):
+    """TrieNode structure for use in recognizer
+
+    Attributes
+    ----------
+    longform : str or None
+        Set to associated longform at leaf nodes in the trie, otherwise None.
+        Each longform corresponds to a path in the trie from root to leaf.
+
+    children : dict
+        dict mapping tokens to child nodes
+    """
+    __slots__ = ['data', 'children']
+
+    def __init__(self, data=None):
+        self.data = data
+        self.children = {}
+
+
+class SearchTrie(object):
+    def __init__(self, grounding_map, token_map=None):
+        """Initialize search trie with longforms in grounding map
+        """
+        if token_map is None:
+            def token_map(x):
+                return x
+        root = _TrieNode()
+        self._trie = root
+        for longform, grounding in grounding_map.items():
+            edges = tuple(token_map(token)
+                          for token, _ in word_tokenize(longform))[::-1]
+            self.add(edges, longform)
+        self.token_map = token_map
+
+    def add(self, tokens, data):
+        current = self._trie
+        print(tokens, data)
+        for index, token in enumerate(tokens):
+            if token not in current.children:
+                if index == len(tokens) - 1:
+                    new = _TrieNode(data)
+                else:
+                    new = _TrieNode()
+                current.children[token] = new
+                current = new
+            else:
+                current = current.children[token]
+                if index == len(data) - 1:
+                    current.data = data
+
+    def search(self, tokens):
+        """Find longform expansion based on grounding map
+
+        Parameters
+        ----------
+        tokens : list of str
+            contains tokens that precede the occurence of the pattern
+            "<longform> (<shortform>)" up until start of window
+
+        Returns
+        -------
+        str
+            Identified longform expansion
+        """
+        current = self._trie
+        result = None
+        for token in tuple(self.token_map(token) for token in tokens[::-1]):
+            if token not in current.children:
+                break
+            if current.children[token].data is not None:
+                result = current.children[token].data
+            current = current.children[token]
+        return result
