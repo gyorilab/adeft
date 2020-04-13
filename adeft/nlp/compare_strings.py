@@ -4,7 +4,7 @@ from adeft.nlp.stem import stem
 from adeft.util import get_candidate
 
 
-def _equivalence_helper(self, text1, text2):
+def _equivalence_helper(text1, text2):
     if text1.lower() == text2.lower():
         return True
     stem1, stem2 = stem(text1), stem(text2)
@@ -21,9 +21,9 @@ def _equivalence_helper(self, text1, text2):
     return False
 
 
-def equivalent_up_to_plural(self, text1, text2):
-    return (self._equivalence_helper(text1, text2) or
-            self._equivalence_helper(text2, text1))
+def equivalent_up_to_plural(text1, text2):
+    return (_equivalence_helper(text1, text2) or
+            _equivalence_helper(text2, text1))
 
 
 def text_similarity(text, grounding_text):

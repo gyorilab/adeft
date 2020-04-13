@@ -70,8 +70,8 @@ def expand_dashes(text):
         output = [text]
     else:
         tokens = _dash_tokenize(text)
-    output = [' '.join(x) for x in product(*[_expand_token(token)
-                                             for token in tokens])]
+        output = [' '.join(x) for x in product(*[_expand_token(token)
+                                                 for token in tokens])]
     return output
 
 
@@ -87,7 +87,7 @@ def _normalize_dashes(text):
             out += '-'
         else:
             out += char
-        out = '-'.join([x for x in out.split('-') if x])
+    out = '-'.join([x for x in out.split('-') if x])
     return out
 
 
