@@ -4,7 +4,7 @@
 import re
 from unicodedata import category
 
-from adeft.nlp import word_tokenize, word_detokenize
+from adeft.nlp.preprocess import word_tokenize, word_detokenize
 
 
 def get_candidate_fragments(text, shortform, window=100):
@@ -114,7 +114,6 @@ class SearchTrie(object):
 
     def add(self, tokens, data):
         current = self._trie
-        print(tokens, data)
         for index, token in enumerate(tokens):
             if token not in current.children:
                 if index == len(tokens) - 1:
@@ -144,10 +143,13 @@ class SearchTrie(object):
         """
         current = self._trie
         result = None
+        match_text = []
         for token in tuple(self.token_map(token) for token in tokens[::-1]):
             if token not in current.children:
                 break
+            match_text.append(token)
             if current.children[token].data is not None:
                 result = current.children[token].data
             current = current.children[token]
-        return result
+        match_text = ' '.join(match_text[::-1])
+        return result, match_text

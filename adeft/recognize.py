@@ -6,7 +6,8 @@ import string
 import logging
 
 
-from adeft.nlp import stem, word_tokenize, word_detokenize
+from adeft.nlp.stem import stem
+from adeft.nlp.preprocess import word_tokenize, word_detokenize
 from adeft.util import get_candidate_fragments, get_candidate, SearchTrie
 
 logger = logging.getLogger(__file__)
@@ -173,7 +174,7 @@ class AdeftRecognizer(BaseRecognizer):
         super().__init__(shortform, window)
 
     def _search(self, tokens):
-        res = self.search_trie.search(tokens)
+        res, _ = self.search_trie.search(tokens)
         if res is not None:
             res = {'longform': res}
         return res

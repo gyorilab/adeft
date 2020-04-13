@@ -1,4 +1,5 @@
-from adeft.nlp import stem, word_tokenize
+from adeft.nlp.stem import stem
+from adeft.nlp.preprocess import word_tokenize
 from adeft.recognize import AdeftRecognizer, OneShotRecognizer, SearchTrie
 
 
@@ -113,7 +114,6 @@ def test_one_shot_recognizer():
     for text, result, shortform in [example6, example7, example8, example9,
                                     example10]:
         rec = OneShotRecognizer(shortform)
-        print(rec)
         # print(rec.recognize(text))
         # longform_set = {x[0] for x in rec.recognize(text)}
         # assert longform_set.pop()['long == result

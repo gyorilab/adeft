@@ -7,7 +7,7 @@ from copy import deepcopy
 from ast import literal_eval
 from collections import deque
 
-from adeft.nlp import WatchfulStemmer
+from adeft.nlp.stem import WatchfulStemmer
 from adeft.score import AlignmentBasedScorer
 from adeft.util import get_candidate_fragments, get_candidate
 

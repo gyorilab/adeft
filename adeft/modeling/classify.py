@@ -17,7 +17,7 @@ from sklearn.metrics import f1_score, precision_score, recall_score,\
 
 
 from adeft import __version__
-from adeft.nlp import english_stopwords
+from adeft.nlp.resources import english_stopwords
 
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
 

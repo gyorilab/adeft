@@ -1,7 +1,7 @@
 import math
 import string
 
-from adeft.nlp import stopwords_min
+from adeft.nlp.resources import stopwords_min
 from adeft.score._score import score, optimize_alignment
 
 

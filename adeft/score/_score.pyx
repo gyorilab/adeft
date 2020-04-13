@@ -7,7 +7,7 @@ cdef extern from 'limits.h':
 from cython cimport boundscheck, wraparound
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
-from adeft.nlp import stopwords_min
+from adeft.nlp.resources import stopwords_min
 
 include 'permutations.pyx'
 
