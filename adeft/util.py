@@ -60,6 +60,7 @@ def get_candidate(fragment):
     use_stemming : Optional[bool]
         If True, stem apply stemming to tokens. Default: True
     """
+    fragment = fragment.strip()
     tokens = word_tokenize(fragment)
     longform_map = {}
     i, j = len(tokens) - 1, 0
@@ -70,6 +71,7 @@ def get_candidate(fragment):
             longform_map[j+1] = word_detokenize(tokens[i:])
             j += 1
         i -= 1
+    longform_map[len(processed_tokens)] = fragment
     processed_tokens.reverse()
     return processed_tokens, longform_map
 
