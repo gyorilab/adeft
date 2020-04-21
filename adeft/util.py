@@ -111,7 +111,7 @@ class SearchTrie(object):
             for expansion in expander(longform):
                 edges = tuple(token_map(token)
                               for token, _ in word_tokenize(expansion))[::-1]
-                self.add(edges, grounding)
+                self.add(edges, longform)
         self.token_map = token_map
 
     def add(self, tokens, data):
