@@ -146,12 +146,13 @@ class SearchTrie(object):
         current = self._trie
         result = None
         match_text = []
-        for token in tuple(self.token_map(token) for token in tokens[::-1]):
-            if token not in current.children:
+        for token, mapped_token in tuple((token, self.token_map(token))
+                                         for token in tokens[::-1]):
+            if mapped_token not in current.children:
                 break
             match_text.append(token)
-            if current.children[token].data is not None:
-                result = current.children[token].data
-            current = current.children[token]
+            if current.children[mapped_token].data is not None:
+                result = current.children[mapped_token].data
+            current = current.children[mapped_token]
         match_text = ' '.join(match_text[::-1])
         return result, match_text
