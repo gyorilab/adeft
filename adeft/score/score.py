@@ -155,7 +155,7 @@ class AlignmentBasedScorer(object):
         W = 1.0
         score, char_scores = \
             optimize_alignment(woven_token, woven_indices,
-                               encoded_shortform, word_boundaries,
+                               encoded_shortform,
                                word_prizes, W, penalties, self.alpha,
                                self.beta, self.gamma, 1.0)
         return char_scores
