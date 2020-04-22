@@ -213,7 +213,8 @@ class OneShotRecognizer(BaseRecognizer):
 
     def _search(self, tokens):
         """Use AdeftLongformScorer to identify expansions"""
-        scores = self.scorer.expanding_score(tokens)
+        scores = self.scorer.expanding_score([stem(token).lower()
+                                              for token in tokens])
         n = len(tokens)
         i = max(range(len(scores)), key=lambda i: scores[i])
         longform = ' '.join(tokens[n-i-1:])

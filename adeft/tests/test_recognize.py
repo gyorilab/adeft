@@ -94,7 +94,7 @@ def test_strip_defining_patterns():
 def test_one_shot_recognizer():
     example6 = ('A number of studies have assessed the relationship between'
                 ' beta-2 adrenergic receptor (ADRB2) gene polymorphisms'
-                ' and asthma risk', 'beta 2 adrenergic receptor', 'ADRB2')
+                ' and asthma risk', 'beta-2 adrenergic receptor', 'ADRB2')
     example7 = ('Mutation PRECEPT and Regulon Precept, which use Bayesian'
                 ' statistics to characterize predictors of cellular phenotypes'
                 ' to guide therapeutic strategies (PRECEPTS)',
@@ -103,17 +103,16 @@ def test_one_shot_recognizer():
     example8 = ('This is a test sentence for the OneShotRecognizer class'
                 ' of Acromine based Disambiguation of Entities from Text'
                 ' (ADEFT)',
-                'acromine based disambiguation of entities from text',
+                'Acromine based Disambiguation of Entities from Text',
                 'ADEFT')
     example9 = ('Hormones as diverse as adiponectin (ADP) and thromboxane'
                 'A2 (TXA2) are mentioned in this sentence.', 'adiponectin',
                 'ADP')
     example10 = ('Hormones as diverse as adiponectin (ADP) and thromboxane'
                  ' A2 (TXA2) are mentioned in this sentence.',
-                 'thromboxane a2', 'TXA2')
+                 'thromboxane A2', 'TXA2')
     for text, result, shortform in [example6, example7, example8, example9,
                                     example10]:
         rec = OneShotRecognizer(shortform)
-        # print(rec.recognize(text))
-        # longform_set = {x[0] for x in rec.recognize(text)}
-        # assert longform_set.pop()['long == result
+        longform_set = {x['longform_text'] for x in rec.recognize(text)}
+        assert longform_set.pop() == result
