@@ -14,6 +14,7 @@ from adeft.nlp.compare_strings import text_similarity
 def load_default_grounding_terms():
     grounding_terms = {}
     grounding_map = defaultdict(list)
+    lexicon = []
     with gzip.open(os.path.join(RESOURCES_PATH,
                                 'grounding_terms.tsv.gz'), 'rt') as f:
         reader = csv.reader(f, delimiter='\t')
@@ -24,16 +25,19 @@ def load_default_grounding_terms():
                      'type': row[5],
                      'raw_text': row[1]}
             grounding_terms[index] = entry
-            grounding_map[row[1]].append(index)
-    return grounding_terms, grounding_map
+            grounding_map[normalize(row[1])].append(index)
+            lexicon.append(row[1])
+    return grounding_terms, grounding_map, lexicon
 
 
 class AdeftGrounder(object):
     def __init__(self, groundings=None):
         if groundings is None:
-            grounding_terms, grounding_map = load_default_grounding_terms()
+            grounding_terms, grounding_map, lx = load_default_grounding_terms()
         self.grounding_terms = grounding_terms
-        self._trie = SearchTrie(grounding_map, expander=expand_dashes,
+        self.grounding_map = grounding_map
+        self._trie = SearchTrie(lx,
+                                expander=expand_dashes,
                                 token_map=greek_aware_stem)
         self.type_priority = {'assertion': 0,
                               'name': 1,
@@ -46,12 +50,13 @@ class AdeftGrounder(object):
         for expansion in expansions:
             tokens, longform_map = get_candidate(expansion)
             processed_tokens = [greek_aware_stem(token) for token in tokens]
-            grounding_keys, match_text = self._trie.search(processed_tokens)
-            if grounding_keys is None:
+            match, match_text = self._trie.search(processed_tokens)
+            if match is None:
                 continue
             entity_tokens, _ = get_candidate(match_text)
             if entity_tokens == processed_tokens[-len(entity_tokens):]:
                 longform_text = longform_map[len(entity_tokens)]
+                grounding_keys = self.grounding_map[normalize(longform_text)]
                 for grounding_key in grounding_keys:
                     entry = deepcopy(self.grounding_terms[grounding_key])
                     entry['longform_text'] = longform_text
