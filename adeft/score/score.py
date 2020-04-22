@@ -151,7 +151,6 @@ class AlignmentBasedScorer(object):
             woven_indices.extend([-1]*(len(encoded_shortform) - 1))
         penalties = [0.0]*len(encoded_shortform)
         word_prizes = [0.0]
-        word_boundaries = [len(woven_indices)-1]
         W = 1.0
         score, char_scores = \
             optimize_alignment(woven_token, woven_indices,
