@@ -6,7 +6,7 @@ from collections import defaultdict
 
 from adeft.locations import RESOURCES_PATH
 from adeft.nlp.stem import greek_aware_stem
-from adeft.nlp.preprocess import expand_dashes
+from adeft.nlp.preprocess import dashes, expand_dashes
 from adeft.util import SearchTrie, get_candidate
 from adeft.nlp.compare_strings import text_similarity
 
@@ -70,3 +70,9 @@ class AdeftGrounder(object):
         out = [result for result in result_dict.values()
                if result['score'][0] > 0]
         return sorted(out, key=lambda x: (-x['score'][0], -x['score'][1]))
+
+
+def normalize(s):
+    s = ''.join(s.split())
+    s = ''.join([char for char in s if char not in dashes])
+    return s.lower()
