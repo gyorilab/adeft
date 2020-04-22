@@ -70,9 +70,10 @@ def expand_dashes(text):
         output = [text]
     else:
         tokens = _dash_tokenize(text)
-        output = [' '.join(x) for x in product(*[_expand_token(token)
-                                                 for token in tokens])]
-    return output
+        output = set(' '.join([c.strip() for c in x if c.strip()])
+                     for x in product(*[_expand_token(token)
+                                        for token in tokens]))
+    return list(output)
 
 
 def _powerset(n):
