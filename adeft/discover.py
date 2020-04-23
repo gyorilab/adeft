@@ -308,18 +308,18 @@ class AdeftMiner(object):
             numerator = node.score-1
             denominator = node.count+smoothing_param-1
             acro_score = 0 if denominator <= 0 else numerator/denominator
-            if not self._abs_fit or abs_weight == 0.0:
-                return acro_score
-            phi = np.exp(-abs_weight*node.best_ancestor_score)
-            output = phi*node.alignment_score + (1-phi)*acro_score
-            if output > 0.1:
-                      acro_score, node.alignment_score, phi, output)
-            return output
+            if not self._abs_fit:
+                score = acro_score
+            else:
+                phi = np.exp(-abs_weight*node.best_ancestor_score)
+                score = phi*node.alignment_score + (1-phi)*acro_score
+            return score, node.count
         root = self._internal_trie
         longforms = self._get_longform_helper(root, score_func)
         # Convert longforms as tuples in reverse order into reader strings
         # mapping stems back to the most frequent token that had been mapped
-        longforms = [(longform, score) for longform, score in longforms
+        longforms = [(longform, score, count)
+                     for longform, score, count in longforms
                      if score > cutoff]
 
         # Map stems to the most frequent word that had been mapped to them.
@@ -327,26 +327,30 @@ class AdeftMiner(object):
         # mapping stems back to the most frequent token that had been
         # mapped to them. tuple of stemmed tokens can be recovered by
         # tokenizing, stemming, and reversing
-        longforms = [(self._make_readable(longform), score)
-                     for longform, score in longforms
+        longforms = [(self._make_readable(longform), score, count)
+                     for longform, score, count in longforms
                      if max_length is None or len(longform) <= max_length]
 
         # Sort in preferred order
-        longforms = sorted(longforms, key=lambda x: (-x[1], len(x[0]), x[0]))
+        longforms = sorted(longforms, key=lambda x: (-x[2], -x[1], len(x[0]),
+                                                     x[0]))
         return longforms
 
     def _get_longform_helper(self, node, score_func):
         if not node.children:
-            return [(node.longform, score_func(node))]
+            score, count = score_func(node)
+            return [(node.longform, score, count)]
         else:
             result = []
             for child in node.children.values():
                 child_longforms = self._get_longform_helper(child, score_func)
-                result.extend([(longform, score) for longform, score in
+                result.extend([(longform, score, count)
+                               for longform, score, count in
                                child_longforms if node.is_root() or
-                               score > score_func(node)])
+                               score > score_func(node)[0]])
             if not result:
-                result = [(node.longform, score_func(node))]
+                score, count = score_func(node)
+                result = [(node.longform, score, count)]
             return result
 
     def compute_alignment_scores(self, **params):
