@@ -371,6 +371,7 @@ class AdeftMiner(object):
                     child.alignment_score = current.alignment_score * \
                         multiplier * leading_stop_penalty
                     child.best_ancestor_align_score = best_score
+                    continue
                 encoded_token = self._abs.encode_token(token)
                 child.encoded_tokens = current.encoded_tokens + [encoded_token]
                 token_char_scores = self._abs.probe(encoded_token)
