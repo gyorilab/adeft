@@ -334,7 +334,7 @@ class AdeftMiner(object):
         # Sort in preferred order
         longforms = sorted(longforms, key=lambda x: (-x[2], -x[1], len(x[0]),
                                                      x[0]))
-        return longforms
+        return [(longform, count) for longform, _, count in longforms]
 
     def _get_longform_helper(self, node, score_func):
         if not node.children:
