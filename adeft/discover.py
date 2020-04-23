@@ -3,6 +3,7 @@ algorithm."""
 import json
 import math
 import logging
+import numpy as np
 from copy import deepcopy
 from ast import literal_eval
 from collections import deque
@@ -75,7 +76,7 @@ class _TrieNode(object):
                  'parent', 'children', 'encoded_tokens', 'word_prizes',
                  'best_ancestor_align_score', 'sum_ancestor_word_scores',
                  'best_ancestor_char_scores', 'best_char_scores',
-                 'alignment_score']
+                 'alignment_score', 'best_ancestor_score']
 
     def __init__(self, longform=(), parent=None):
         self.longform = longform
@@ -90,6 +91,7 @@ class _TrieNode(object):
         self.sum_ancestor_word_scores = 0
         self.best_ancestor_align_score = -1
         self.alignment_score = 0
+        self.best_ancestor_score = -1
 
     def is_root(self):
         """True if node is at the root of the trie"""
@@ -208,8 +210,8 @@ class AdeftMiner(object):
         self._internal_trie.best_char_scores = [-1e20]*len(shortform)
         self._longforms = {}
         self._stemmer = WatchfulStemmer()
-        self._abs = AlignmentBasedScorer(shortform)
         self.window = window
+        self._abs_fit = False
 
     def process_texts(self, texts):
         """Update longform candidate scores from a corpus of texts
@@ -265,8 +267,8 @@ class AdeftMiner(object):
                       for longform, score in candidates]
         return candidates
 
-    def get_longforms(self, cutoff=1, scale=False, smoothing_param=4,
-                      max_length=None):
+    def get_longforms(self, cutoff=.01, smoothing_param=4,
+                      max_length=None, abs_weight=0.1):
         """Return a list of extracted longforms with their scores
 
         Traverse the candidates trie to search for nodes with score
@@ -302,16 +304,17 @@ class AdeftMiner(object):
         """
         if max_length == 'auto':
             max_length = 2*len(self.shortform)+1
-        if scale:
-            def score_func(score, count):
-                numerator = score-1
-                denominator = count+smoothing_param-1
-                return 0 if denominator <= 0 else numerator/denominator
-
-            cutoff = 0
-        else:
-            def score_func(score, count):
-                return score
+        def score_func(node):
+            numerator = node.score-1
+            denominator = node.count+smoothing_param-1
+            acro_score = 0 if denominator <= 0 else numerator/denominator
+            if not self._abs_fit or abs_weight == 0.0:
+                return acro_score
+            phi = np.exp(-abs_weight*node.best_ancestor_score)
+            output = phi*node.alignment_score + (1-phi)*acro_score
+            if output > 0.1:
+                      acro_score, node.alignment_score, phi, output)
+            return output
         root = self._internal_trie
         longforms = self._get_longform_helper(root, score_func)
         # Convert longforms as tuples in reverse order into reader strings
@@ -330,74 +333,77 @@ class AdeftMiner(object):
 
         # Sort in preferred order
         longforms = sorted(longforms, key=lambda x: (-x[1], len(x[0]), x[0]))
-
-        # Reset best ancestor and best_ancestor score values for all children
-        # of the root. This is required for the algorithm to be able to run
-        # successfully in subsequent calls to this method
         return longforms
 
     def _get_longform_helper(self, node, score_func):
         if not node.children:
-            return [(node.longform, score_func(node.score, node.count))]
+            return [(node.longform, score_func(node))]
         else:
             result = []
             for child in node.children.values():
                 child_longforms = self._get_longform_helper(child, score_func)
                 result.extend([(longform, score) for longform, score in
                                child_longforms if node.is_root() or
-                               score > score_func(node.score, node.count)])
+                               score > score_func(node)])
             if not result:
-                result = [(node.longform, score_func(node.score, node.count))]
+                result = [(node.longform, score_func(node))]
             return result
 
     def compute_alignment_scores(self, **params):
-        self._abs = AlignmentBasedScorer(self.shortform, **params)
+        abs_ = AlignmentBasedScorer(self.shortform, **params)
         root = self._internal_trie
         queue = deque([root])
         while queue:
             current = queue.pop()
             for token, child in current.children.items():
-                stopcount = self._abs.count_leading_stopwords(child.longform,
+                # We calculate best ancestor acromine scores for each node
+                # These are used for deciding on the weighting to balance
+                # the abs score and the acromine score
+                if child.score > current.best_ancestor_score:
+                    child.best_ancestor_score = child.score
+                else:
+                    child.best_ancestor_score = current.best_ancestor_score
+                stopcount = abs_.count_leading_stopwords(child.longform,
                                                               reverse=True)
-                leading_stop_penalty = self._abs.zeta**stopcount
+                leading_stop_penalty = abs_.zeta**stopcount
                 best_score = current.best_ancestor_align_score
-                w = self._abs.get_word_score(token)
+                w = abs_.get_word_score(token)
                 child.word_prizes = current.word_prizes + [w]
                 child.sum_ancestor_word_scores = \
                     current.sum_ancestor_word_scores + w
                 W = child.sum_ancestor_word_scores
-                if not (set(token) & set(self._abs.char_map)):
-                    multiplier = ((W - w)/W)**(1 - self._abs.lambda_)
+                if not (set(token) & set(abs_.char_map)):
+                    multiplier = ((W - w)/W)**(1 - abs_.lambda_)
                     child.alignment_score = current.alignment_score * \
                         multiplier * leading_stop_penalty
                     child.best_ancestor_align_score = best_score
                     continue
-                encoded_token = self._abs.encode_token(token)
+                encoded_token = abs_.encode_token(token)
                 child.encoded_tokens = current.encoded_tokens + [encoded_token]
-                token_char_scores = self._abs.probe(encoded_token)
+                token_char_scores = abs_.probe(encoded_token)
                 char_score_upper_bound = sum(max(a, b, 0) for a, b in
                                              zip(current.best_char_scores,
                                                  token_char_scores))
-                char_score_upper_bound /= len(self._abs.encoded_shortform)
+                char_score_upper_bound /= len(abs_.encoded_shortform)
                 word_score_upper_bound = \
-                    self._abs.opt_selection(current.word_prizes,
+                    abs_.opt_selection(current.word_prizes,
                                             len(self.shortform)-1)
                 word_score_upper_bound += w
                 word_score_upper_bound /= W
-                upper_bound = (char_score_upper_bound**self._abs.lambda_ *
-                               word_score_upper_bound**(1-self._abs.lambda_))
+                upper_bound = (char_score_upper_bound**abs_.lambda_ *
+                               word_score_upper_bound**(1-abs_.lambda_))
                 if upper_bound <= best_score:
-                    multiplier = ((W - w)/W)**(1 - self._abs.lambda_)
+                    multiplier = ((W - w)/W)**(1 - abs_.lambda_)
                     child.alignment_score = current.alignment_score * \
                         multiplier * leading_stop_penalty
                     child.best_ancestor_align_score = best_score
                     continue
-                max_inversions = self._abs.inversions_cap if best_score <= 0 \
+                max_inversions = abs_.inversions_cap if best_score <= 0 \
                     else math.floor(math.log(best_score/upper_bound,
-                                             self._abs.rho))
-                max_inversions = min(self._abs.inversions_cap, max_inversions)
+                                             abs_.rho))
+                max_inversions = min(abs_.inversions_cap, max_inversions)
                 current_score, char_scores = \
-                    self._abs.score(child.encoded_tokens[::-1],
+                    abs_.score(child.encoded_tokens[::-1],
                                     child.word_prizes[::-1], W,
                                     max_inversions)
                 current_score *= leading_stop_penalty
@@ -406,6 +412,7 @@ class AdeftMiner(object):
                 child.best_ancestor_align_score = max(current_score,
                                                       best_score)
                 queue.appendleft(child)
+        self._abs_fit = True
 
     def _add(self, tokens):
         """Add a list of tokens to the internal trie and update likelihoods.
