@@ -268,7 +268,7 @@ class AdeftMiner(object):
         return candidates
 
     def get_longforms(self, cutoff=.01, smoothing_param=4,
-                      max_length=None, abs_weight=0.1):
+                      max_length=None, use_abs=True, abs_param=0.1):
         """Return a list of extracted longforms with their scores
 
         Traverse the candidates trie to search for nodes with score
@@ -308,10 +308,10 @@ class AdeftMiner(object):
             numerator = node.score-1
             denominator = node.count+smoothing_param-1
             acro_score = 0 if denominator <= 0 else numerator/denominator
-            if not self._abs_fit:
+            if not use_abs or not self._abs_fit:
                 score = acro_score
             else:
-                phi = np.exp(-abs_weight*node.best_ancestor_score)
+                phi = np.exp(-abs_param*node.best_ancestor_score)
                 score = phi*node.alignment_score + (1-phi)*acro_score
             return score, node.count
         root = self._internal_trie
