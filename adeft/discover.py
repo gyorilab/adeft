@@ -301,16 +301,31 @@ class AdeftMiner(object):
         ----------
         cutoff : Optional[int]
             Return only longforms with a score greater than the cutoff.
-            Default: 1
-
-        scale : Optional[bool]
-            Whether or not to scale likelihood scores. If True, a likelihood
-            score is transformed to (score-1)/(count + smoothing_param-1) where
-            smoothing_param can be supplied by the user. Default: False
+            Default: 0.1
 
         smoothing_param : Optional[float]
-            Value of smoothing parameter to use in scaling transformation. This
-            is ignored if scale is set to False. Default: 4
+            Acromine scores are scaled with the transformation
+            (score - 1)/(count + smoothing_param-1). Default: 4
+            Larger values of smoothing_param lead to more penalization of
+            candidates with small count
+
+        use_abs : Optional[bool]
+            If true use combined acromine/alignment scoring. Alignment
+            scores will be computed with default parameters if they have
+            not been computed previously using the compute_alignment_scores
+            method. The combined score is a weighted average of the acromine
+            score and the alignment based score, with the weights for a
+            candidate determined by the largest acromine score among itself
+            and all ancestor candidates. Default: True
+
+        abs_decay_param : Optional[float]
+            Weight given to alignment score for a candidate decays
+            exponentially with the value of the largest acromine score among
+            itself and all ancestor candidates. The formula is
+
+            score = weight*alignment_score + (1-weight)*acromine_score
+
+            where weight = e^{-abs_decay_param*best_ancestor_acromine_score}
 
         max_length : Optional[str|int|None]
             Maximum number of tokens in an accepted longform. If None, accepted
@@ -320,9 +335,9 @@ class AdeftMiner(object):
         Returns
         -------
         longforms : list of tuple
-            list of longforms along with their scores. It is sorted first in
-            descending order by score, then by the length of the longform from
-            shortest to longest, and finally by lexicographic order.
+            list of triples of the form (longform, count, score)
+            It is sorted in descending order by count and then score.
+            Ties are resolved through lexicographic order.
         """
         if max_length == 'auto':
             max_length = 2*len(self.shortform)+1
@@ -356,9 +371,10 @@ class AdeftMiner(object):
                      if max_length is None or len(longform) <= max_length]
 
         # Sort in preferred order
-        longforms = sorted(longforms, key=lambda x: (-x[2], -x[1], len(x[0]),
-                                                     x[0]))
-        return [(longform, count) for longform, _, count in longforms]
+        longforms = sorted(longforms, key=lambda x: (-x[2], -x[1], x[0]))
+
+        return [(longform, count, score)
+                for longform, score, count in longforms]
 
     def _get_longform_helper(self, node, score_func):
         if not node.children:
