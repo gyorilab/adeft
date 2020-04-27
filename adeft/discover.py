@@ -78,7 +78,7 @@ class _TrieNode(object):
                  'best_ancestor_char_scores', 'best_char_scores',
                  'alignment_score', 'best_ancestor_score']
 
-    def __init__(self, longform=(), parent=None):
+    def __init__(self, longform=(), parent=None, shortform=None):
         self.longform = longform
         if longform:
             self.count = 1
@@ -92,6 +92,8 @@ class _TrieNode(object):
         self.best_ancestor_align_score = -1
         self.alignment_score = 0
         self.best_ancestor_score = -1
+        if shortform is not None:
+            self.best_char_scores = [-1e20]*len(shortform)
 
     def is_root(self):
         """True if node is at the root of the trie"""
@@ -159,7 +161,7 @@ class _TrieNode(object):
         return out
 
 
-def load_trie(trie_dict):
+def load_trie(trie_dict, shortform):
     """Load a Trie from dictionary representation
 
     Parameters
@@ -173,7 +175,7 @@ def load_trie(trie_dict):
     py:class:`adeft.discover._TrieNode`
         root of trie built from input dictionary
     """
-    root = _TrieNode()
+    root = _TrieNode(shortform=shortform)
     for key, value in trie_dict.items():
         root.children[key] = _load_trie_helper(value, root)
     return root
@@ -228,8 +230,7 @@ class AdeftMiner(object):
     """
     def __init__(self, shortform, window=100, **params):
         self.shortform = shortform
-        self._internal_trie = _TrieNode()
-        self._internal_trie.best_char_scores = [-1e20]*len(shortform)
+        self._internal_trie = _TrieNode(shortform=shortform)
         self._longforms = {}
         self._stemmer = WatchfulStemmer()
         self.window = window
@@ -419,7 +420,7 @@ class AdeftMiner(object):
                     child.best_ancestor_score = current.best_ancestor_score
                 # Leading stopwords are penalized.
                 stopcount = abs_.count_leading_stopwords(child.longform,
-                                                              reverse=True)
+                                                         reverse=True)
                 leading_stop_penalty = abs_.zeta**stopcount
                 best_score = current.best_ancestor_align_score
                 w = abs_.get_word_score(token)
@@ -442,7 +443,7 @@ class AdeftMiner(object):
                 char_score_upper_bound /= len(abs_.encoded_shortform)
                 word_score_upper_bound = \
                     abs_.opt_selection(current.word_prizes,
-                                            len(self.shortform)-1)
+                                       len(self.shortform) - 1)
                 word_score_upper_bound += w
                 word_score_upper_bound /= W
                 upper_bound = (char_score_upper_bound**abs_.lambda_ *
@@ -459,8 +460,8 @@ class AdeftMiner(object):
                 max_inversions = min(abs_.inversions_cap, max_inversions)
                 current_score, char_scores = \
                     abs_.score(child.encoded_tokens[::-1],
-                                    child.word_prizes[::-1], W,
-                                    max_inversions)
+                               child.word_prizes[::-1], W,
+                               max_inversions)
                 current_score *= leading_stop_penalty
                 child.alignment_score = current_score
                 child.best_char_scores = char_scores
@@ -581,8 +582,9 @@ def load_adeft_miner_from_dict(dictionary):
     -------
     py:class`AdeftMiner`
     """
-    out = AdeftMiner(dictionary['shortform'], window=dictionary['window'])
-    out._internal_trie = load_trie(dictionary['internal_trie'])
+    shortform = dictionary['shortform']
+    out = AdeftMiner(shortform, window=dictionary['window'])
+    out._internal_trie = load_trie(dictionary['internal_trie'], shortform)
     out._longforms = {literal_eval(key): value
                       for key, value in dictionary['longforms'].items()}
     out._stemmer = WatchfulStemmer(dictionary['stemmer'])
