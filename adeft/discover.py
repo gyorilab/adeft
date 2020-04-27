@@ -123,6 +123,28 @@ class _TrieNode(object):
         self.sum_ft2 += 2*count*increment - increment**2
         self.score -= self.sum_ft2/self.sum_ft
 
+    def scaled_score(self, smoothing_param):
+        """Calculate scaled score of a node.
+
+        Acromine scores are scaled with the transformation
+            (score - 1)/(count + smoothing_param-1).
+
+        Parameters
+        ----------
+        smoothing_param : float
+           Larger values of the smoothing parameter lead to larger penalization
+           of candidates with small count.
+
+        Returns
+        -------
+        float
+            Scaled score for node
+        """
+        numerator = self.score-1
+        denominator = self.count+smoothing_param-1
+        acro_score = 0 if denominator <= 0 else numerator/denominator
+        return acro_score
+
     def to_dict(self):
         """Returns a dictionary representation of trie
         """
@@ -304,16 +326,18 @@ class AdeftMiner(object):
         """
         if max_length == 'auto':
             max_length = 2*len(self.shortform)+1
-        def score_func(node):
-            numerator = node.score-1
-            denominator = node.count+smoothing_param-1
-            acro_score = 0 if denominator <= 0 else numerator/denominator
-            if not use_abs or not self._abs_fit:
-                score = acro_score
-            else:
-                phi = np.exp(-abs_param*node.best_ancestor_score)
+        if not use_abs:
+            def score_func(node):
+                return node.scaled_score(smoothing_param), node.count
+        else:
+            if not self._abs_fit:
+                self.compute_alignment_scores()
+
+            def score_func(node):
+                acro_score = node.scaled_score(smoothing_param)
+                phi = np.exp(-abs_decay_param*node.best_ancestor_score)
                 score = phi*node.alignment_score + (1-phi)*acro_score
-            return score, node.count
+                return score, node.count
         root = self._internal_trie
         longforms = self._get_longform_helper(root, score_func)
         # Convert longforms as tuples in reverse order into reader strings
