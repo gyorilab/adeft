@@ -92,11 +92,13 @@ def test_get_longforms():
 
     miner.process_texts([example_text1, example_text2,
                          example_text3, example_text4])
-    longforms = miner.get_longforms(cutoff=0.5)
+    longforms = miner.get_longforms()
     assert(len(longforms) == 2)
-    assert longforms[0] == ('indonesian debt restructuring agency', 1.0)
-    assert longforms[1] == ('integrated network and dynamical'
-                            ' reasoning assembler', 1.0)
+    assert longforms[0][0] == 'indonesian debt restructuring agency'
+    assert longforms[0][1] >= 0.8
+    assert longforms[1][0] == ('integrated network and dynamical'
+                               ' reasoning assembler')
+    assert longforms[1][1] >= 0.8
 
 
 def test_miner_to_dict():
@@ -106,6 +108,9 @@ def test_miner_to_dict():
     miner_dict = miner.to_dict()
     miner2 = load_adeft_miner_from_dict(miner_dict)
     assert miner.top() == miner2.top()
+    assert miner.get_longforms(use_abs=False) == \
+        miner2.get_longforms(use_abs=False)
+    miner.compute_alignment_scores()
     assert miner.get_longforms() == miner2.get_longforms()
 
 
