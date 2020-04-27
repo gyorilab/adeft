@@ -378,19 +378,30 @@ class AdeftMiner(object):
             return result
 
     def compute_alignment_scores(self, **params):
+        """Compute and add alignment scores to candidate nodes in trie
+
+        Running this is prerequisite for using the combined acromine/alignment
+        scoring approach. Each node also has an attribute set containing the
+        best acromine score for any of its ancestors. This is used for deciding
+        the weights for combining the acromine and alignment scores.
+        """
         abs_ = AlignmentBasedScorer(self.shortform, **params)
         root = self._internal_trie
         queue = deque([root])
+        # Perform breadth first search calculating scores for each candidate in
+        # trie. Alignment score of best ancestor is used to decide how current
+        # node is processed (No computation is performed if score cannot be
+        # improved. No computation for permutations with inversion count that
+        # makes improving on best score impossible.
         while queue:
             current = queue.pop()
             for token, child in current.children.items():
-                # We calculate best ancestor acromine scores for each node
-                # These are used for deciding on the weighting to balance
-                # the abs score and the acromine score
+                # Calculate best ancestor acromine scores for each node
                 if child.score > current.best_ancestor_score:
                     child.best_ancestor_score = child.score
                 else:
                     child.best_ancestor_score = current.best_ancestor_score
+                # Leading stopwords are penalized.
                 stopcount = abs_.count_leading_stopwords(child.longform,
                                                               reverse=True)
                 leading_stop_penalty = abs_.zeta**stopcount
