@@ -264,11 +264,15 @@ def score(encoded_tokens, encoded_shortform, word_prizes, W, penalties,
     assert all([isinstance(var, float) for var in word_prizes + penalties])
     # Check encoded tokens is a list of nonempty lists of of two element
     # tuples of ints
+    assert all([token and all([len(c) == 2 for c in token])
+                for token in encoded_tokens])
+    assert all([isinstance(i, int) for token in encoded_tokens
+                for c in token for i in c])
     assert all([[len(c) == 2 and isinstance(i, int)
                  for c in token for i in c]
                 and token for token in encoded_tokens])
     # Check lists have matching lengths
-    assert len(encoded_tokens) == len(word_prizes)
+    assert len(encoded_tokens) <= len(word_prizes)
     assert len(encoded_shortform) == len(penalties)
     # Check values in encoded_tokens are all contained in encoded_shortform
     assert set(encoded_shortform) >= set([c[0] for token in encoded_tokens
@@ -277,7 +281,6 @@ def score(encoded_tokens, encoded_shortform, word_prizes, W, penalties,
     assert 0 < alpha <= beta <= gamma <= 1
     assert 0 <= lambda_ <= 1
     assert 0 <= rho <= 1
-            
 
     candidates = make_candidates_array(encoded_tokens, word_prizes, W)
     shortform = create_shortform(encoded_shortform, penalties)
