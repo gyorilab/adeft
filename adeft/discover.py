@@ -75,7 +75,7 @@ class _TrieNode(object):
                  'parent', 'children', 'encoded_tokens', 'word_prizes',
                  'best_ancestor_align_score', 'sum_ancestor_word_scores',
                  'best_char_scores', 'alignment_score', 'best_ancestor_score',
-                 'stop_count']
+                 'best_descendent_score', 'stop_count']
 
     def __init__(self, longform=(), parent=None, shortform=None):
         self.longform = longform
@@ -83,6 +83,8 @@ class _TrieNode(object):
             self.count = 1
             self.sum_ft = self.sum_ft2 = 0
             self.score = 1
+        else:
+            self.score = -1
         self.parent = parent
         self.children = {}
         self.encoded_tokens = []
@@ -92,6 +94,7 @@ class _TrieNode(object):
         self.alignment_score = 0
         self.stop_count = 0
         self.best_ancestor_score = -1
+        self.best_descendent_score = -1
         if shortform is not None:
             self.best_char_scores = [-1e20]*len(shortform)
 
@@ -433,6 +436,18 @@ class AdeftMiner(object):
                 child.sum_ancestor_word_scores = new_data[5]
                 child.stop_count = new_data[6]
                 queue.appendleft(child)
+            if not current.children:
+                current.best_descendent_score = current.score
+                while (current.parent is not None and
+                       (current.best_descendent_score > current.parent.score
+                        or not current.parent.best_descendent_score)):
+                    parent = current.parent
+                    if parent.score > current.best_descendent_score:
+                        parent.best_descendent_score = parent.score
+                    else:
+                        parent.best_descendent_score = \
+                            current.best_descendent_score
+                    current = parent
         self._abs_fit = True
 
     def _add(self, tokens):
