@@ -1,7 +1,6 @@
 """Discover candidate longforms from a given corpus using the Acromine
 algorithm."""
 import json
-import math
 import logging
 import numpy as np
 from copy import deepcopy
@@ -292,7 +291,7 @@ class AdeftMiner(object):
         return candidates
 
     def get_longforms(self, cutoff=0.1, smoothing_param=4,
-                      max_length=None, use_abs=True,
+                      max_length='auto', use_abs=True,
                       abs_decay_param=0.01):
         """Return a list of extracted longforms with their scores
 
