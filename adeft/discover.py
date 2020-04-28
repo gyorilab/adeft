@@ -353,7 +353,8 @@ class AdeftMiner(object):
 
             def score_func(node):
                 acro_score = node.scaled_score(smoothing_param)
-                phi = np.exp(-abs_decay_param*node.best_ancestor_score)
+                phi = np.exp(-abs_decay_param *
+                             max(0, node.best_ancestor_score - 1))
                 score = phi*node.alignment_score + (1-phi)*acro_score
                 return score, node.count
         root = self._internal_trie
