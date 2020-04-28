@@ -40,58 +40,71 @@ class AlignmentBasedScorer(object):
         else:
             self.word_scores = word_scores
 
+    def _next_score(self, token, previous_score, previous_encoded_tokens,
+                    previous_word_scores, previous_best_score,
+                    previous_best_char_scores, previous_sum_word_scores,
+                    previous_stop_count):
+        encoded_shortform = self.encoded_shortform
+        if token in stopwords_min:
+            stop_count = previous_stop_count + 1
+        else:
+            stop_count = 0
+        leading_stop_penalty = self.zeta**stop_count
+        word_score = self.get_word_score(token)
+        sum_word_scores = previous_sum_word_scores + word_score
+        word_scores = previous_word_scores + [word_score]
+        if not (set(token) & set(self.char_map)):
+            multiplier = ((sum_word_scores - word_score) /
+                          sum_word_scores)**(1 - self.lambda_)
+            score = previous_score*multiplier*leading_stop_penalty
+            return (score, previous_encoded_tokens, word_scores,
+                    previous_best_score, previous_best_char_scores,
+                    sum_word_scores, stop_count)
+        encoded_token = self.encode_token(token)
+        encoded_tokens = previous_encoded_tokens + [encoded_token]
+        token_char_scores = self.probe(encoded_token)
+        char_score_upper_bound = sum(max(a, b, 0) for a, b in
+                                     zip(previous_best_char_scores,
+                                         token_char_scores))
+        char_score_upper_bound /= len(encoded_shortform)
+        word_score_upper_bound = \
+            self.opt_selection(word_scores[:-1],
+                               len(encoded_shortform)-1)
+        word_score_upper_bound += word_score
+        word_score_upper_bound /= sum_word_scores
+        upper_bound = (char_score_upper_bound**self.lambda_ *
+                       word_score_upper_bound**(1-self.lambda_))
+        if upper_bound < previous_best_score:
+            multiplier = ((sum_word_scores - word_score) /
+                          sum_word_scores)**(1 - self.lambda_)
+            score = previous_score*multiplier*leading_stop_penalty
+            return (score, previous_encoded_tokens, word_scores,
+                    previous_best_score, previous_best_char_scores,
+                    sum_word_scores, stop_count)
+        max_inversions = self.inversions_cap if previous_best_score <= 0 else \
+            math.floor(math.log(previous_best_score/upper_bound, self.rho))
+        max_inversions = min(self.inversions_cap, max_inversions)
+        current_score, char_scores = \
+            self.score(encoded_tokens[::-1], word_scores[::-1],
+                       sum_word_scores, max_inversions)
+        score = current_score * leading_stop_penalty
+        if current_score >= previous_best_score:
+            best_score = current_score
+            best_char_scores = char_scores
+        else:
+            best_score = previous_best_score
+            best_char_scores = previous_best_char_scores
+        return (score, encoded_tokens, word_scores, best_score,
+                best_char_scores, sum_word_scores, stop_count)
+
     def expanding_score(self, tokens):
+        scores = []
         if not tokens:
             return []
-        encoded_shortform = self.encoded_shortform
-        n, m = len(tokens), len(encoded_shortform)
-        scores = [None]*n
-        best_score = -1
-        cumsum_word_scores = 0
-        encoded_tokens = []
-        word_prizes = []
-        best_char_scores = [-1e20]*m
-        for i in range(1, len(tokens)+1):
-            stop_count = self.count_leading_stopwords(tokens[n-i:])
-            leading_stop_penalty = self.zeta**stop_count
-            word_score = self.get_word_score(tokens[n-i])
-            cumsum_word_scores += word_score
-            word_prizes.append(word_score)
-            if not (set(tokens[n-i]) & set(self.char_map)):
-                multiplier = ((cumsum_word_scores - word_score) /
-                              cumsum_word_scores)**(1 - self.lambda_)
-                scores[i-1] = 0 if i == 1 else scores[i-2]*multiplier * \
-                    leading_stop_penalty
-                continue
-            encoded_token = self.encode_token(tokens[n-i])
-            encoded_tokens.append(encoded_token)
-            token_char_scores = self.probe(encoded_token)
-            char_score_upper_bound = sum(max(a, b, 0) for a, b in
-                                         zip(best_char_scores,
-                                             token_char_scores))
-            char_score_upper_bound /= len(encoded_shortform)
-            word_score_upper_bound = \
-                self.opt_selection(word_prizes[:-1],
-                                   len(encoded_shortform)-1)
-            word_score_upper_bound += word_score
-            word_score_upper_bound /= cumsum_word_scores
-            upper_bound = (char_score_upper_bound**self.lambda_ *
-                           word_score_upper_bound**(1-self.lambda_))
-            if upper_bound < best_score:
-                multiplier = ((cumsum_word_scores - word_score) /
-                              cumsum_word_scores)**(1 - self.lambda_)
-                scores[i-1] = scores[i-2] * multiplier * leading_stop_penalty
-                continue
-            max_inversions = self.inversions_cap if best_score <= 0 else \
-                math.floor(math.log(best_score/upper_bound, self.rho))
-            max_inversions = min(self.inversions_cap, max_inversions)
-            current_score, char_scores = \
-                self.score(encoded_tokens[::-1], word_prizes[::-1],
-                           cumsum_word_scores, max_inversions)
-            scores[i-1] = current_score * leading_stop_penalty
-            if current_score >= best_score:
-                best_score = current_score
-                best_char_scores = char_scores
+        data = [0, [], [], -1, [-1e20]*len(self.shortform), 0, 0]
+        for token in tokens[::-1]:
+            data = self._next_score(token, *data)
+            scores.append(data[0])
         return scores
 
     def encode_token(self, token):
