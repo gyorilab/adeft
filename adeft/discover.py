@@ -75,7 +75,8 @@ class _TrieNode(object):
     __slots__ = ['longform', 'count', 'sum_ft', 'sum_ft2', 'score',
                  'parent', 'children', 'encoded_tokens', 'word_prizes',
                  'best_ancestor_align_score', 'sum_ancestor_word_scores',
-                 'best_char_scores', 'alignment_score', 'best_ancestor_score']
+                 'best_char_scores', 'alignment_score', 'best_ancestor_score',
+                 'stop_count']
 
     def __init__(self, longform=(), parent=None, shortform=None):
         self.longform = longform
@@ -90,6 +91,7 @@ class _TrieNode(object):
         self.sum_ancestor_word_scores = 0
         self.best_ancestor_align_score = -1
         self.alignment_score = 0
+        self.stop_count = 0
         self.best_ancestor_score = -1
         if shortform is not None:
             self.best_char_scores = [-1e20]*len(shortform)
@@ -418,61 +420,18 @@ class AdeftMiner(object):
                     child.best_ancestor_score = child.score
                 else:
                     child.best_ancestor_score = current.best_ancestor_score
-                # Leading stopwords are penalized.
-                stopcount = abs_.count_leading_stopwords(child.longform,
-                                                         reverse=True)
-                leading_stop_penalty = abs_.zeta**stopcount
-                best_score = current.best_ancestor_align_score
-                w = abs_.get_word_score(token)
-                child.word_prizes = current.word_prizes + [w]
-                child.sum_ancestor_word_scores = \
-                    current.sum_ancestor_word_scores + w
-                W = child.sum_ancestor_word_scores
-                if not (set(token) & set(abs_.char_map)):
-                    multiplier = ((W - w)/W)**(1 - abs_.lambda_)
-                    child.alignment_score = current.alignment_score * \
-                        multiplier * leading_stop_penalty
-                    child.best_ancestor_align_score = best_score
-                    child.best_char_scores = current.best_char_scores
-                    child.encoded_tokens = current.encoded_tokens
-                    queue.appendleft(child)
-                    continue
-                encoded_token = abs_.encode_token(token)
-                child.encoded_tokens = current.encoded_tokens + [encoded_token]
-                token_char_scores = abs_.probe(encoded_token)
-                char_score_upper_bound = sum(max(a, b, 0) for a, b in
-                                             zip(current.best_char_scores,
-                                                 token_char_scores))
-                char_score_upper_bound /= len(abs_.encoded_shortform)
-                word_score_upper_bound = \
-                    abs_.opt_selection(current.word_prizes,
-                                       len(self.shortform) - 1)
-                word_score_upper_bound += w
-                word_score_upper_bound /= W
-                upper_bound = (char_score_upper_bound**abs_.lambda_ *
-                               word_score_upper_bound**(1-abs_.lambda_))
-                if upper_bound <= best_score:
-                    multiplier = ((W - w)/W)**(1 - abs_.lambda_)
-                    child.alignment_score = current.alignment_score * \
-                        multiplier * leading_stop_penalty
-                    child.best_ancestor_align_score = best_score
-                    continue
-                max_inversions = abs_.inversions_cap if best_score <= 0 \
-                    else math.floor(math.log(best_score/upper_bound,
-                                             abs_.rho))
-                max_inversions = min(abs_.inversions_cap, max_inversions)
-                current_score, char_scores = \
-                    abs_.score(child.encoded_tokens[::-1],
-                               child.word_prizes[::-1], W,
-                               max_inversions)
-                current_score *= leading_stop_penalty
-                child.alignment_score = current_score
-                if current_score >= best_score:
-                    child.best_char_scores = char_scores
-                    child.best_ancestor_align_score = current_score
-                else:
-                    child.best_ancestor_align_score = best_score
-                    child.best_char_scores = current.best_char_scores
+                data = [current.alignment_score, current.encoded_tokens,
+                        current.word_prizes, current.best_ancestor_align_score,
+                        current.best_char_scores,
+                        current.sum_ancestor_word_scores, current.stop_count]
+                new_data = abs_._next_score(token, *data)
+                child.alignment_score = new_data[0]
+                child.encoded_tokens = new_data[1]
+                child.word_prizes = new_data[2]
+                child.best_ancestor_align_score = new_data[3]
+                child.best_char_scores = new_data[4]
+                child.sum_ancestor_word_scores = new_data[5]
+                child.stop_count = new_data[6]
                 queue.appendleft(child)
         self._abs_fit = True
 
