@@ -7,7 +7,7 @@ from adeft.score._score import score, optimize_alignment
 
 class AlignmentBasedScorer(object):
     def __init__(self, shortform, penalties=None,
-                 alpha=0.2, beta=0.85, gamma=0.9, delta=1.0,
+                 alpha=0.2, beta=0.95, gamma=0.95, delta=1.0,
                  epsilon=0.4, lambda_=0.6, rho=0.95, zeta=0.9,
                  word_scores=None, inversions_cap=16):
         self.shortform = ''.join(char for char in shortform.lower()
