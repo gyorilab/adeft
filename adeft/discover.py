@@ -433,6 +433,7 @@ class AdeftMiner(object):
                         multiplier * leading_stop_penalty
                     child.best_ancestor_align_score = best_score
                     child.best_char_scores = current.best_char_scores
+                    child.encoded_tokens = current.encoded_tokens
                     queue.appendleft(child)
                     continue
                 encoded_token = abs_.encode_token(token)
