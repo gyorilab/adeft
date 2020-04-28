@@ -146,7 +146,10 @@ class _TrieNode(object):
             Scaled score for node
         """
         numerator = self.score-1
-        denominator = self.count+smoothing_param-1
+        # denominator = self.count + smoothing_param - 1
+        denominator = max(self.best_ancestor_score,
+                          self.best_descendent_score)
+        denominator += smoothing_param - 1
         acro_score = 0 if denominator <= 0 else numerator/denominator
         return acro_score
 
