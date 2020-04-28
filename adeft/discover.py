@@ -75,8 +75,7 @@ class _TrieNode(object):
     __slots__ = ['longform', 'count', 'sum_ft', 'sum_ft2', 'score',
                  'parent', 'children', 'encoded_tokens', 'word_prizes',
                  'best_ancestor_align_score', 'sum_ancestor_word_scores',
-                 'best_ancestor_char_scores', 'best_char_scores',
-                 'alignment_score', 'best_ancestor_score']
+                 'best_char_scores', 'alignment_score', 'best_ancestor_score']
 
     def __init__(self, longform=(), parent=None, shortform=None):
         self.longform = longform
@@ -433,6 +432,7 @@ class AdeftMiner(object):
                     child.alignment_score = current.alignment_score * \
                         multiplier * leading_stop_penalty
                     child.best_ancestor_align_score = best_score
+                    child.best_char_scores = current.best_char_scores
                     continue
                 encoded_token = abs_.encode_token(token)
                 child.encoded_tokens = current.encoded_tokens + [encoded_token]
@@ -464,9 +464,12 @@ class AdeftMiner(object):
                                max_inversions)
                 current_score *= leading_stop_penalty
                 child.alignment_score = current_score
-                child.best_char_scores = char_scores
-                child.best_ancestor_align_score = max(current_score,
-                                                      best_score)
+                if current_score >= best_score:
+                    child.best_char_scores = char_scores
+                    child.best_ancestor_align_score = current_score
+                else:
+                    child.best_ancestor_align_score = best_score
+                    child.best_char_scores = current.best_char_scores
                 queue.appendleft(child)
         self._abs_fit = True
 
