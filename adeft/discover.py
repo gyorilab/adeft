@@ -292,7 +292,7 @@ class AdeftMiner(object):
 
     def get_longforms(self, cutoff=0.1, smoothing_param=4,
                       max_length='auto', use_abs=True,
-                      abs_decay_param=0.01):
+                      abs_decay_param=0.001):
         """Return a list of extracted longforms with their scores
 
         Traverse the candidates trie to search for nodes with score
