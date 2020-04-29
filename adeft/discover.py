@@ -437,6 +437,11 @@ class AdeftMiner(object):
 
     def compute_alignment_scores(self, **params):
         """Compute and add alignment scores to candidate nodes in trie
+
+        Parameters
+        ----------
+        **params
+            Parameters for py:class`AlignmentBasedScorer`
         """
         abs_ = AlignmentBasedScorer(self.shortform, **params)
         root = self._internal_trie
