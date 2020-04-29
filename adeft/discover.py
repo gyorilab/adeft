@@ -240,7 +240,8 @@ class AdeftMiner(object):
         self._longforms = {}
         self._stemmer = WatchfulStemmer()
         self.window = window
-        self._abs_fit = False
+        self._alignment_scores_computed = False
+        self._scores_propagated = False
 
     def process_texts(self, texts):
         """Update longform candidate scores from a corpus of texts
@@ -264,6 +265,8 @@ class AdeftMiner(object):
                 if fragment:
                     candidate, _ = get_candidate(fragment)
                     self._add(candidate)
+        self._alignment_scores_computed = False
+        self._scores_propagated = False
 
     def top(self, limit=None):
         """Return top scoring candidates.
@@ -349,12 +352,16 @@ class AdeftMiner(object):
         """
         if max_length == 'auto':
             max_length = 2*len(self.shortform)+1
+        if not self._scores_propagated:
+            self._propagate_scores()
+            self._scores_propagated = True
         if not use_abs:
             def score_func(node):
                 return node.scaled_score(smoothing_param), node.count
         else:
-            if not self._abs_fit:
+            if not self._alignment_scores_computed:
                 self.compute_alignment_scores()
+                self._alignment_scores_computed = True
 
             def score_func(node):
                 acro_score = node.scaled_score(smoothing_param)
@@ -403,13 +410,33 @@ class AdeftMiner(object):
                 result = [(node.longform, score, count)]
             return result
 
+    def _propagate_scores(self):
+        """Add best descendent and best ancestor scores for each node"""
+        root = self._internal_trie
+        queue = deque([root])
+        while queue:
+            current = queue.pop()
+            for _, child in current.children.items():
+                if child.score > current.best_ancestor_score:
+                    child.best_ancestor_score = child.score
+                else:
+                    child.best_ancestor_score = current.best_ancestor_score
+                queue.appendleft(child)
+        if not current.children:
+            current.best_descendent_score = current.score
+            while (current.parent is not None and
+                   (current.best_descendent_score > current.parent.score
+                    or not current.parent.best_descendent_score)):
+                parent = current.parent
+                if parent.score > current.best_descendent_score:
+                    parent.best_descendent_score = parent.score
+                else:
+                    parent.best_descendent_score = \
+                        current.best_descendent_score
+                current = parent
+
     def compute_alignment_scores(self, **params):
         """Compute and add alignment scores to candidate nodes in trie
-
-        Running this is prerequisite for using the combined acromine/alignment
-        scoring approach. Each node also has an attribute set containing the
-        best acromine score for any of its ancestors. This is used for deciding
-        the weights for combining the acromine and alignment scores.
         """
         abs_ = AlignmentBasedScorer(self.shortform, **params)
         root = self._internal_trie
@@ -422,11 +449,6 @@ class AdeftMiner(object):
         while queue:
             current = queue.pop()
             for token, child in current.children.items():
-                # Calculate best ancestor acromine scores for each node
-                if child.score > current.best_ancestor_score:
-                    child.best_ancestor_score = child.score
-                else:
-                    child.best_ancestor_score = current.best_ancestor_score
                 data = [current.alignment_score, current.encoded_tokens,
                         current.word_prizes, current.best_ancestor_align_score,
                         current.best_char_scores,
@@ -440,18 +462,6 @@ class AdeftMiner(object):
                 child.sum_ancestor_word_scores = new_data[5]
                 child.stop_count = new_data[6]
                 queue.appendleft(child)
-            if not current.children:
-                current.best_descendent_score = current.score
-                while (current.parent is not None and
-                       (current.best_descendent_score > current.parent.score
-                        or not current.parent.best_descendent_score)):
-                    parent = current.parent
-                    if parent.score > current.best_descendent_score:
-                        parent.best_descendent_score = parent.score
-                    else:
-                        parent.best_descendent_score = \
-                            current.best_descendent_score
-                    current = parent
         self._abs_fit = True
 
     def _add(self, tokens):
