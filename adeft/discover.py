@@ -469,6 +469,21 @@ class AdeftMiner(object):
                 queue.appendleft(child)
         self._abs_fit = True
 
+    def prune(self, max_depth):
+        """Prune away all nodes with depth greater than max_depth"""
+        root = self._internal_trie
+        queue = deque([(root, 0)])
+        while queue:
+            current, depth = queue.pop()
+            remove = []
+            if depth + 1 > max_depth:
+                for child in current.children.values():
+                    child = None
+                current.children = {}
+                continue
+            for child in current.children.values():
+                queue.appendleft((child, depth + 1))
+
     def _add(self, tokens):
         """Add a list of tokens to the internal trie and update likelihoods.
 
