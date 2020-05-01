@@ -324,12 +324,13 @@ class AdeftMiner(object):
                 continue
             for child in current.children.values():
                 score, count = score_func(child)
-                result.append([child.longform, count, score])
+                result.append([child.longform,
+                               self._make_readable(child.longform),
+                               count, score])
                 stack.append((child, depth+1))
-        result.sort(key=lambda x: (-x[2], -x[1], len(child.longform),
-                                   child.longform))
-        return [(self._make_readable(longform), score, count)
-                for longform, score, count in result[:limit]]
+        result.sort(key=lambda x: (-x[3], -x[2], len(x[0]), x[1]))
+        return [(longform, score, count)
+                for _, longform, score, count in result[:limit]]
 
     def get_longforms(self, cutoff=0.1, smoothing_param=4,
                       max_length='auto', use_abs=True,
