@@ -159,31 +159,6 @@ class _TrieNode(object):
         self.sum_ft2 += 2*count*increment - increment**2
         self.score -= self.sum_ft2/self.sum_ft
 
-    def scaled_score(self, smoothing_param):
-        """Calculate scaled score of a node.
-
-        Acromine scores are scaled with the transformation
-            (score - 1)/(count + smoothing_param-1).
-
-        Parameters
-        ----------
-        smoothing_param : float
-           Larger values of the smoothing parameter lead to larger penalization
-           of candidates with small count.
-
-        Returns
-        -------
-        float
-            Scaled score for node
-        """
-        numerator = self.score-1
-        # denominator = self.count + smoothing_param - 1
-        denominator = max(self.best_ancestor_score,
-                          self.best_descendent_score)
-        denominator += smoothing_param - 1
-        acro_score = 0 if denominator <= 0 else numerator/denominator
-        return acro_score
-
     def to_dict(self):
         """Returns a dictionary representation of trie
         """
