@@ -289,17 +289,18 @@ class AdeftMiner(object):
         score_func = self._get_score_function(smoothing_param, use_abs,
                                               abs_decay_param)
         root = self._internal_trie
-        queue = deque([(root, 0)])
+        stack = [(root, 0)]
         result = []
-        while queue:
-            current, depth = queue.pop()
+        while stack:
+            current, depth = stack.pop()
             if max_length is not None and depth + 1 > max_length:
                 continue
             for child in current.children.values():
                 score, count = score_func(child)
                 result.append([child.longform, count, score])
-                queue.appendleft((child, depth+1))
-        result.sort(key=lambda x: -x[2])
+                stack.append((child, depth+1))
+        result.sort(key=lambda x: (-x[2], -x[1], len(child.longform),
+                                   child.longform))
         return [(self._make_readable(longform), score, count)
                 for longform, score, count in result[:limit]]
 
@@ -402,27 +403,27 @@ class AdeftMiner(object):
     def _propagate_scores(self):
         """Add best descendent and best ancestor scores for each node"""
         root = self._internal_trie
-        queue = deque([root])
-        while queue:
-            current = queue.pop()
+        stack = [root]
+        while stack:
+            current = stack.pop()
             for _, child in current.children.items():
                 if child.score > current.best_ancestor_score:
                     child.best_ancestor_score = child.score
                 else:
                     child.best_ancestor_score = current.best_ancestor_score
-                queue.appendleft(child)
-        if not current.children:
-            current.best_descendent_score = current.score
-            while (current.parent is not None and
-                   (current.best_descendent_score > current.parent.score
-                    or not current.parent.best_descendent_score)):
-                parent = current.parent
-                if parent.score > current.best_descendent_score:
-                    parent.best_descendent_score = parent.score
-                else:
-                    parent.best_descendent_score = \
-                        current.best_descendent_score
-                current = parent
+                stack.append(child)
+            if not current.children:
+                current.best_descendent_score = current.score
+                while (current.parent is not None and
+                       (current.best_descendent_score > current.parent.score
+                        or not current.parent.best_descendent_score)):
+                    parent = current.parent
+                    if parent.score > current.best_descendent_score:
+                        parent.best_descendent_score = parent.score
+                    else:
+                        parent.best_descendent_score = \
+                            current.best_descendent_score
+                    current = parent
 
     def compute_alignment_scores(self, **params):
         """Compute and add alignment scores to candidate nodes in trie
@@ -434,19 +435,20 @@ class AdeftMiner(object):
         """
         abs_ = AlignmentBasedScorer(self.shortform, **params)
         root = self._internal_trie
-        queue = deque([root])
-        # Perform breadth first search calculating scores for each candidate in
+        stack = [root]
+        # Perform depth first search calculating scores for each candidate in
         # trie. Alignment score of best ancestor is used to decide how current
         # node is processed (No computation is performed if score cannot be
         # improved. No computation for permutations with inversion count that
         # makes improving on best score impossible.
-        while queue:
-            current = queue.pop()
+        while stack:
+            current = stack.pop()
             for token, child in current.children.items():
                 data = [current.alignment_score, current.encoded_tokens,
                         current.word_prizes, current.best_ancestor_align_score,
                         current.best_char_scores,
-                        current.sum_ancestor_previous_scores, current.stop_count]
+                        current.sum_parent_word_scores,
+                        current.stop_count]
                 new_data = abs_._next_score(token, *data)
                 child.alignment_score = new_data[0]
                 child.encoded_tokens = new_data[1]
@@ -455,22 +457,29 @@ class AdeftMiner(object):
                 child.best_char_scores = new_data[4]
                 child.sum_parent_word_scores = new_data[5]
                 child.stop_count = new_data[6]
-                queue.appendleft(child)
+                stack.append(child)
         self._abs_fit = True
 
     def prune(self, max_depth):
-        """Prune away all nodes with depth greater than max_depth"""
+        """Prune away all nodes with depth greater than max_depth
+
+        Parameters
+        ----------
+        max_depth : int
+            Positive integer. Maximum depth for nodes to keep in the candidate
+            trie. Corresponds to maximum number of tokens in longforms.
+        """
         root = self._internal_trie
-        queue = deque([(root, 0)])
-        while queue:
-            current, depth = queue.pop()
+        stack = [(root, 0)]
+        while stack:
+            current, depth = stack.pop()
             if depth + 1 > max_depth:
                 for child in current.children.values():
                     child = None
                 current.children = {}
                 continue
-            for child in current.children.values():
-                queue.appendleft((child, depth + 1))
+            for stack in current.children.values():
+                stack.append((child, depth + 1))
 
     def _add(self, tokens):
         """Add a list of tokens to the internal trie and update likelihoods.
