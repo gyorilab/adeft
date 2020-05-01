@@ -4,7 +4,6 @@ import json
 import logging
 import numpy as np
 from copy import deepcopy
-from collections import deque
 
 from adeft.nlp.stem import WatchfulStemmer
 from adeft.score import AlignmentBasedScorer
@@ -572,10 +571,10 @@ class AdeftMiner(object):
     def update(self, adeft_miner):
         """Compose two adeft miners trained on separate texts"""
         self._stemmer.counts.update(adeft_miner._stemmer.counts)
-        queue = deque([(self._internal_trie,
-                        deepcopy(adeft_miner._internal_trie))])
-        while queue:
-            left, right = queue.pop()
+        stack = [(self._internal_trie,
+                  deepcopy(adeft_miner._internal_trie))]
+        while stack:
+            left, right = stack.pop()
             for token, child in right.children.items():
                 if token not in left.children:
                     left.children[token] = child
@@ -587,7 +586,7 @@ class AdeftMiner(object):
                     if not left.is_root():
                         count1, count2 = current.count, child.count
                         left.update_likelihood(count1, count2)
-                    queue.appendleft((current, child))
+                    stack.append((current, child))
 
 
 def load_adeft_miner_from_dict(dictionary):
