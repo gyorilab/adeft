@@ -235,7 +235,7 @@ class AdeftMiner(object):
         given word has been mapped to a given stem. Wraps the class
         EnglishStemmer from nltk.stem.snowball
     """
-    def __init__(self, shortform, window=100, **params):
+    def __init__(self, shortform, window=100):
         self.shortform = shortform
         self._internal_trie = _TrieNode(shortform=shortform)
         self._stemmer = WatchfulStemmer()
