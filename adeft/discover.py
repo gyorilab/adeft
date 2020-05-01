@@ -549,7 +549,7 @@ class AdeftMiner(object):
                 self._alignment_scores_computed = True
 
             def score_func(node):
-                acro_score = node.scaled_score(smoothing_param)
+                acro_score = scaled_score(node)
                 phi = np.exp(-abs_decay_param *
                              max(0, node.best_ancestor_score - 1,
                                  node.best_descendent_score - 1))
