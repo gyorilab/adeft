@@ -352,26 +352,29 @@ class AdeftMiner(object):
         """
         if max_length == 'auto':
             max_length = 2*len(self.shortform)+1
-        if not self._scores_propagated:
-            self._propagate_scores()
-            self._scores_propagated = True
-        if not use_abs:
-            def score_func(node):
-                return node.scaled_score(smoothing_param), node.count
-        else:
-            if not self._alignment_scores_computed:
-                self.compute_alignment_scores()
-                self._alignment_scores_computed = True
 
-            def score_func(node):
-                acro_score = node.scaled_score(smoothing_param)
-                phi = np.exp(-abs_decay_param *
-                             max(0, node.best_ancestor_score - 1,
-                                 node.best_descendent_score - 1))
-                score = phi*node.alignment_score + (1-phi)*acro_score
-                return score, node.count
+        def _get_longform_helper(node, score_func, depth):
+            if not node.children or (max_length is not None and
+                                     depth == max_length):
+                score, count = score_func(node)
+                return [(node.longform, score, count)]
+            result = []
+            for child in node.children.values():
+                child_longforms = _get_longform_helper(child, score_func,
+                                                       depth + 1)
+                result.extend([(longform, score, count)
+                               for longform, score, count in
+                               child_longforms if node.is_root() or
+                               score > score_func(node)[0]])
+            if not result:
+                score, count = score_func(node)
+                result = [(node.longform, score, count)]
+            return result
+
+        score_func = self._get_score_function(smoothing_param, use_abs,
+                                              abs_decay_param)
         root = self._internal_trie
-        longforms = self._get_longform_helper(root, score_func)
+        longforms = _get_longform_helper(root, score_func, 0)
         # Convert longforms as tuples in reverse order into reader strings
         # mapping stems back to the most frequent token that had been mapped
         longforms = [(longform, score, count)
@@ -384,31 +387,13 @@ class AdeftMiner(object):
         # mapped to them. tuple of stemmed tokens can be recovered by
         # tokenizing, stemming, and reversing
         longforms = [(self._make_readable(longform), score, count)
-                     for longform, score, count in longforms
-                     if max_length is None or len(longform) <= max_length]
+                     for longform, score, count in longforms]
 
         # Sort in preferred order
         longforms = sorted(longforms, key=lambda x: (-x[2], -x[1], x[0]))
 
         return [(longform, count, score)
                 for longform, score, count in longforms]
-
-    def _get_longform_helper(self, node, score_func):
-        if not node.children:
-            score, count = score_func(node)
-            return [(node.longform, score, count)]
-        else:
-            result = []
-            for child in node.children.values():
-                child_longforms = self._get_longform_helper(child, score_func)
-                result.extend([(longform, score, count)
-                               for longform, score, count in
-                               child_longforms if node.is_root() or
-                               score > score_func(node)[0]])
-            if not result:
-                score, count = score_func(node)
-                result = [(node.longform, score, count)]
-            return result
 
     def _propagate_scores(self):
         """Add best descendent and best ancestor scores for each node"""
@@ -533,6 +518,40 @@ class AdeftMiner(object):
                         current.score
                 current = current.children[token]
 
+    def _get_score_function(self, smoothing_param, use_abs, abs_decay_param):
+        """Returns scoring function for determining longforms
+
+        Also computes alignment scores and propagates acromine score
+        information for ancestors and descendents in the tree of candidates
+        if necessary.
+        """
+        if not self._scores_propagated:
+            self._propagate_scores()
+            self._scores_propagated = True
+
+        def scaled_score(node):
+            numerator = node.score-1
+            denominator = max(node.best_ancestor_score,
+                              node.best_descendent_score)
+            denominator += smoothing_param - 1
+            score = 0 if denominator <= 0 else numerator/denominator
+            return score
+        if not use_abs:
+            def score_func(node):
+                return scaled_score(node), node.count
+        else:
+            if not self._alignment_scores_computed:
+                self.compute_alignment_scores()
+                self._alignment_scores_computed = True
+
+            def score_func(node):
+                acro_score = node.scaled_score(smoothing_param)
+                phi = np.exp(-abs_decay_param *
+                             max(0, node.best_ancestor_score - 1,
+                                 node.best_descendent_score - 1))
+                score = phi*node.alignment_score + (1-phi)*acro_score
+                return score, node.count
+        return score_func
     def _make_readable(self, tokens):
         """Convert longform from internal representation to a human readable one
         """
