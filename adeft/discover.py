@@ -208,10 +208,24 @@ class AdeftMiner(object):
     corpus.
 
     Makes use of the `Acromine <http://www.chokkan.org/research/acromine/>`_
-    algorithm developed by Okazaki and Ananiadou.
+    algorithm developed by Okazaki and Ananiadou, combined with an alignment
+    based longform scoring method we've developed.
 
-    [Okazaki06] Naoaki Okazaki and Sophia Ananiadou. "Building an
-    abbreviation dicationary using a term recognition approach".
+    Acromine based likelihood scores are scaled to the range [0, 1] using the
+    formula (likelihood_score - 1)/(M + smoothing_param - 1).  Where
+    smoothing_param is a positive number and M is the maximum likelihood score
+    between a candidate node and all of its ancestors and descendents
+    (technically this score can be less than 0 for some poor candidate
+    longforms).
+
+    Scaled likelihood scores are combined with alignment based scores through
+    a weighted average where the weight associated to the alignment based score
+    decays exponentially with the value of M defined above. This gives more
+    weight to the alignment based score for rarer longform expansions which the
+    Acromine algorithm has difficulty handling.
+
+    [Okazaki06] Naoaki Okazaki and Sophia Ananiadou. "Building an abbreviation
+    dicationary using a term recognition approach".
     Bioinformatics. 2006. Oxford University Press.
 
     Parameters
@@ -234,6 +248,17 @@ class AdeftMiner(object):
         English stemmer that keeps track of counts of the number of times a
         given word has been mapped to a given stem. Wraps the class
         EnglishStemmer from nltk.stem.snowball
+
+    _alignment_scores_computed : bool
+        Will be True if alignment scores have been computed for the current
+        state of the candidate trie. It is reset to False any time the
+        process_texts method is run
+
+    _scores_propagated : bool
+        Will be True if best ancestor and best descendent likelihood scores
+        have been propagated to each node for the current state of the
+        candidate trie. It is reset to False any time the process_texts method
+        is run.
     """
     def __init__(self, shortform, window=100):
         self.shortform = shortform
@@ -247,9 +272,10 @@ class AdeftMiner(object):
         """Update longform candidate scores from a corpus of texts
 
         Runs co-occurence statistics in a corpus of texts to compute
-        scores for candidate longforms associated to the shortform. This
-        is an online method, additional texts can be processed after training
-        has taken place.
+        likelihood scores for candidate longforms associated to the shortform.
+        This is an online method, it can be run multiple times to process_texts
+        multiple batches of text. This allows previously trained AdeftMiners to
+        be updated when new content becomes available.
 
         Parameters
         ----------
@@ -279,10 +305,11 @@ class AdeftMiner(object):
         Returns
         ------
         candidates : list of tuple
-            List of tuples, each containing a candidate string and its
-            likelihood score. Sorted first in descending order by
-            likelihood score, then by length from shortest to longest, and
-            finally by lexicographic order.
+            List of tuples, each containing a candidate string, it's associated
+            score, and it's count. Sorted first in descending order by
+            likelihood score, then by count, and length from shortest
+            to longest candidate measured in number of tokens, and finally by
+            lexicographic order.
         """
         if max_length == 'auto':
             max_length = 2*len(self.shortform) + 1
@@ -320,28 +347,33 @@ class AdeftMiner(object):
             Default: 0.1
 
         smoothing_param : Optional[float]
-            Acromine scores are scaled with the transformation
-            (score - 1)/(count + smoothing_param-1). Default: 4
+            Smoothing parameter for the scaled likelihood score.  Likelihood
+            scores are scaled using the formula
+            (likelihood_score - 1)/(M + smoothing_param - 1)
+            where M is the maximum likelihood score between a candidate node
+            and all of its ancestors and descendents (technically this score
+            can be less than 0 for some poor candidate longforms).
             Larger values of smoothing_param lead to more penalization of
-            candidates with small count
+            candidates with small count. Default: 4
 
         use_abs : Optional[bool]
             If true use combined acromine/alignment scoring. Alignment
             scores will be computed with default parameters if they have
             not been computed previously using the compute_alignment_scores
             method. The combined score is a weighted average of the acromine
-            score and the alignment based score, with the weights for a
-            candidate determined by the largest acromine score among itself
-            and all ancestor candidates. Default: True
+            score and the alignment based score, with weight for the alignment
+            based score decaying exponentially with M, the maximum likelihood
+            score between a candidate node and all of its ancestors and
+            descendents.
 
         abs_decay_param : Optional[float]
-            Weight given to alignment score for a candidate decays
-            exponentially with the value of the largest acromine score among
-            itself and all ancestor candidates. The formula is
+            Adjusts rate of decay for alignment score with respect to the
+            Value of M (maximum likelihood score between a candidate node and
+            all of its ancestors and descendents.)
 
-            score = weight*alignment_score + (1-weight)*acromine_score
+            score = weight*alignment_score + (1-weight)*likelihood_score
 
-            where weight = e^{-abs_decay_param*best_ancestor_acromine_score}
+            where weight = e^{-abs_decay_param*max(M, 0)}
 
         max_length : Optional[str|int|None]
             Maximum number of tokens in an accepted longform. If None, accepted
@@ -401,7 +433,8 @@ class AdeftMiner(object):
                 for longform, score, count in longforms]
 
     def _propagate_scores(self):
-        """Add best descendent and best ancestor scores for each node"""
+        """Add best descendent and best ancestor likelihood scores for nodes
+        """
         root = self._internal_trie
         stack = [root]
         while stack:
