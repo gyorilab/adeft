@@ -74,10 +74,10 @@ def test_process_texts():
     miner = AdeftMiner('INDRA')
     miner.process_texts([example_text1, example_text2,
                          example_text3, example_text4])
-    assert miner.top()[0] == ('indonesian debt restructuring agency', 1.0)
-    assert miner.top()[3] == ('integrated network and dynamical'
-                              ' reasoning assembler', 1.0)
-    assert miner.top()[7] == ('reasoning assembler', 0.0)
+    assert miner.top()[0] == ('indonesian debt restructuring agency', 2, 1.0)
+    assert miner.top()[1][0] == ('integrated network and dynamical'
+                                 ' reasoning assembler')
+    assert miner.top()[7] == ('reasoning assembler', 2, 0.0)
 
     # check that top works with limit
     assert miner.top(limit=5) == miner.top()[0:5]
