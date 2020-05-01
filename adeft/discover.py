@@ -53,6 +53,7 @@ class _TrieNode(object):
         Sum of the squares of the co-occurence freqencies of all previously
         observed candidate longforms that are children of the associated
         longform.
+
     score : float
         Likelihood score of the associated candidate longform.
         It is given by count - sum_ft**2/sum_ft
@@ -69,10 +70,41 @@ class _TrieNode(object):
 
     children : dict of :py:class:`adeft.discover._TrieNode`
         dictionary of child nodes
+
+    encoded_tokens : list of list of int
+        Tokens for associated longform candidate encoded in form required
+        by the alignment based scorer.
+
+    word_prizes : list of float
+        Alignment based scorer word prizes for associated longform candidate.
+
+    stop_count : int
+        Count of leading stopwords in parent candidate.
+
+    best_ancestor_align_score : float
+        Best alignment based score for all ancestors of a candidate.
+
+    sum_parent_word_scores : float
+        Sum of word scores for parent candidate.
+
+    best_char_scores : float
+        List of alignment based scorer char_scores for highest alignment
+        based scoring ancestor of node.
+
+    alignment_score : float
+        Alignment based score of node. Computed using parameters specified
+        when compute_alignment_scores was run. Default parameters are chosen
+        if user does not run this function explicitly.
+
+    best_ancestor_score : float
+        Based likelihood score among ancestors of node.
+
+    best_descendent_score : float
+        Based likelihood score among descendents of node.
     """
     __slots__ = ['longform', 'count', 'sum_ft', 'sum_ft2', 'score',
                  'parent', 'children', 'encoded_tokens', 'word_prizes',
-                 'best_ancestor_align_score', 'sum_ancestor_word_scores',
+                 'best_ancestor_align_score', 'sum_parent_word_scores',
                  'best_char_scores', 'alignment_score', 'best_ancestor_score',
                  'best_descendent_score', 'stop_count']
 
@@ -88,7 +120,7 @@ class _TrieNode(object):
         self.children = {}
         self.encoded_tokens = []
         self.word_prizes = []
-        self.sum_ancestor_word_scores = 0
+        self.sum_parent_word_scores = 0
         self.best_ancestor_align_score = -1
         self.alignment_score = 0
         self.stop_count = 0
@@ -440,14 +472,14 @@ class AdeftMiner(object):
                 data = [current.alignment_score, current.encoded_tokens,
                         current.word_prizes, current.best_ancestor_align_score,
                         current.best_char_scores,
-                        current.sum_ancestor_word_scores, current.stop_count]
+                        current.sum_ancestor_previous_scores, current.stop_count]
                 new_data = abs_._next_score(token, *data)
                 child.alignment_score = new_data[0]
                 child.encoded_tokens = new_data[1]
                 child.word_prizes = new_data[2]
                 child.best_ancestor_align_score = new_data[3]
                 child.best_char_scores = new_data[4]
-                child.sum_ancestor_word_scores = new_data[5]
+                child.sum_parent_word_scores = new_data[5]
                 child.stop_count = new_data[6]
                 queue.appendleft(child)
         self._abs_fit = True
