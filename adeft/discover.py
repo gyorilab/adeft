@@ -4,7 +4,6 @@ import json
 import logging
 import numpy as np
 from copy import deepcopy
-from ast import literal_eval
 from collections import deque
 
 from adeft.nlp.stem import WatchfulStemmer
@@ -225,10 +224,6 @@ class AdeftMiner(object):
     _internal_trie : :py:class:`adeft.discover._TrieNode`
         Stores trie data-structure used to implement the algorithm
 
-    _longforms : dict
-        Dictionary mapping candidate longforms to their likelihoods as
-        produced by the acromine algorithm
-
     _stemmer : :py:class:`adeft.nlp.stem.SnowCounter`
         English stemmer that keeps track of counts of the number of times a
         given word has been mapped to a given stem. Wraps the class
@@ -237,7 +232,6 @@ class AdeftMiner(object):
     def __init__(self, shortform, window=100, **params):
         self.shortform = shortform
         self._internal_trie = _TrieNode(shortform=shortform)
-        self._longforms = {}
         self._stemmer = WatchfulStemmer()
         self.window = window
         self._alignment_scores_computed = False
@@ -268,9 +262,9 @@ class AdeftMiner(object):
         self._alignment_scores_computed = False
         self._scores_propagated = False
 
-    def top(self, limit=None):
+    def top(self, limit=None, smoothing_param=4, max_length='auto',
+            use_abs=True, abs_decay_param=0.001):
         """Return top scoring candidates.
-
         Parameters
         ----------
         limit : Optional[int]
@@ -284,20 +278,24 @@ class AdeftMiner(object):
             likelihood score, then by length from shortest to longest, and
             finally by lexicographic order.
         """
-        if not self._longforms:
-            return []
-
-        candidates = sorted(self._longforms.items(), key=lambda x:
-                            (-x[1], len(x[0]), x[0]))
-        if limit is not None and limit < len(candidates):
-            candidates = candidates[0:limit]
-        # Map stems back to the most frequent word that had been mapped to them
-        # and convert longforms in tuple format into readable strings.
-        candidates = [(' '.join(self._stemmer.most_frequent(token)
-                                for token in longform),
-                       score)
-                      for longform, score in candidates]
-        return candidates
+        if max_length == 'auto':
+            max_length = 2*len(self.shortform) + 1
+        score_func = self._get_score_function(smoothing_param, use_abs,
+                                              abs_decay_param)
+        root = self._internal_trie
+        queue = deque([(root, 0)])
+        result = []
+        while queue:
+            current, depth = queue.pop()
+            if max_length is not None and depth + 1 > max_length:
+                continue
+            for child in current.children.values():
+                score, count = score_func(child)
+                result.append([child.longform, count, score])
+                queue.appendleft((child, depth+1))
+        result.sort(key=lambda x: -x[2])
+        return [(self._make_readable(longform), score, count)
+                for longform, score, count in result[:limit]]
 
     def get_longforms(self, cutoff=0.1, smoothing_param=4,
                       max_length='auto', use_abs=True,
@@ -460,7 +458,6 @@ class AdeftMiner(object):
         queue = deque([(root, 0)])
         while queue:
             current, depth = queue.pop()
-            remove = []
             if depth + 1 > max_depth:
                 for child in current.children.values():
                     child = None
@@ -492,9 +489,6 @@ class AdeftMiner(object):
                 # child unless current node is the root
                 if not current.is_root():
                     current.update_likelihood(1)
-                    self._longforms[current.longform[::-1]] = current.score
-                # Add newly observed longform to the dictionary of candidates
-                self._longforms[new.longform[::-1]] = new.score
                 # set newly observed longform to be the child of current node
                 current.children[token] = new
                 # update current node to the newly formed node
@@ -505,17 +499,12 @@ class AdeftMiner(object):
                 current.children[token].increment_count()
                 # Update entry for candidate longform in the candidates
                 # dictionary
-                self._longforms[current.children[token].longform[::-1]] = \
-                    current.children[token].score
                 if not current.is_root():
                     # we are not at the top of the trie. observed candidate
                     # has a parent
                     # update likelihood of candidate's parent
                     count = current.children[token].count
                     current.update_likelihood(count)
-                    # Update candidates dictionary
-                    self._longforms[current.longform[::-1]] = \
-                        current.score
                 current = current.children[token]
 
     def _get_score_function(self, smoothing_param, use_abs, abs_decay_param):
@@ -552,6 +541,7 @@ class AdeftMiner(object):
                 score = phi*node.alignment_score + (1-phi)*acro_score
                 return score, node.count
         return score_func
+
     def _make_readable(self, tokens):
         """Convert longform from internal representation to a human readable one
         """
@@ -564,9 +554,6 @@ class AdeftMiner(object):
         out = {}
         out['shortform'] = self.shortform
         out['internal_trie'] = self._internal_trie.to_dict()
-        out['longforms'] = {str(key): value
-                            for key, value in self._longforms.items()}
-
         out['stemmer'] = self._stemmer.dump()
         out['window'] = self.window
         return out
@@ -580,9 +567,6 @@ class AdeftMiner(object):
         self._stemmer.counts.update(adeft_miner._stemmer.counts)
         queue = deque([(self._internal_trie,
                         deepcopy(adeft_miner._internal_trie))])
-        self._longforms.update({key: value for key, value in
-                                adeft_miner._longforms.items()
-                                if key not in self._longforms})
         while queue:
             left, right = queue.pop()
             for token, child in right.children.items():
@@ -590,15 +574,12 @@ class AdeftMiner(object):
                     left.children[token] = child
                     if not left.is_root():
                         left.update_likelihood(child.count, child.count)
-                        self._longforms[left.longform[::-1]] = left.score
                 else:
                     current = left.children[token]
                     current.increment_count(child.count)
-                    self._longforms[current.longform[::-1]] = current.score
                     if not left.is_root():
                         count1, count2 = current.count, child.count
                         left.update_likelihood(count1, count2)
-                        self._longforms[left.longform[::-1]] = left.score
                     queue.appendleft((current, child))
 
 
@@ -618,8 +599,6 @@ def load_adeft_miner_from_dict(dictionary):
     shortform = dictionary['shortform']
     out = AdeftMiner(shortform, window=dictionary['window'])
     out._internal_trie = load_trie(dictionary['internal_trie'], shortform)
-    out._longforms = {literal_eval(key): value
-                      for key, value in dictionary['longforms'].items()}
     out._stemmer = WatchfulStemmer(dictionary['stemmer'])
     return out
 
