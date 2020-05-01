@@ -1,7 +1,4 @@
 import re
-from itertools import chain, combinations, product
-
-from adeft.nlp.resources import dashes
 
 
 def word_tokenize(text):
@@ -62,53 +59,3 @@ def word_detokenize(tokens):
                              - tokens[index][1][1] - 1))
     output.append(tokens[-1][0])
     return ''.join(output)
-
-
-def expand_dashes(text):
-    text = _normalize_dashes(text)
-    if text.count('-') > 4:
-        output = [text]
-    else:
-        tokens = _dash_tokenize(text)
-        output = set(' '.join([c.strip() for c in x if c.strip()])
-                     for x in product(*[_expand_token(token)
-                                        for token in tokens]))
-    return list(output)
-
-
-def _powerset(n):
-    return chain.from_iterable(combinations(range(n), r)
-                               for r in range(n+1))
-
-
-def _normalize_dashes(text):
-    out = ''
-    for char in text:
-        if char in dashes:
-            out += '-'
-        else:
-            out += char
-    out = '-'.join([x for x in out.split('-') if x])
-    return out
-
-
-def _expand_token(text):
-    tokens = text.split('-')
-    if len(tokens) > 5:
-        return [text, text.replace('-', '')]
-    out = []
-    for subset in _powerset(len(tokens) - 1):
-        result = tokens[0]
-        for i, token in enumerate(tokens[1:]):
-            if i in subset:
-                result += token
-            else:
-                result += ' ' + token
-        out.append(result)
-    return out
-
-
-def _dash_tokenize(text):
-    pattern = re.compile(r'[\w-]+|[^\s\w]')
-    matches = re.finditer(pattern, text)
-    return [m.group() for m in matches]

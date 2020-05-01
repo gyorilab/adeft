@@ -2,8 +2,6 @@ from collections import defaultdict
 
 from nltk.stem.snowball import EnglishStemmer
 
-from adeft.nlp.resources import greek_alphabet, greek_to_latin
-
 
 _stemmer = EnglishStemmer()
 
@@ -107,23 +105,3 @@ class WatchfulStemmer(object):
     def dump(self):
         """Returns dictionary of info needed to reconstruct stemmer"""
         return dict(self.counts)
-
-
-def greek_aware_stem(text):
-    out = stem(text)
-    out = _expand_greek_unicode(out)
-    out = _replace_greek_latin(out)
-    return out.lower()
-
-
-def _expand_greek_unicode(text):
-    for greek_uni, greek_spelled_out in greek_alphabet.items():
-        text = text.replace(greek_uni, greek_spelled_out)
-    return text
-
-
-def _replace_greek_latin(s):
-    """Replace Greek spelled out letters with their latin character."""
-    for greek_spelled_out, latin in greek_to_latin.items():
-        s = s.replace(greek_spelled_out, latin)
-    return s
