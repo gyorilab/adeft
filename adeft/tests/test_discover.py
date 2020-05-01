@@ -109,8 +109,8 @@ def test_miner_to_dict():
     miner_dict = miner.to_dict()
     miner2 = load_adeft_miner_from_dict(miner_dict)
     assert miner.top() == miner2.top()
-    assert miner.get_longforms(use_abs=False) == \
-        miner2.get_longforms(use_abs=False)
+    assert miner.get_longforms(use_alignment_based_scoring=False) == \
+        miner2.get_longforms(use_alignment_based_scoring=False)
     miner.compute_alignment_scores()
     assert miner.get_longforms() == miner2.get_longforms()
 

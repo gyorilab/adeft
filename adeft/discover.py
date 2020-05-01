@@ -295,12 +295,46 @@ class AdeftMiner(object):
         self._scores_propagated = False
 
     def top(self, limit=None, smoothing_param=4, max_length='auto',
-            use_abs=True, abs_decay_param=0.001):
+            use_alignment_based_scoring=True, weight_decay_param=0.001):
         """Return top scoring candidates.
         Parameters
         ----------
         limit : Optional[int]
             Limit for the number of candidates to return. Default: None
+
+        smoothing_param : Optional[float]
+            Smoothing parameter for the scaled likelihood score.  Likelihood
+            scores are scaled using the formula
+            (likelihood_score - 1)/(M + smoothing_param - 1)
+            where M is the maximum likelihood score between a candidate node
+            and all of its ancestors and descendents (technically this score
+            can be less than 0 for some poor candidate longforms).
+            Larger values of smoothing_param lead to more penalization of
+            candidates with small count. Default: 4
+
+        use_alignment_based_scoring : Optional[bool]
+            If true use combined acromine/alignment scoring. Alignment
+            scores will be computed with default parameters if they have
+            not been computed previously using the compute_alignment_scores
+            method. The combined score is a weighted average of the acromine
+            score and the alignment based score, with weight for the alignment
+            based score decaying exponentially with M, the maximum likelihood
+            score between a candidate node and all of its ancestors and
+            descendents.
+
+        weight_decay_param : Optional[float]
+            Adjusts rate of decay for alignment score with respect to the
+            Value of M (maximum likelihood score between a candidate node and
+            all of its ancestors and descendents.)
+
+            score = weight*alignment_score + (1-weight)*likelihood_score
+
+            where weight = e^{-weight_decay_param*max(M, 0)}
+
+        max_length : Optional[str|int|None]
+            Maximum number of tokens in an accepted longform. If None, accepted
+            longforms can be arbitrarily long. If 'auto', max_length is set
+            to 2*len(self.shortform)+1
 
         Returns
         ------
@@ -313,8 +347,9 @@ class AdeftMiner(object):
         """
         if max_length == 'auto':
             max_length = 2*len(self.shortform) + 1
-        score_func = self._get_score_function(smoothing_param, use_abs,
-                                              abs_decay_param)
+        score_func = self._get_score_function(smoothing_param,
+                                              use_alignment_based_scoring,
+                                              weight_decay_param)
         root = self._internal_trie
         stack = [(root, 0)]
         result = []
@@ -333,8 +368,8 @@ class AdeftMiner(object):
                 for _, longform, score, count in result[:limit]]
 
     def get_longforms(self, cutoff=0.1, smoothing_param=4,
-                      max_length='auto', use_abs=True,
-                      abs_decay_param=0.001):
+                      max_length='auto', use_alignment_based_scoring=True,
+                      weight_decay_param=0.001):
         """Return a list of extracted longforms with their scores
 
         Traverse the candidates trie to search for nodes with score
@@ -357,7 +392,7 @@ class AdeftMiner(object):
             Larger values of smoothing_param lead to more penalization of
             candidates with small count. Default: 4
 
-        use_abs : Optional[bool]
+        use_alignment_based_scoring : Optional[bool]
             If true use combined acromine/alignment scoring. Alignment
             scores will be computed with default parameters if they have
             not been computed previously using the compute_alignment_scores
@@ -367,14 +402,14 @@ class AdeftMiner(object):
             score between a candidate node and all of its ancestors and
             descendents.
 
-        abs_decay_param : Optional[float]
+        weight_decay_param : Optional[float]
             Adjusts rate of decay for alignment score with respect to the
             Value of M (maximum likelihood score between a candidate node and
             all of its ancestors and descendents.)
 
             score = weight*alignment_score + (1-weight)*likelihood_score
 
-            where weight = e^{-abs_decay_param*max(M, 0)}
+            where weight = e^{-weight_decay_param*max(M, 0)}
 
         max_length : Optional[str|int|None]
             Maximum number of tokens in an accepted longform. If None, accepted
@@ -409,8 +444,9 @@ class AdeftMiner(object):
                 result = [(node.longform, score, count)]
             return result
 
-        score_func = self._get_score_function(smoothing_param, use_abs,
-                                              abs_decay_param)
+        score_func = self._get_score_function(smoothing_param,
+                                              use_alignment_based_scoring,
+                                              weight_decay_param)
         root = self._internal_trie
         longforms = _get_longform_helper(root, score_func, 0)
         # Convert longforms as tuples in reverse order into reader strings
@@ -556,7 +592,9 @@ class AdeftMiner(object):
                     current.update_likelihood(count)
                 current = current.children[token]
 
-    def _get_score_function(self, smoothing_param, use_abs, abs_decay_param):
+    def _get_score_function(self, smoothing_param,
+                            use_alignment_based_scoring,
+                            weight_decay_param):
         """Returns scoring function for determining longforms
 
         Also computes alignment scores and propagates acromine score
@@ -574,7 +612,7 @@ class AdeftMiner(object):
             denominator += smoothing_param - 1
             score = 0 if denominator <= 0 else numerator/denominator
             return score
-        if not use_abs:
+        if not use_alignment_based_scoring:
             def score_func(node):
                 return scaled_score(node), node.count
         else:
@@ -584,7 +622,7 @@ class AdeftMiner(object):
 
             def score_func(node):
                 acro_score = scaled_score(node)
-                phi = np.exp(-abs_decay_param *
+                phi = np.exp(-weight_decay_param *
                              max(0, node.best_ancestor_score - 1,
                                  node.best_descendent_score - 1))
                 score = phi*node.alignment_score + (1-phi)*acro_score
