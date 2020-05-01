@@ -8,3 +8,6 @@ a larger collection of stopwords for use in classification and anomaly
 detection models.
 
 """
+
+from .nlp import (stem, WatchfulStemmer, word_tokenize, word_detokenize,
+                  stopwords_min, english_stopwords)

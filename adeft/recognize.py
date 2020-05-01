@@ -6,8 +6,7 @@ import string
 import logging
 
 
-from adeft.nlp.stem import stem
-from adeft.nlp.preprocess import word_tokenize, word_detokenize
+from adeft.nlp import stem, word_tokenize, word_detokenize
 from adeft.util import get_candidate_fragments, get_candidate, SearchTrie
 
 logger = logging.getLogger(__file__)

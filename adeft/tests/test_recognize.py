@@ -1,5 +1,4 @@
-from adeft.nlp.stem import stem
-from adeft.nlp.preprocess import word_tokenize
+from adeft.nlp import stem, word_tokenize
 from adeft.recognize import AdeftRecognizer, OneShotRecognizer, SearchTrie
 
 

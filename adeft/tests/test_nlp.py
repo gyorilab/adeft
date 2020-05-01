@@ -1,7 +1,6 @@
 from nose.tools import raises
 
-from adeft.nlp.stem import WatchfulStemmer
-from adeft.nlp.preprocess import word_tokenize, word_detokenize
+from adeft.nlp import WatchfulStemmer, word_tokenize, word_detokenize
 
 
 def test_tokenize_untokenize():

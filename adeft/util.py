@@ -4,7 +4,7 @@
 import re
 from unicodedata import category
 
-from adeft.nlp.preprocess import word_tokenize, word_detokenize
+from adeft.nlp import word_tokenize, word_detokenize
 
 
 def get_candidate_fragments(text, shortform, window=100):

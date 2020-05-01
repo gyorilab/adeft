@@ -5,7 +5,7 @@ import logging
 import numpy as np
 from copy import deepcopy
 
-from adeft.nlp.stem import WatchfulStemmer
+from adeft.nlp import WatchfulStemmer
 from adeft.score import AlignmentBasedScorer
 from adeft.util import get_candidate_fragments, get_candidate
 
