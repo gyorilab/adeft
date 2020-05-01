@@ -3,7 +3,7 @@ import uuid
 
 from adeft.locations import TEST_RESOURCES_PATH
 from adeft.discover import AdeftMiner, load_adeft_miner_from_dict, \
-    load_adeft_miner
+    load_adeft_miner, compose
 
 
 # Path to scratch directory to write files to during tests
@@ -125,3 +125,17 @@ def test_serialize_adeft_miner():
         miner2 = load_adeft_miner(f)
     assert miner.top() == miner2.top()
     assert miner.get_longforms() == miner2.get_longforms()
+
+
+def test_compose_adeft_miners():
+    miner1 = AdeftMiner('INDRA')
+    miner2 = AdeftMiner('INDRA')
+    miner3 = AdeftMiner('INDRA')
+
+    miner1.process_texts([example_text1, example_text2])
+    miner2.process_texts([example_text3, example_text4])
+    miner3.process_texts([example_text1, example_text2,
+                          example_text3, example_text4])
+    combined = compose(miner1, miner2)
+    print(combined)
+    assert combined.top() == miner3.top()
