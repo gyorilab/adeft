@@ -297,6 +297,7 @@ class AdeftMiner(object):
     def top(self, limit=None, smoothing_param=4, max_length='auto',
             use_alignment_based_scoring=True, weight_decay_param=0.001):
         """Return top scoring candidates.
+
         Parameters
         ----------
         limit : Optional[int]

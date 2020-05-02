@@ -280,9 +280,9 @@ class AdeftDisambiguator(object):
         crossvalidated F1 score, precision, and recall on training data.
         Classification metrics are given by the weighted average of these
         metrics over positive labels, weighted by number of examples in
-        each class in test data. Positive labels are appended with *s in
+        each class in test data. Positive labels are appended with stars in
         the displayed info. Classification metrics may not be available
-        depending upon how model was trained.
+        depending upon how the model was trained.
 
         Returns
         -------
