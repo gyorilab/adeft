@@ -1,4 +1,13 @@
-from adeft.discover import AdeftMiner
+import os
+import uuid
+
+from adeft.locations import TEST_RESOURCES_PATH
+from adeft.discover import AdeftMiner, load_adeft_miner_from_dict, \
+    load_adeft_miner, compose
+
+
+# Path to scratch directory to write files to during tests
+SCRATCH_PATH = os.path.join(TEST_RESOURCES_PATH, 'scratch')
 
 
 example_text1 = ('The Integrated Network and Dynamical Reasoning Assembler'
@@ -64,23 +73,15 @@ def test_process_texts():
     """
     miner = AdeftMiner('INDRA')
     miner.process_texts([example_text1, example_text2,
-                      example_text3, example_text4])
-    assert miner.top()[0] == ('indonesian debt restructuring agency', 1.0)
-    assert miner.top()[3] == ('integrated network and dynamical'
-                           ' reasoning assembler', 1.0)
-    assert miner.top()[7] == ('reasoning assembler', 0.0)
+                         example_text3, example_text4])
+    top = miner.top()
+    assert top[0] == ('indonesian debt restructuring agency', 2, 1.0)
+    assert top[1][0] == ('integrated network and dynamical'
+                         ' reasoning assembler')
+    assert top[7] == ('reasoning assembler', 2, 0.0)
 
     # check that top works with limit
     assert miner.top(limit=5) == miner.top()[0:5]
-
-
-def test_process_with_exclude():
-    """Test processing of texts with excluded words"""
-    miner = AdeftMiner('INDRA', exclude='and')
-    miner.process_texts([example_text1, example_text2,
-                      example_text3, example_text4])
-    assert miner.top()[0] == ('dynamical reasoning assembler', 2.0)
-    assert miner.top()[1] == ('indonesian debt restructuring agency', 1.0)
 
 
 def test_get_longforms():
@@ -91,9 +92,51 @@ def test_get_longforms():
     assert miner.top() == []
 
     miner.process_texts([example_text1, example_text2,
-                      example_text3, example_text4])
-    longforms = miner.get_longforms(cutoff=0.5)
+                         example_text3, example_text4])
+    longforms = miner.get_longforms()
     assert(len(longforms) == 2)
-    assert longforms[0] == ('indonesian debt restructuring agency', 1.0)
-    assert longforms[1] == ('integrated network and dynamical'
-                            ' reasoning assembler', 1.0)
+    assert longforms[0][0] == 'indonesian debt restructuring agency'
+    assert longforms[0][1] >= 0.8
+    assert longforms[1][0] == ('integrated network and dynamical'
+                               ' reasoning assembler')
+    assert longforms[1][1] >= 0.8
+
+
+def test_miner_to_dict():
+    miner = AdeftMiner('INDRA')
+    miner.process_texts([example_text1, example_text2,
+                         example_text3, example_text4])
+    miner_dict = miner.to_dict()
+    miner2 = load_adeft_miner_from_dict(miner_dict)
+    assert miner.top() == miner2.top()
+    assert miner.get_longforms(use_alignment_based_scoring=False) == \
+        miner2.get_longforms(use_alignment_based_scoring=False)
+    miner.compute_alignment_scores()
+    assert miner.get_longforms() == miner2.get_longforms()
+
+
+def test_serialize_adeft_miner():
+    miner = AdeftMiner('INDRA')
+    miner.process_texts([example_text1, example_text2,
+                         example_text3, example_text4])
+    temp_filename = os.path.join(SCRATCH_PATH, uuid.uuid4().hex)
+    with open(temp_filename, 'w') as f:
+        miner.dump(f)
+    with open(temp_filename) as f:
+        miner2 = load_adeft_miner(f)
+    assert miner.top() == miner2.top()
+    assert miner.get_longforms() == miner2.get_longforms()
+
+
+def test_compose_adeft_miners():
+    miner1 = AdeftMiner('INDRA')
+    miner2 = AdeftMiner('INDRA')
+    miner3 = AdeftMiner('INDRA')
+
+    miner1.process_texts([example_text1, example_text2])
+    miner2.process_texts([example_text3, example_text4])
+    miner3.process_texts([example_text1, example_text2,
+                          example_text3, example_text4])
+    combined = compose(miner1, miner2)
+    print(combined)
+    assert combined.top() == miner3.top()

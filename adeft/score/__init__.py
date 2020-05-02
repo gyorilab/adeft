@@ -1,1 +1,1 @@
-from .score import AdeftLongformScorer
+from .score import AlignmentBasedScorer

@@ -5,20 +5,17 @@ import re
 import string
 import logging
 
-from nltk.stem.snowball import EnglishStemmer
 
-from adeft.nlp import tokenize, untokenize
-from adeft.util import get_candidate_fragments, get_candidate
+from adeft.nlp import stem, word_tokenize, word_detokenize
+from adeft.util import get_candidate_fragments, get_candidate, SearchTrie
 
 logger = logging.getLogger(__file__)
 
 try:
-    from adeft.score import AdeftLongformScorer
+    from adeft.score import AlignmentBasedScorer
 except Exception:
-    logger.info('OneShotRecognizer not available. AdeftLongformScorer'
-                ' has not been built successfully.')
-
-_stemmer = EnglishStemmer()
+    logger.info('OneShotRecognizer not available. Extension module for'
+                ' AlignmentBasedScorer is missing')
 
 
 class BaseRecognizer(object):
@@ -36,17 +33,10 @@ class BaseRecognizer(object):
         to consider when finding longforms. Should be set to the same value
         that was used in the AdeftMiner that was used to find longforms.
         Default: 100
-    exclude : Optional[set]
-        set of tokens to ignore when searching for longforms.
-        Default: None
     """
-    def __init__(self, shortform, window=100, exclude=None):
+    def __init__(self, shortform, window=100):
         self.shortform = shortform
         self.window = window
-        if exclude is None:
-            self.exclude = set([])
-        else:
-            self.exclude = exclude
 
     def recognize(self, text):
         """Find longforms in text by searching for defining patterns (DPs)
@@ -63,20 +53,24 @@ class BaseRecognizer(object):
             defining pattern is matched. Returns None if no defining patterns
             are found
         """
-        expansions = set()
+        results = []
         fragments = get_candidate_fragments(text, self.shortform,
                                             window=self.window)
         for fragment in fragments:
             if not fragment:
                 continue
-            tokens = get_candidate(fragment, self.exclude)
+            tokens, longform_map = get_candidate(fragment)
             # search for longform in trie
-            longform = self._search(tokens)
+            result = self._search(tokens)
             # if a longform is recognized, add it to output list
-            if longform:
-                expansion = self._post_process(longform)
-                expansions.add(expansion)
-        return expansions
+            if result:
+                longform = result['longform']
+                num_tokens = len(word_tokenize(longform))
+                longform_text = longform_map[num_tokens]
+                result = self._post_process(result)
+                result['longform_text'] = longform_text
+                results.append((result))
+        return results
 
     def strip_defining_patterns(self, text):
         """Return text with defining patterns stripped
@@ -103,13 +97,14 @@ class BaseRecognizer(object):
         fragments = get_candidate_fragments(text, self.shortform)
         for fragment in fragments:
             # Each fragment is tokenized and its longform is identified
-            tokens = tokenize(fragment)
-            longform = self._search([token for token, _ in tokens
-                                     if token not in string.punctuation])
-            if longform is None:
+            tokens = word_tokenize(fragment)
+            result = self._search([token for token, _ in tokens
+                                   if token not in string.punctuation])
+            if result is None:
                 # For now, ignore a fragment if its grounding has no longform
                 # from the grounding map
                 continue
+            longform = result['longform']
             # Remove the longform from the fragment, keeping in mind that
             # punctuation is ignored when extracting longforms from text
             num_words = len(longform.split())
@@ -119,10 +114,10 @@ class BaseRecognizer(object):
                 if re.match(r'\w+', tokens[j][0]):
                     i += 1
                 j -= 1
-                if i > 100:
+                if i > self.window:
                     break
             text = text.replace(fragment.strip(),
-                                untokenize(tokens[:j+1]))
+                                word_detokenize(tokens[:j+1]))
         # replace all instances of parenthesized shortform with shortform
         stripped_text = re.sub(r'\(\s*%s\s*\)'
                                % self.shortform,
@@ -146,25 +141,6 @@ class BaseRecognizer(object):
         return text
 
 
-class _TrieNode(object):
-    """TrieNode structure for use in recognizer
-
-    Attributes
-    ----------
-    longform : str or None
-        Set to associated longform at leaf nodes in the trie, otherwise None.
-        Each longform corresponds to a path in the trie from root to leaf.
-
-    children : dict
-        dict mapping tokens to child nodes
-    """
-    __slots__ = ['longform', 'children']
-
-    def __init__(self, longform=None):
-        self.longform = longform
-        self.children = {}
-
-
 class AdeftRecognizer(BaseRecognizer):
     """Class for recognizing longforms by searching for defining patterns (DP)
 
@@ -182,9 +158,6 @@ class AdeftRecognizer(BaseRecognizer):
         to consider when finding longforms. Should be set to the same value
         that was used in the AdeftMiner that was used to find longforms.
         Default: 100
-    exclude : Optional[set]
-        set of tokens to ignore when searching for longforms.
-        Default: None
 
     Attributes
     ----------
@@ -193,63 +166,21 @@ class AdeftRecognizer(BaseRecognizer):
         from longforms. They appear in reverse order to the bottom of the trie
         with terminal nodes containing the associated longform in their data.
     """
-    def __init__(self, shortform, grounding_map, window=100, exclude=None):
+    def __init__(self, shortform, grounding_map, window=100):
         self.grounding_map = grounding_map
-        self._trie = self._init_trie()
-        super().__init__(shortform, window, exclude)
-
-    def _init_trie(self):
-        """Initialize search trie with longforms in grounding map
-
-        Returns
-        -------
-        root : :py:class:`adeft.recogize._TrieNode`
-            Root of search trie used to recognize longforms
-        """
-        root = _TrieNode()
-        for longform, grounding in self.grounding_map.items():
-            edges = tuple(_stemmer.stem(token)
-                          for token, _ in tokenize(longform))[::-1]
-            current = root
-            for index, token in enumerate(edges):
-                if token not in current.children:
-                    if index == len(edges) - 1:
-                        new = _TrieNode(longform)
-                    else:
-                        new = _TrieNode()
-                    current.children[token] = new
-                    current = new
-                else:
-                    current = current.children[token]
-        return root
+        self.search_trie = SearchTrie(grounding_map,
+                                      token_map=lambda x: stem(x).lower())
+        super().__init__(shortform, window)
 
     def _search(self, tokens):
-        """Find longform expansion based on grounding map
+        res, _ = self.search_trie.search(tokens)
+        if res is not None:
+            res = {'longform': res}
+        return res
 
-        Parameters
-        ----------
-        tokens : list of str
-            contains tokens that precede the occurence of the pattern
-            "<longform> (<shortform>)" up until the start of the containing
-            sentence or an excluded word is reached.
-
-        Returns
-        -------
-        str
-            Identified longform expansion
-        """
-        current = self._trie
-        for token in tuple(_stemmer.stem(token) for token in tokens[::-1]):
-            if token not in current.children:
-                break
-            if current.children[token].longform is None:
-                current = current.children[token]
-            else:
-                return current.children[token].longform
-
-    def _post_process(self, longform):
-        """Map longform associated grounding in grounding map"""
-        return self.grounding_map[longform]
+    def _post_process(self, result):
+        """Map longform to associated grounding in grounding map"""
+        return {'grounding': self.grounding_map[result['longform']]}
 
 
 class OneShotRecognizer(BaseRecognizer):
@@ -267,22 +198,26 @@ class OneShotRecognizer(BaseRecognizer):
         to consider when finding longforms. Should be set to the same value
         that was used in the AdeftMiner that was used to find longforms.
         Default: 100
-    exclude : Optional[set]
-        set of tokens to ignore when searching for longforms.
-        Default: None
     **params
         Parameters for :py:class`adeft.score.AdeftLongformScorer`
     """
-    def __init__(self, shortform, window=100, exclude=None, **params):
+    def __init__(self, shortform, window=100, **params):
         try:
-            self.scorer = AdeftLongformScorer(shortform, **params)
+            self.scorer = AlignmentBasedScorer(shortform, **params)
         except NameError:
             logger.exception('OneShotRecognizer not available.'
-                             ' AdeftLongformScorer has not been built'
-                             ' successfully.')
-        super().__init__(shortform, window, exclude)
+                             ' Extension module for AlignmentBasedScorer'
+                             ' is missing')
+        super().__init__(shortform, window)
 
     def _search(self, tokens):
         """Use AdeftLongformScorer to identify expansions"""
-        result = self.scorer.score(tokens)
-        return result[0]
+        scores = self.scorer.expanding_score([stem(token).lower()
+                                              for token in tokens])
+        n = len(tokens)
+        i = max(range(len(scores)), key=lambda i: scores[i])
+        longform = ' '.join(tokens[n-i-1:])
+        return {'longform': longform, 'score': scores[i]}
+
+    def _post_process(self, result):
+        return {'score': result['score']}

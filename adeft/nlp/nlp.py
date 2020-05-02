@@ -5,12 +5,45 @@ from collections import defaultdict
 
 from nltk.stem.snowball import EnglishStemmer
 
+
+_stemmer = EnglishStemmer()
+
+
+def stem(word):
+    """Return stem of word
+
+    Stemming attempts to reduce words to their root form in a
+    crude heuristic way. We add an attional heuristic of stripping
+    a terminal s if the preceding character is upper case. These
+    often denote pluralization in biology (e.g. RNAs)
+
+    Parameters
+    ----------
+    word : str
+
+    Returns
+    str
+        stem of input word converted to lower case
+    """
+    if len(word) > 1 and word[-2].isupper() and word[-1] == 's':
+        updated_word = word[:-1]
+    else:
+        updated_word = word
+    return _stemmer.stem(updated_word).lower()
+
+
 class WatchfulStemmer(object):
     """Wraps the nltk.snow EnglishStemmer.
 
     Keeps track of the number of times words have been mapped to particular
     stems by the wrapped stemmer. Extraction of longforms works with stemmed
     tokens but it is necessary to recover actual words from stems.
+
+    Parameters
+    ----------
+    counts : Optional[dict]
+        counts dictionary as used internally in WatchfulStemmer. Allows for
+        loading a previously saved WatchfulStemmer
 
     Attributes
     ----------
@@ -21,9 +54,12 @@ class WatchfulStemmer(object):
         mapped to from a particular stem by the wrapped stemmer. Of the form
         counts[stem:str][word:str] = count:int
     """
-    def __init__(self):
-        self.__snowball = EnglishStemmer()
-        self.counts = defaultdict(lambda: defaultdict(int))
+    def __init__(self, counts=None):
+        if counts is None:
+            counts = {}
+        self.counts = defaultdict(lambda: defaultdict(int),
+                                  {key: defaultdict(int, value)
+                                   for key, value in counts.items()})
 
     def stem(self, word):
         """Returns stemmed form of word.
@@ -40,8 +76,8 @@ class WatchfulStemmer(object):
         stemmed : str
             stemmed form of input word
         """
-        stemmed = self.__snowball.stem(word)
-        self.counts[stemmed][word] += 1
+        stemmed = stem(word)
+        self.counts[stemmed][word.lower()] += 1
         return stemmed
 
     def most_frequent(self, stemmed):
@@ -69,8 +105,12 @@ class WatchfulStemmer(object):
             raise ValueError('stem %s has not been observed' % stemmed)
         return output
 
+    def dump(self):
+        """Returns dictionary of info needed to reconstruct stemmer"""
+        return dict(self.counts)
 
-def tokenize(text):
+
+def word_tokenize(text):
     """Simple word tokenizer based on a regular expression pattern
 
     Everything that is not a block of alphanumeric characters is considered as
@@ -93,7 +133,7 @@ def tokenize(text):
     return [(m.group(), (m.start(), m.end()-1)) for m in matches]
 
 
-def untokenize(tokens):
+def word_detokenize(tokens):
     """Return inverse of the Adeft word tokenizer
 
     The inverse is inexact. For simplicity, all white space characters are

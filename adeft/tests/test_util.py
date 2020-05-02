@@ -8,34 +8,34 @@ text1 = ('Integrated Network and Dynamical Reasoning Assembler'
 stripped1 = ('Integrated Network and Dynamical Reasoning Assembler'
              ' generates executable models of pathway dynamics'
              ' from natural language.')
-result1 = [['integrated',  'network',  'and',  'dynamical',  'reasoning',
-           'assembler']]
+result1 = [['Integrated',  'Network',  'and',  'Dynamical',  'Reasoning',
+           'Assembler']]
 
 
 text2 = ('The Indonesian Debt Restructuring Agency (INDRA) was'
          ' established by the Jakarta Initiative in 1998.')
-result2 = [['the',  'indonesian',  'debt',  'restructuring',  'agency']]
+result2 = [['The',  'Indonesian',  'Debt',  'Restructuring',  'Agency']]
 
 text3 = ('An Indonesian Debt Restructuring Agency (INDRA) was'
          ' established to provide foreign-exchange cover for'
          ' Indonesian corporations with foreign currency denominated'
          ' debt.')
-result3 = [['an',  'indonesian',  'debt',  'restructuring',  'agency']]
+result3 = [['An',  'Indonesian',  'Debt',  'Restructuring',  'Agency']]
 
 text4 = 'Interior Natural Desert Reclamation and Afforestation (INDRA)'
-result4 = [['interior',  'natural',  'desert',  'reclamation',  'and',
-            'afforestation']]
+result4 = [['Interior',  'Natural',  'Desert',  'Reclamation',  'and',
+            'Afforestation']]
 
 text5 = ('Interior Natural Desert Reclamation and Afforestation (INDRA)'
          ' is not the Integrated Network and Dynamical Reasoning'
          ' Assembler (INDRA). Neither of these is the Indonesian Debt'
          ' Restructuring Agency (INDRA).')
-result5 = [['interior', 'natural', 'desert', 'reclamation', 'and',
-            'afforestation'],
-           ['is', 'not', 'the', 'integrated', 'network', 'and', 'dynamical',
-            'reasoning', 'assembler'],
-           ['neither', 'of', 'these', 'is', 'the', 'indonesian', 'debt',
-            'restructuring', 'agency']]
+result5 = [['Interior', 'Natural', 'Desert', 'Reclamation', 'and',
+            'Afforestation'],
+           ['is', 'not', 'the', 'Integrated', 'Network', 'and', 'Dynamical',
+            'Reasoning', 'Assembler'],
+           ['Neither', 'of', 'these', 'is', 'the', 'Indonesian', 'Debt',
+            'Restructuring', 'Agency']]
 
 stopwords = set(['a', 'an', 'the', 'and', 'or', 'of', 'with', 'at', 'from',
                  'into', 'to', 'for', 'on', 'by', 'be', 'being', 'been', 'am',
@@ -45,29 +45,17 @@ stopwords = set(['a', 'an', 'the', 'and', 'or', 'of', 'with', 'at', 'from',
 def test_get_candidate_fragments():
     """Test extraction of maximal longform candidate from text
     """
-    # Test with no excluded words
     for text, result in zip([text1, text2, text3, text4, text5],
                             [result1, result2, result3, result4, result5]):
         fragments = get_candidate_fragments(text, 'INDRA')
-        candidates = [get_candidate(fragment) for fragment in fragments]
+        candidates = [get_candidate(fragment)[0] for fragment in fragments]
         assert candidates == result
 
     # Case where pattern is at start of the sentence
-    fragments1 = get_candidate_fragments('(INDRA) is an ambiguous acronym',
+    fragments1 = get_candidate_fragments(' (INDRA) is an ambiguous acronym',
                                          'INDRA')
-    candidate1 = get_candidate(fragments1[0])
-    assert not candidate1
+    assert not fragments1
     # Case where pattern is not found
     assert not get_candidate_fragments('Integrated Network'
                                        'and dynamical reasoning assembler',
                                        'INDRA')
-
-    # Test with excluded words
-    fragments2 = get_candidate_fragments(text1, 'INDRA')
-    candidate2 = get_candidate(fragments2[0], exclude=stopwords)
-    assert candidate2 == ['dynamical',  'reasoning', 'assembler']
-
-    fragments3 = get_candidate_fragments('Is (INDRA) ambiguous?',
-                                         'INDRA')
-    candidate3 = get_candidate(fragments3[0], exclude=stopwords)
-    assert not candidate3

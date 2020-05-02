@@ -1,9 +1,6 @@
-from nltk.stem.snowball import EnglishStemmer
+from adeft.nlp import stem, word_tokenize
+from adeft.recognize import AdeftRecognizer, OneShotRecognizer, SearchTrie
 
-from adeft.nlp import tokenize
-from adeft.recognize import AdeftRecognizer, OneShotRecognizer
-
-_stemmer = EnglishStemmer()
 
 grounding_map = {'endoplasmic reticulum': 'MESH:D004721',
                  'estrogen receptor': 'HGNC:3467',
@@ -43,18 +40,17 @@ example5 = ('A number of studies showed that chemotherapeutic benefits'
 
 def test_init():
     """Test that the recognizers internal trie is initialized correctly"""
-    rec = AdeftRecognizer('ER', grounding_map)
-    trie = rec._trie
+    trie = SearchTrie(grounding_map, token_map=stem)._trie
     for longform, grounding in grounding_map.items():
-        edges = tuple(_stemmer.stem(token)
-                      for token, _ in tokenize(longform))[::-1]
+        edges = tuple(stem(token)
+                      for token, _ in word_tokenize(longform))[::-1]
         current = trie
         for index, token in enumerate(edges):
             assert token in current.children
             if index < len(edges) - 1:
-                assert current.children[token].longform is None
+                assert current.children[token].data is None
             else:
-                assert current.children[token].longform == longform
+                assert current.children[token].data == longform
             current = current.children[token]
 
 
@@ -63,35 +59,27 @@ def test_search():
     rec = AdeftRecognizer('ER', grounding_map)
     example = ['for', 'women', ',', 'mandatory', 'hmo', 'programs', 'reduce',
                'some', 'types', 'of', 'non', 'emergency', 'room']
-    assert rec._search(example) == 'emergency room'
+    result = rec._search(example)
+    assert result == {'longform': 'emergency room'}
 
 
 def test_recognizer():
     """Test the recognizer end to end"""
     rec = AdeftRecognizer('ER', grounding_map)
-    for text, result in [example1, example2, example3, example4, example5]:
-        longform = rec.recognize(text)
-        assert longform.pop() == result
+    for text, expected in [example1, example2, example3, example4, example5]:
+        result = rec.recognize(text)
+        assert result.pop()['grounding'] == expected
 
     # Case where defining pattern appears at the start of the fragment
     assert not rec.recognize('(ER) stress')
 
 
-def test_exclude():
-    """Test that using excluded words works"""
-    rec = AdeftRecognizer('ER', grounding_map, exclude=['emergency'])
-    assert not rec.recognize(example3[0])
-
-
 def test_strip_defining_patterns():
     rec = AdeftRecognizer('ER', grounding_map)
     test_cases = ['The endoplasmic reticulum (ER) is a transmembrane',
-                  'The endoplasmic reticulum(ER) is a transmembrane',
                   'The endoplasmic reticulum (ER)is a transmembrane',
-                  'The endoplasmic reticulum(ER)is a transmembrane',
-                  'The endoplasmic reticulum-(ER) is a transmembrane',
                   'The endoplasmic reticulum (ER)-is a transmembrane']
-    results = (['The ER is a transmembrane']*5 +
+    results = (['The ER is a transmembrane']*2 +
                ['The ER -is a transmembrane'])
 
     for case, result in zip(test_cases, results):
@@ -105,7 +93,7 @@ def test_strip_defining_patterns():
 def test_one_shot_recognizer():
     example6 = ('A number of studies have assessed the relationship between'
                 ' beta-2 adrenergic receptor (ADRB2) gene polymorphisms'
-                ' and asthma risk', 'beta 2 adrenergic receptor', 'ADRB2')
+                ' and asthma risk', 'beta-2 adrenergic receptor', 'ADRB2')
     example7 = ('Mutation PRECEPT and Regulon Precept, which use Bayesian'
                 ' statistics to characterize predictors of cellular phenotypes'
                 ' to guide therapeutic strategies (PRECEPTS)',
@@ -114,16 +102,16 @@ def test_one_shot_recognizer():
     example8 = ('This is a test sentence for the OneShotRecognizer class'
                 ' of Acromine based Disambiguation of Entities from Text'
                 ' (ADEFT)',
-                'acromine based disambiguation of entities from text',
+                'Acromine based Disambiguation of Entities from Text',
                 'ADEFT')
     example9 = ('Hormones as diverse as adiponectin (ADP) and thromboxane'
                 'A2 (TXA2) are mentioned in this sentence.', 'adiponectin',
                 'ADP')
     example10 = ('Hormones as diverse as adiponectin (ADP) and thromboxane'
                  ' A2 (TXA2) are mentioned in this sentence.',
-                 'thromboxane a2', 'TXA2')
+                 'thromboxane A2', 'TXA2')
     for text, result, shortform in [example6, example7, example8, example9,
                                     example10]:
         rec = OneShotRecognizer(shortform)
-        longform_set = rec.recognize(text)
+        longform_set = {x['longform_text'] for x in rec.recognize(text)}
         assert longform_set.pop() == result
