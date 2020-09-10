@@ -28,20 +28,21 @@ if USE_CYTHON:
                            compiler_directives={'language_level': 3})
 
 setup(name='adeft',
-      version='0.6.0',
+      version='0.7.0',
       description=('Acromine based Disambiguation of Entities From'
                    ' Text'),
       long_description=long_description,
       long_description_content_type='text/markdown',
       url='https://github.com/indralab/adeft',
-      download_url='https://github.com/indralab/adeft/archive/0.6.0.tar.gz',
+      download_url='https://github.com/indralab/adeft/archive/0.7.0.tar.gz',
       author='adeft developers, Harvard Medical School',
       author_email='albert_steppi@hms.harvard.edu',
       classifiers=[
           'Development Status :: 4 - Beta',
           'Programming Language :: Python :: 3.5',
           'Programming Language :: Python :: 3.6',
-          'Programming Language :: Python :: 3.7'
+          'Programming Language :: Python :: 3.7',
+          'Programming Language :: Python :: 3.8'
       ],
       packages=find_packages(),
       install_requires=['nltk', 'scikit-learn>=0.20.0', 'wget',
