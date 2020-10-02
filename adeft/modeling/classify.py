@@ -191,7 +191,7 @@ class AdeftClassifier(object):
         # initialized. Uses the average of the f1 scores for each positive
         # label weighted by the frequency in which it appears in the training
         # data.
-        if len(self.pos_labels) > 1:
+        if len(set(y)) > 2 or len(self.pos_labels) > 1:
             weighted_f1_scorer = make_scorer(f1_score, labels=self.pos_labels,
                                              average='weighted')
             weighted_pr_scorer = make_scorer(precision_score,
