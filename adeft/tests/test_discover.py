@@ -140,3 +140,14 @@ def test_compose_adeft_miners():
     combined = compose(miner1, miner2)
     print(combined)
     assert combined.top() == miner3.top()
+
+
+def test_prune():
+    miner = AdeftMiner('INDRA')
+    miner.process_texts([example_text1, example_text2,
+                         example_text3, example_text4])
+    candidates = [candidate for candidate, _, _ in miner.top()]
+    miner.prune(5)
+    pruned_candidates = [candidate for candidate, _, _ in miner.top()]
+    assert pruned_candidates == [candidate for candidate in candidates if
+                                 len(candidate.split()) <= 5]
