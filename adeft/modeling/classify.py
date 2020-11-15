@@ -101,7 +101,8 @@ class AdeftClassifier(object):
         self.timestamp = None
         self.training_set_digest = None
 
-    def train(self, texts, y, C=1.0, ngram_range=(1, 2), max_features=1000):
+    def train(self, texts, y, C=1.0, ngram_range=(1, 2), max_features=1000,
+              class_weight=None):
         """Fits a disambiguation model
 
         Parameters
@@ -121,24 +122,36 @@ class AdeftClassifier(object):
         max_features : int
             Maximum number of tfidf-vectorized ngrams to use as features in
             model. Selects top_features by term frequency Default: 1000
+        class_weight : Optional[dict or 'balanced']
+            Weights associated with classes in the form {class_label:
+            weight}. If not given, all classes are supposed to have weight one.
+
+            The “balanced” mode uses the values of y to automatically adjust
+            weights inversely proportional to class frequencies in the input
+            data as n_samples / (n_classes * np.bincount(y)).
+
+            Note that these weights will be multiplied with sample_weight
+            (passed through the fit method) if sample_weight is specified.
         """
         # Initialize pipeline
         seed = self.random_state
-        logit_pipeline = Pipeline([('tfidf',
-                                    TfidfVectorizer(ngram_range=ngram_range,
-                                                    max_features=max_features,
-                                                    stop_words=self.stop)),
-                                   ('logit',
-                                    LogisticRegression(C=C,
-                                                       solver='saga',
-                                                       penalty='l1',
-                                                       multi_class='auto',
-                                                       random_state=seed))])
-
+        logit_pipeline = \
+            Pipeline([('tfidf',
+                       TfidfVectorizer(ngram_range=ngram_range,
+                                       max_features=max_features,
+                                       stop_words=self.stop)),
+                      ('logit',
+                       LogisticRegression(C=C,
+                                          solver='saga',
+                                          penalty='l1',
+                                          multi_class='auto',
+                                          class_weight=class_weight,
+                                          random_state=seed))])
         logit_pipeline.fit(texts, y)
 
         self.params = {'C': C, 'ngram_grange': ngram_range,
                        'max_features': max_features,
+                       'class_weight': class_weight,
                        'random_state': self.random_state}
         self.estimator = logit_pipeline
         self.best_score = None
@@ -226,6 +239,7 @@ class AdeftClassifier(object):
                     '%s' % param_grid)
 
         param_mapping = {'C': 'logit__C',
+                         'class_weight': 'logit__class_weight',
                          'max_features': 'tfidf__max_features',
                          'ngram_range':  'tfidf__ngram_range'}
         inverse_param_mapping = {value: key
