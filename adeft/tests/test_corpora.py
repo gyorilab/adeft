@@ -64,9 +64,10 @@ labels3 = set(['other indra'])
 
 text4 = 'We cannot determine what INDRA means from this sentence.'
 
-result_corpus = [(result[0], label) for result in [(result1, labels1),
-                                                   (result2, labels2),
-                                                   (result3, labels3)]
+result_corpus = [(result[0], label, i)
+                 for i, result in enumerate([(result1, labels1),
+                                             (result2, labels2),
+                                             (result3, labels3)])
                  for label in result[1]]
 
 #  content for corpus building with synomous shortforms
@@ -93,9 +94,10 @@ text7 = ('Nanoparticle (NP) PET/CT imaging of natriuretic peptide (NP)'
 result7 = ('NP PET/CT imaging of NP clearance receptor in prostate cancer.')
 labels7 = set(['nano', 'peptide'])
 
-result_corpus2 = [(result[0], label) for result in [(result5, labels5),
-                                                    (result6, labels6),
-                                                    (result7, labels7)]
+result_corpus2 = [(result[0], label, i) for
+                  i, result in enumerate([(result5, labels5),
+                                          (result6, labels6),
+                                          (result7, labels7)])
                   for label in result[1]]
 
 
@@ -126,11 +128,16 @@ def test__process_text_multiple():
 
 def test_build_from_texts():
     labeler = AdeftLabeler({'INDRA': longforms})
-    corpus = labeler.build_from_texts([text1, text2, text3, text4])
+    corpus = labeler.build_from_texts([(text1, 0),
+                                       (text2, 1),
+                                       (text3, 2),
+                                       (text4, 3)])
     assert set(corpus) == set(result_corpus)
 
 
 def test__build_from_texts_multiple():
     labeler = AdeftLabeler({'NP': groundings1, 'NPs': groundings2})
-    corpus = labeler.build_from_texts([text5, text6, text7])
+    corpus = labeler.build_from_texts([(text5, 0),
+                                       (text6, 1),
+                                       (text7, 2)])
     assert set(corpus) == set(result_corpus2)
