@@ -238,7 +238,7 @@ class AdeftClassifier(object):
         # Fit grid_search and set the estimator for the instance of the class
         grid_search = GridSearchCV(logit_pipeline, param_grid,
                                    cv=cv, n_jobs=n_jobs, scoring=scorer,
-                                   refit='f1_weighted', iid=False,
+                                   refit='f1_weighted',
                                    return_train_score=False)
         grid_search.fit(texts, y)
         logger.info('Best f1 score of %s found for' % grid_search.best_score_
