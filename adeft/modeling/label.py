@@ -23,32 +23,38 @@ class AdeftLabeler(object):
                             for shortform, grounding_map
                             in grounding_dict.items()]
 
-    def build_from_texts(self, texts):
+    def build_from_texts(self, text_tuples):
         """Build labeled corpus from a list of texts
 
         Labels texts based on defining patterns (DPs)
 
         Parameters
         ----------
-        texts : list of str
-            List of texts to build corpus from
+        text_tuples : list of tuple
+            List of two element tuples whose first elements are texts from
+            which we seek to build a corpus and whose second elements are
+            identifiers associated with the texts. Each text should have a
+            unique identifier associated to it.
 
         Returns
         -------
-        corpus : list of tuple
-            Contains tuples for each text in the input list which contains
+        corpus : list
+            Contains a tuple for each text in the input list which contains
             a defining pattern. Multiple tuples correspond to texts with
             multiple defining patterns for longforms with different groundings.
-            The first element of each tuple contains the training text with all
+            The first element of each tuple contains a training text with all
             defining patterns replaced with only the shortform. The second
-            element contains the groundings for longforms matched with a
-            defining pattern.
+            element contains a grounding label for the desired shortform within
+            the training text that was identified through a defining
+            pattern. The third element contains the identifier for the given
+            training text.
         """
         corpus = []
-        for text in texts:
+        for text, identifier in text_tuples:
             data_points = self._process_text(text)
             if data_points:
-                corpus.extend(data_points)
+                corpus.extend((*data_point, identifier)
+                              for data_point in data_points)
         return corpus
 
     def _process_text(self, text):

@@ -549,7 +549,7 @@ class AdeftMiner(object):
                     child = None
                 current.children = {}
                 continue
-            for stack in current.children.values():
+            for child in current.children.values():
                 stack.append((child, depth + 1))
 
     def _add(self, tokens):

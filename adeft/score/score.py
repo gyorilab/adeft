@@ -1,5 +1,5 @@
 import math
-import string
+from unicodedata import category
 
 from adeft.nlp import stopwords_min
 from adeft.score._score import score, optimize_alignment
@@ -10,8 +10,7 @@ class AlignmentBasedScorer(object):
                  alpha=0.2, beta=0.95, gamma=0.95, delta=1.0,
                  epsilon=0.4, lambda_=0.6, rho=0.95, zeta=0.9,
                  word_scores=None, inversions_cap=16):
-        self.shortform = ''.join(char for char in shortform.lower()
-                                 if char not in string.punctuation)
+        self.shortform = shortform.lower()
         self.alpha = alpha
         self.beta = beta
         self.gamma = gamma
@@ -34,7 +33,12 @@ class AlignmentBasedScorer(object):
         if penalties is not None:
             self.penalties = penalties
         else:
-            self.penalties = [delta*epsilon**i for i in range(len(shortform))]
+            # Punctuation and space characters have no penalty
+            self.penalties = [delta*epsilon**i
+                              if not (category(char).startswith('Z') or
+                                      category(char).startswith('C'))
+                              else 0.0
+                              for i, char in enumerate(shortform)]
         if word_scores is None:
             self.word_scores = {word: 0.2 for word in stopwords_min}
         else:
