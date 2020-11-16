@@ -10,7 +10,7 @@
   <body>
     <h1>Adeft Grounding Assistant</h1>
     <form action="{{ url_for('ground.add_groundings') }}" method="POST">
-      <p>
+      <p class="sticky">
 	Name: <input name="name" type="text" id="name-box">
 	Grounding: <input name="grounding" type="text" id="grounding-box">
 	<input type="submit" value="submit">
@@ -30,9 +30,9 @@
 	    Grounding
 	  </td>
 	  <td>
-	    <!-- For mysterious reasons and to my utmost horror, the first form
-		 of this kind is ignored within the table, so here's an empty one
-		 that can be safely ignored. -->
+	    <!-- 'For mysterious reasons and to my utmost horror, the first form
+		 of this kind is ignored within the table, so here is an empty one
+		 that can be safely ignored.' -->
 	    <form action="{{ url_for('ground.delete_grounding') }}"
 		  method="POST">
 	    </form>

@@ -1,3 +1,11 @@
+.sticky {
+  position: -webkit-sticky; /* Safari */
+  position: sticky;
+  top: 0;
+  background-color: #FFFFFF;
+  z-index: 99 !important;
+}
+
 tr:nth-child(even) {
     background-color: #f2f2f2;
 }
@@ -21,6 +29,10 @@ td.positive {
     background-color: #89C4F4;
 }
 
+td.positive {
+    background-color: #89C4F4;
+}
+
 td.filled {
     border: 3px solid #808080;
     border-collapse: collapse;
@@ -29,6 +41,9 @@ td.filled {
 td.labels-head {
     text-align: center;
 }
+
+
+
 
 div.click-grounded {
     cursor: pointer;
@@ -41,3 +56,4 @@ div.click-grounded {
 input[type=checkbox] {
     transform: scale(1.5);
 }
+
