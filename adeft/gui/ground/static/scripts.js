@@ -1,3 +1,16 @@
+document.addEventListener("DOMContentLoaded", function (event) {
+    var scrollpos = sessionStorage.getItem('scrollpos');
+    if (scrollpos) {
+        window.scrollTo(0, scrollpos);
+        sessionStorage.removeItem('scrollpos');
+    }
+});
+
+function setScrollPosition() {
+  sessionStorage.setItem('scrollpos', window.scrollY);
+}
+
+
 window.onload = function() {
     groundings = document.getElementsByClassName('click-grounded');
     for (var i = 0; i < groundings.length; i++) {

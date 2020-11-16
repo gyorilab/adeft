@@ -81,7 +81,7 @@
 	    <td>
 	      <form id="delete-form-{{ index }}"
 		    action="{{ url_for('ground.delete_grounding') }}"
-		    method="POST">
+		    method="POST" onsubmit="setScrollPosition()">
 		<input name="delete.{{ index }}" class="delete"
 		       value="X" type="submit" form="delete-form-{{ index }}">
 	      </form>
@@ -96,7 +96,7 @@
 	    <td class="blank">
 	      {% if labels[index] %}
 	      <form action="{{ url_for('ground.add_positive') }}"
-		    method="POST">
+		    method="POST" onsubmit="setScrollPosition()">
 		<input name="pos-label.{{ index }}" value="+"
 		       type="submit">
 	      </form>
