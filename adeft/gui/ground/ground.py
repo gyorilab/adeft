@@ -13,7 +13,14 @@ def add_groundings():
     """Submit names and groundings for selected longforms"""
     # Get entered name and grounding from request. Strip out whitespace
     name = request.form['name'].strip()
-    grounding = request.form['grounding'].strip()
+    namespace = request.form['namespace'].strip()
+    identifier = request.form['identifier'].strip()
+    if namespace and identifier:
+        grounding = ':'.join([namespace, identifier])
+    elif identifier:
+        grounding = identifier
+    else:
+        grounding = ''
     selected = [int(i) for i in request.form.getlist('select')]
     state = GroundingState(current_app.config['LONGFORMS'],
                            session['grounding_map'],

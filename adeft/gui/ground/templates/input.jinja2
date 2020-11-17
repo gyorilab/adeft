@@ -11,9 +11,10 @@
     <h1>Adeft Grounding Assistant</h1>
     <form action="{{ url_for('ground.add_groundings') }}" method="POST"
 	  onsubmit="setScrollPosition()">
-      <p class="sticky">
-	Name: <input name="name" type="text" id="name-box">
-	Grounding: <input name="grounding" type="text" id="grounding-box">
+	  <p class="sticky">
+	    Namespace: <input name="namespace" type="namespace" id="namespace-box">
+	    Name: <input name="name" type="text" id="name-box">
+	    Identifier: <input name="identifier" type="text" id="identifier-box">
 	<input type="submit" value="submit">
       </p>
       <table>
