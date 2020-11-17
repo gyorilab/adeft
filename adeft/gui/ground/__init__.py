@@ -29,7 +29,8 @@ def create_app(longforms, scores,
     app.config.from_mapping(SECRET_KEY='dev',
                             LONGFORMS=longforms,
                             SCORES=scores,
-                            OUTPATH=outpath)
+                            OUTPATH=outpath,
+                            SESSION_COOKIE_SAMESITE='Strict')
 
     # import grounding blueprint
     from adeft.gui.ground import ground
