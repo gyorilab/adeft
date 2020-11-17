@@ -26,28 +26,32 @@
 	  </td>
 	  <td>
 	    <form id="sort-lf" action="{{ url_for('ground.sort_rows') }}"
-		  method="POST" onsubmit="setScrollPosition()">
+		  method="POST"
+		  onsubmit="setScrollPositionAndInputBoxContent()">
 		  <input class="link" name="sort.longform"
 			 value="Longform" type="submit" form="sort-lf">
 	    </form>
 	  </td>
 	  <td>
 	    <form id="sort-score" action="{{ url_for('ground.sort_rows') }}"
-		  method="POST" onsubmit="setScrollPosition()">
+		  method="POST"
+		  onsubmit="setScrollPositionAndInputBoxContent()">
 		  <input class="link" name="sort.score"
 			 value="Score" type="submit" form="sort-score">
 	    </form>
 	  </td>
 	  <td>
 	    <form id="sort-name" action="{{ url_for('ground.sort_rows') }}"
-		  method="POST" onsubmit="setScrollPosition()">
+		  method="POST"
+		  onsubmit="setScrollPositionAndInputBoxContent()">
 		  <input class="link" name="sort.name"
 			 value="Name" type="submit" form="sort-name">
 	    </form>
 	  </td>
 	  <td>
 	    <form id="sort-gr" action="{{ url_for('ground.sort_rows') }}"
-		  method="POST" onsubmit="setScrollPosition()">
+		  method="POST"
+		  onsubmit="setScrollPositionAndInputBoxContent()">
 		  <input class="link" name="sort.grounding"
 			 value="Grounding" type="submit" form="sort-gr">
 	    </form>
@@ -103,7 +107,8 @@
 	    <td>
 	      <form id="delete-form-{{ row_num }}"
 		    action="{{ url_for('ground.delete_grounding') }}"
-		    method="POST" onsubmit="setScrollPosition()">
+		    method="POST"
+		    onsubmit="setScrollPositionAndInputBoxContent()">
 		<input name="delete.{{ row_num }}" class="delete"
 		       value="X" type="submit" form="delete-form-{{ row_num }}">
 	      </form>
@@ -118,7 +123,8 @@
 	    <td class="blank">
 	      {% if labels[index] %}
 	      <form action="{{ url_for('ground.add_positive') }}"
-		    method="POST" onsubmit="setScrollPosition()">
+		    method="POST"
+		    onsubmit="setScrollPositionAndInputBoxContent()">
 		<input name="pos-label.{{ index }}" value="+"
 		       type="submit">
 	      </form>
