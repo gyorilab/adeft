@@ -41,6 +41,7 @@ def create_app(longforms, scores,
         session['names_map'] = names_map
         session['labels'] = labels
         session['pos_labels'] = pos_labels
+        session['sorted_order'] = list(range(len(longforms)))
 
         return render_template('input.jinja2')
 

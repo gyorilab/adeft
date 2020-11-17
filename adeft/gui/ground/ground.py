@@ -1,5 +1,7 @@
 import os
 import json
+from numpy import argsort
+
 
 from flask import Blueprint, request, render_template, session, current_app
 
@@ -69,6 +71,34 @@ def add_positive():
      session['labels'],
      session['pos_labels']) = state.dump()
 
+    return render_template('input.jinja2')
+
+
+@bp.route('/ground_sort', methods=['POST'])
+def sort_rows():
+    for key in request.form:
+        if key.startswith('sort.'):
+            sort_col = key.partition('.')[-1]
+    if sort_col == 'longform':
+        longforms = current_app.config['LONGFORMS']
+        sorted_order = argsort(longforms, kind='stable').tolist()
+    elif sort_col == 'score':
+        scores = current_app.config['SCORES']
+        sorted_order = argsort(scores, kind='stable')[::-1].tolist()
+    elif sort_col == 'name':
+        longforms = current_app.config['LONGFORMS']
+        names_map = session['names_map']
+        sorted_order = argsort([('a' if names_map[longform] else 'b') +
+                                names_map[longform] for longform in longforms],
+                               kind='stable').tolist()
+    elif sort_col == 'grounding':
+        longforms = current_app.config['LONGFORMS']
+        grounding_map = session['grounding_map']
+        sorted_order = argsort([('a' if grounding_map[longform] else 'b') +
+                                grounding_map[longform]
+                                for longform in longforms],
+                               kind='stable').tolist()
+    session['sorted_order'] = sorted_order
     return render_template('input.jinja2')
 
 
