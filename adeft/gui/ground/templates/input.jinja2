@@ -73,6 +73,7 @@
 	{% set grounding_map = session['grounding_map'] %}
 	{% set names_map = session['names_map'] %}
 	{% set pos_labels = session['pos_labels'] %}
+	{% set matches_list = session['matches_list'] %}
 	{# pad labels with empty strings to length of longforms #}
 	{% set labels = session['labels'] + ['']*(config['LONGFORMS']|length -
 	session['labels']|length) %}
@@ -81,6 +82,7 @@
 	  {% set longform = config['LONGFORMS'][row_num] %}
 	  {% set grounding = grounding_map[longform] %}
 	  {% set name = names_map[longform] %}
+	  {% set matches = matches_list[row_num] %}
 	  <tr>
 	    <td>
 	      <input name="select" value="{{ row_num }}" type="checkbox">
@@ -93,13 +95,13 @@
 	      {{ scores[row_num] }}
 	    </td>
 	    <td class="pad">
-		<div class="click-grounded" data-name="{{ name }}"
+	      <div class="click-grounded {{ matches }}" data-name="{{ name }}"
 		  data-grounding="{{ grounding }}">
 		  {{ name }}
 		</div>
 	    </td>
 	    <td class="pad"> 
-	      <div class="click-grounded" data-name="{{ name }}"
+	      <div class="click-grounded {{ matches }}" data-name="{{ name }}"
 		data-grounding="{{ grounding }}">
 		   {{ grounding }}
 	      </div>

@@ -25,12 +25,9 @@ td.blank {
     background-color: #FFFFFF;
 }
 
-td.positive {
-    background-color: #89C4F4;
-}
 
 td.positive {
-    background-color: #89C4F4;
+    background-color: #56B4E9;
 }
 
 td.filled {
@@ -42,7 +39,13 @@ td.labels-head {
     text-align: center;
 }
 
+div.match {
+    color: #009E73;g
+}
 
+div.mismatch {
+    color: #D55E00;
+}
 
 
 div.click-grounded {

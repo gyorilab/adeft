@@ -1,6 +1,8 @@
 import os
+import csv
 import json
 import logging
+from collections import defaultdict
 
 from flask import Flask, session, render_template
 
@@ -9,8 +11,8 @@ from adeft.gui.ground.ground import _convert_grounding_data
 
 
 def create_app(longforms, scores,
-               grounding_map, names_map, labels, pos_labels, outpath,
-               verbose, test=False):
+               grounding_map, names_map, labels, pos_labels, identifiers_file,
+               outpath, verbose, test=False):
     """Create and configure grounding assistant app.
 
     Takes same arguments as adeft.gui.ground_with_gui.
@@ -24,6 +26,16 @@ def create_app(longforms, scores,
         werkzeug_logger.setLevel(logging.ERROR)
         os.environ['WERKZEUG_RUN_MAIN'] = 'true'
 
+    identifiers_dict = defaultdict(lambda: {'name_id': {}, 'id_name': {}})
+    if identifiers_file is not None:
+        with open(os.path.realpath(os.path.expanduser(identifiers_file)),
+                  newline='') as csvfile:
+            reader = csv.reader(csvfile, delimiter=',', quotechar='"')
+            for namespace, identifier, name in reader:
+                identifiers_dict[namespace]['name_id'][name] = identifier
+                identifiers_dict[namespace]['id_name'][identifier] = name
+    identifiers_dict = dict(identifiers_dict)
+
     app = Flask(__name__)
     # longforms, scores, and outpath will not change. These can be stored
     # in config variables
@@ -31,7 +43,7 @@ def create_app(longforms, scores,
                             LONGFORMS=longforms,
                             SCORES=scores,
                             OUTPATH=outpath,
-                            IDENTIFIERS_FILE_PATH=identifiers_file,
+                            IDENTIFIERS_DICT=identifiers_dict,
                             SESSION_TYPE='filesystem',
                             SESSION_FILE_DIR=os.path.join(ADEFT_PATH,
                                                           'flask_session'),
@@ -48,6 +60,7 @@ def create_app(longforms, scores,
         session['labels'] = labels
         session['pos_labels'] = pos_labels
         session['sorted_order'] = list(range(len(longforms)))
+        session['matches_list'] = ['unknown']*len(longforms)
 
         return render_template('input.jinja2')
 

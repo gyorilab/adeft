@@ -15,6 +15,25 @@ def add_groundings():
     name = request.form['name'].strip()
     namespace = request.form['namespace'].strip()
     identifier = request.form['identifier'].strip()
+    identifiers_dict = current_app.config['IDENTIFIERS_DICT']
+    matches = 'unknown'
+    if namespace and namespace in identifiers_dict:
+        if identifier and not name:
+            name = identifiers_dict[namespace]['id_name'].get(identifier)
+            if name is not None:
+                matches = 'match'
+            else:
+                name = ''
+        elif name and not identifier:
+            identifier = identifiers_dict[namespace]['name_id'].get(name)
+            if identifier is not None:
+                matches = 'match'
+            else:
+                identifier = ''
+        elif name and identifier:
+            identifier2 = identifiers_dict[namespace]['name_id'].get(name)
+            if identifier2:
+                matches = 'match' if identifier == identifier2 else 'mismatch'
     if namespace and identifier:
         grounding = ':'.join([namespace, identifier])
     elif identifier:
@@ -26,13 +45,15 @@ def add_groundings():
                            session['grounding_map'],
                            session['names_map'],
                            session['labels'],
-                           session['pos_labels'])
+                           session['pos_labels'],
+                           session['matches_list'])
 
-    state.add(name, grounding, selected)
+    state.add(name, grounding, selected, matches)
     (session['grounding_map'],
      session['names_map'],
      session['labels'],
-     session['pos_labels']) = state.dump()
+     session['pos_labels'],
+     session['matches_list']) = state.dump()
 
     return render_template('input.jinja2')
 
@@ -48,13 +69,15 @@ def delete_grounding():
                            session['grounding_map'],
                            session['names_map'],
                            session['labels'],
-                           session['pos_labels'])
+                           session['pos_labels'],
+                           session['matches_list'])
     state.delete(row_number)
 
     (session['grounding_map'],
      session['names_map'],
      session['labels'],
-     session['pos_labels']) = state.dump()
+     session['pos_labels'],
+     session['matches_list']) = state.dump()
 
     return render_template('input.jinja2')
 
@@ -70,13 +93,15 @@ def add_positive():
                            session['grounding_map'],
                            session['names_map'],
                            session['labels'],
-                           session['pos_labels'])
+                           session['pos_labels'],
+                           session['matches_list'])
     state.toggle_positive(label_number)
 
     (session['grounding_map'],
      session['names_map'],
      session['labels'],
-     session['pos_labels']) = state.dump()
+     session['pos_labels'],
+     session['matches_list']) = state.dump()
 
     return render_template('input.jinja2')
 
@@ -148,18 +173,20 @@ class GroundingState(object):
     methods for transforming state in response to user input.
     """
     def __init__(self, longforms, grounding_map, names_map,
-                 labels, pos_labels):
+                 labels, pos_labels, matches_list):
         self.longforms = longforms
         self.grounding_map = grounding_map
         self.names_map = names_map
         self.labels = labels
         self.pos_labels = pos_labels
+        self.matches_list = matches_list
 
     def dump(self):
         """Returns state needed to reload page."""
-        return self.grounding_map, self.names_map, self.labels, self.pos_labels
+        return (self.grounding_map, self.names_map, self.labels,
+                self.pos_labels, self.matches_list)
 
-    def add(self, name, grounding, row_numbers):
+    def add(self, name, grounding, row_numbers, matches):
         """Add new names and groundings"""
         positive_groundings = set(self.labels[index]
                                   for index in self.pos_labels)
@@ -168,6 +195,7 @@ class GroundingState(object):
                 self.grounding_map[self.longforms[i]] = grounding
             if name:
                 self.names_map[self.longforms[i]] = name
+            self.matches_list[i] = matches
 
         labels = sorted(set(grounding for _, grounding in
                             self.grounding_map.items()))
@@ -181,6 +209,7 @@ class GroundingState(object):
         longform = self.longforms[row_number]
         grounding = self.grounding_map[longform]
         self.grounding_map[longform] = self.names_map[longform] = ''
+        self.matches_list[row_number] = 'unknown'
         if grounding not in self.grounding_map.values():
             label_number = self.labels.index(grounding)
             self.pos_labels = [i if i < label_number else i - 1
