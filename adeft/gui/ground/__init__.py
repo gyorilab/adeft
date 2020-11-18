@@ -4,6 +4,7 @@ import logging
 
 from flask import Flask, session, render_template
 
+from adeft.locations import ADEFT_PATH
 from adeft.gui.ground.ground import _convert_grounding_data
 
 
@@ -30,6 +31,10 @@ def create_app(longforms, scores,
                             LONGFORMS=longforms,
                             SCORES=scores,
                             OUTPATH=outpath,
+                            IDENTIFIERS_FILE_PATH=identifiers_file,
+                            SESSION_TYPE='filesystem',
+                            SESSION_FILE_DIR=os.path.join(ADEFT_PATH,
+                                                          'flask_session'),
                             SESSION_COOKIE_SAMESITE='Strict')
 
     # import grounding blueprint
