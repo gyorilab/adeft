@@ -19,10 +19,12 @@ class GroundingTestCase1(unittest.TestCase):
         names_map = {longform: '' for longform in longforms}
         pos_labels = []
         labels = []
+        identifiers_file = None
         outpath = os.path.join(TEST_RESOURCES_PATH, 'scratch')
         verbose = False
         app = create_app(longforms, scores, grounding_map, names_map,
-                         labels, pos_labels, outpath, verbose)
+                         labels, pos_labels, identifiers_file, outpath,
+                         verbose)
         app.testing = True
         self.longforms = longforms
         self.grounding_map = grounding_map
@@ -51,7 +53,8 @@ class GroundingTestCase1(unittest.TestCase):
 
             res = tc.post('ground_add',
                           data={'name': 'INSR',
-                                'grounding': 'HGNC:6091',
+                                'namespace': 'HGNC',
+                                'identifier': '6091',
                                 'select': '1'})
             assert res.status_code == 200, res
             names_map['insulin receptor'] = 'INSR'
@@ -71,7 +74,8 @@ class GroundingTestCase1(unittest.TestCase):
 
             res = tc.post('ground_add',
                           data={'name': 'Radiation, Ionizing',
-                                'grounding': 'MESH:D011839',
+                                'namespace': 'MESH',
+                                'identifier': 'D011839',
                                 'select': ['0', '3']})
             assert res.status_code == 200, res
 
@@ -91,12 +95,14 @@ class GroundingTestCase1(unittest.TestCase):
             grounding_map = self.grounding_map.copy()
             res = tc.post('ground_add',
                           data={'name': 'Radiation, Ionizing',
-                                'grounding': 'MESH:D011839',
+                                'namespace': 'MESH',
+                                'identifier': 'D011839',
                                 'select': ['0', '3']})
             assert res.status_code == 200, res
             res = tc.post('ground_add',
                           data={'name': 'INSR',
-                                'grounding': 'HGNC:6090',
+                                'namespace': 'HGNC',
+                                'identifier': '6090',
                                 'select': '1'})
             assert res.status_code == 200, res
 
@@ -112,7 +118,8 @@ class GroundingTestCase1(unittest.TestCase):
 
             res = tc.post('ground_add',
                           data={'name': 'INSR',
-                                'grounding': 'HGNC:6091',
+                                'namespace': 'HGNC',
+                                'identifier': '6091',
                                 'select': '1'})
             assert res.status_code == 200, res
 
@@ -127,13 +134,15 @@ class GroundingTestCase1(unittest.TestCase):
             grounding_map = self.grounding_map.copy()
             res = tc.post('ground_add',
                           data={'name': 'Radiation, Ionizing',
-                                'grounding': 'MESH:D011839',
+                                'namespace': 'MESH',
+                                'identifier': 'D011839',
                                 'select': ['0', '3']})
             assert res.status_code == 200, res
 
             res = tc.post('ground_add',
                           data={'name': 'INSR',
-                                'grounding': 'HGNC:6090',
+                                'namespace': 'HGNC',
+                                'identifier': '6090',
                                 'select': '1'})
             assert res.status_code == 200, res
 
@@ -163,19 +172,22 @@ class GroundingTestCase1(unittest.TestCase):
             # and insulin resistance
             res = tc.post('ground_add',
                           data={'name': 'Radiation, Ionizing',
-                                'grounding': 'MESH:D011839',
+                                'namespace': 'MESH',
+                                'identifier': 'D011839',
                                 'select': ['0', '3']})
             assert res.status_code == 200, res
 
             res = tc.post('ground_add',
                           data={'name': 'INSR',
-                                'grounding': 'HGNC:6091',
+                                'namespace': 'HGNC',
+                                'identifier': '6091',
                                 'select': '1'})
             assert res.status_code == 200, res
 
             res = tc.post('ground_add',
                           data={'name': 'Insulin Resistance',
-                                'grounding': 'MESH:D007333',
+                                'namespace': 'MESH',
+                                'identifier': 'D007333',
                                 'select': '2'})
 
             # Labels are the unique groundings stored in sorted order
@@ -207,19 +219,22 @@ class GroundingTestCase1(unittest.TestCase):
             assert res.status_code == 200, res
             res = tc.post('ground_add',
                           data={'name': 'Radiation, Ionizing',
-                                'grounding': 'MESH:D011839',
+                                'namespace': 'MESH',
+                                'identifier': 'D011839',
                                 'select': ['0', '3']})
             assert res.status_code == 200, res
 
             res = tc.post('ground_add',
                           data={'name': 'INSR',
-                                'grounding': 'HGNC:6091',
+                                'namespace': 'HGNC',
+                                'identifier': '6091',
                                 'select': '1'})
             assert res.status_code == 200, res
 
             res = tc.post('ground_add',
                           data={'name': 'Insulin Resistance',
-                                'grounding': 'MESH:D007333',
+                                'namespace': 'MESH',
+                                'identifier': 'D007333',
                                 'select': '2'})
 
             assert res.status_code == 200, res
@@ -245,7 +260,8 @@ class GroundingTestCase1(unittest.TestCase):
 
             res = tc.post('ground_add',
                           data={'name': 'Insulin Resistance',
-                                'grounding': 'MESH:D007332',
+                                'namespace': 'MESH',
+                                'identifier': 'D007332',
                                 'select': '2'})
             assert flask.session['pos_labels'] == [0, 2]
 
@@ -255,7 +271,8 @@ class GroundingTestCase1(unittest.TestCase):
 
             tc.post('ground_add',
                     data={'name': 'Insulin Resistance',
-                          'grounding': 'MESH:D007333',
+                          'namespace': 'MESH',
+                          'identifier': 'D007333',
                           'select': '2'})
             assert flask.session['pos_labels'] == [0, 2]
 
@@ -265,19 +282,22 @@ class GroundingTestCase1(unittest.TestCase):
             assert res.status_code == 200, res
             res = tc.post('ground_add',
                           data={'name': 'Radiation, Ionizing',
-                                'grounding': 'MESH:D011839',
+                                'namespace': 'MESH',
+                                'identifier': 'D011839',
                                 'select': ['0', '3']})
             assert res.status_code == 200, res
 
             res = tc.post('ground_add',
                           data={'name': 'INSR',
-                                'grounding': 'HGNC:6091',
+                                'namespace': 'HGNC',
+                                'identifier': '6091',
                                 'select': '1'})
             assert res.status_code == 200, res
 
             res = tc.post('ground_add',
                           data={'name': 'Insulin Resistance',
-                                'grounding': 'MESH:D007333',
+                                'namespace': 'MESH',
+                                'identifier': 'D007333',
                                 'select': '2'})
 
             assert res.status_code == 200, res
