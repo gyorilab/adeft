@@ -17,6 +17,7 @@ def add_groundings():
     identifier = request.form['identifier'].strip()
     identifiers_dict = current_app.config['IDENTIFIERS_DICT']
     matches = 'unknown'
+    special_groundings = ['ignore']
     if namespace and namespace in identifiers_dict:
         if identifier and not name:
             name = identifiers_dict[namespace]['id_name'].get(identifier)
@@ -37,9 +38,12 @@ def add_groundings():
     if namespace and identifier:
         grounding = ':'.join([namespace, identifier])
     elif identifier:
-        grounding = identifier
+        # Blank implicitly means ungrounded
+        grounding = identifier if identifier != 'ungrounded' else ''
     else:
         grounding = ''
+    if grounding in special_groundings:
+        matches = 'special'
     selected = [int(i) for i in request.form.getlist('select')]
     state = GroundingState(current_app.config['LONGFORMS'],
                            session['grounding_map'],
@@ -153,7 +157,7 @@ def _convert_grounding_data(grounding_map, names_map, labels, pos_labels):
     grounding_map = {longform: grounding if grounding
                      else 'ungrounded'
                      for longform, grounding in
-                     grounding_map.items()}
+                     grounding_map.items() if grounding != 'ignore'}
     names = {grounding: names_map[longform]
              for longform, grounding in
              grounding_map.items()
@@ -196,9 +200,9 @@ class GroundingState(object):
             if name:
                 self.names_map[self.longforms[i]] = name
             self.matches_list[i] = matches
-
         labels = sorted(set(grounding for _, grounding in
-                            self.grounding_map.items()))
+                            self.grounding_map.items()
+                            if ':' in grounding))
         pos_labels = [i for i, label in enumerate(labels)
                       if label in positive_groundings]
         self.labels = labels

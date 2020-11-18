@@ -47,6 +47,10 @@ div.mismatch {
     color: #D55E00;
 }
 
+div.special {
+    color: #E69F00;
+}
+
 
 div.click-grounded {
     cursor: pointer;
