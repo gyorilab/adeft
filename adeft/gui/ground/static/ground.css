@@ -2,8 +2,15 @@
   position: -webkit-sticky; /* Safari */
   position: sticky;
   top: 0;
-  background-color: #FFFFFF;
-  z-index: 99 !important;
+  background-color: #D8D8D8;
+  margin-left: -4px;
+  margin-right: -4px;
+  z-index: 99 !importan t;
+}
+
+#site {
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
 }
 
 tr:nth-child(even) {
