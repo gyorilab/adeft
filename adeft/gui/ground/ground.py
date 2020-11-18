@@ -214,7 +214,7 @@ class GroundingState(object):
         grounding = self.grounding_map[longform]
         self.grounding_map[longform] = self.names_map[longform] = ''
         self.matches_list[row_number] = 'unknown'
-        if grounding not in self.grounding_map.values():
+        if grounding not in self.grounding_map.values() and ':' in grounding:
             label_number = self.labels.index(grounding)
             self.pos_labels = [i if i < label_number else i - 1
                                for i in self.pos_labels if i != label_number]
