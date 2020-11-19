@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 def ground_with_gui(longforms, scores, grounding_map=None,
-                    names=None, pos_labels=None, identifiers_file=None,
+                    names=None, pos_labels=None,
+                    groundings_file=None,
                     verbose=False, port=5000, no_browser=False, test=False):
     """Opens grounding GUI in browser. Returns output upon user submission.
 
@@ -35,7 +36,7 @@ def ground_with_gui(longforms, scores, grounding_map=None,
     pos_labels : Optional[list]
         List of groundings to be considered as positive labels.
         This is ignored if grounding_map is set to None. Default: None
-    identifiers_file : Optional[str]
+    groundings_file : Optional[str]
         Path to a headerless csv file with three columns, one for
         namespace, identifier, and standard name respectively. Rows should
         be of the form
@@ -44,7 +45,10 @@ def ground_with_gui(longforms, scores, grounding_map=None,
         If such a table is supplied, users only need to supply the namespace
         along with only one of the standard name or identifier for each
         potential grounding with a row in the table. The missing entry will
-        will be inferred.
+        will be inferred. The path to such a file with groundings for the
+        namespaces
+        CHEBI, DOID, EFO, FPLX, GO, HGNC, HP, IP, MESH, NCIT, and UP
+        can be found at `adeft.locations.GROUNDINGS_FILE_PATH. Default: None
     verbose : Optional[bool]
         When true, display logging from flask's werkzeug server.
         Default: False
@@ -106,7 +110,7 @@ def ground_with_gui(longforms, scores, grounding_map=None,
     outpath = tempfile.mkdtemp()
     # initialize flask app
     app = create_app(longforms, scores, grounding_map,
-                     names_map, labels, pos_labels, identifiers_file, outpath,
+                     names_map, labels, pos_labels, groundings_file, outpath,
                      verbose, test=test)
 
     # Run flask server in new process
