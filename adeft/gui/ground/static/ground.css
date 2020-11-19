@@ -1,3 +1,18 @@
+.sticky {
+  position: -webkit-sticky; /* Safari */
+  position: sticky;
+  top: 0;
+  background-color: #D8D8D8;
+  margin-left: -4px;
+  margin-right: -4px;
+  z-index: 99 !important;
+}
+
+#site {
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+}
+
 tr:nth-child(even) {
     background-color: #f2f2f2;
 }
@@ -17,8 +32,9 @@ td.blank {
     background-color: #FFFFFF;
 }
 
+
 td.positive {
-    background-color: #89C4F4;
+    background-color: #56B4E9;
 }
 
 td.filled {
@@ -30,6 +46,19 @@ td.labels-head {
     text-align: center;
 }
 
+div.match {
+    color: #009E73;g
+}
+
+div.mismatch {
+    color: #D55E00;
+}
+
+div.special {
+    color: #E69F00;
+}
+
+
 div.click-grounded {
     cursor: pointer;
 }
@@ -40,4 +69,37 @@ div.click-grounded {
 
 input[type=checkbox] {
     transform: scale(1.5);
+}
+
+input.link {
+  align-items: normal;
+  background-color: rgba(0,0,0,0);
+  border-color: rgb(0, 0, 238);
+  border-style: none;
+  box-sizing: content-box;
+  color: rgb(0, 0, 238); 
+  cursor: pointer;
+  display: inline;
+  font: inherit;
+  height: auto;
+  padding: 0;
+  perspective-origin: 0 0;
+  text-align: start;
+  text-decoration: underline;
+  transform-origin: 0 0;
+  width: auto;
+  -moz-appearance: none;
+  -webkit-logical-height: 1em;
+  -webkit-logical-width: auto;
+}
+
+@supports (-moz-appearance:none) { /* Mozilla-only */
+   input.link::-moz-focus-inner { /* reset any predefined properties */ 
+    border: none;
+    padding: 0;
+   }
+   input.link:focus { /* add outline to focus pseudo-class */
+       outline-style: dotted;
+       outline-width: 1px;
+   }
 }

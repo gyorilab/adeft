@@ -1,4 +1,5 @@
 import os
+import gzip
 import json
 import wget
 import shutil
@@ -7,7 +8,7 @@ import requests
 
 
 from adeft.locations import ADEFT_MODELS_PATH, S3_BUCKET_URL, \
-    TEST_RESOURCES_PATH
+    RESOURCES_PATH, TEST_RESOURCES_PATH
 
 
 logger = logging.getLogger(__file__)
@@ -62,6 +63,32 @@ def download_models(models=None):
             wget.download(url=os.path.join(S3_BUCKET_URL, 'Models',
                                            model, resource),
                           out=resource_path)
+
+
+def setup_resources_folder():
+    """Make resources folder and download resources
+
+    Replaces content in existing resources folder if it already exists
+    """
+    if os.path.isdir(RESOURCES_PATH):
+        shutil.rmtree(RESOURCES_PATH)
+    os.mkdir(RESOURCES_PATH)
+    download_resources()
+
+
+def download_resources():
+    resources = ['groundings.csv']
+    for resource in resources:
+        resource_path = os.path.join(RESOURCES_PATH, resource)
+        _remove_if_exists(resource_path + '.gz')
+        wget.download(url=os.path.join(S3_BUCKET_URL, 'Resources',
+                                       resource + '.gz'),
+                      out=resource_path + '.gz')
+        with gzip.open(os.path.join(RESOURCES_PATH, resource + '.gz'),
+                       'rb') as f_in:
+            with open(os.path.join(RESOURCES_PATH, resource), 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+        os.remove(resource_path + '.gz')
 
 
 def setup_test_resource_folder():

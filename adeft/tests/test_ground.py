@@ -1,6 +1,6 @@
 import os
+import csv
 import json
-import time
 import flask
 import unittest
 
@@ -21,14 +21,31 @@ class GroundingTestCase1(unittest.TestCase):
         labels = []
         outpath = os.path.join(TEST_RESOURCES_PATH, 'scratch')
         verbose = False
+        groundings_table = [['HGNC', '6090', 'INSM1'],
+                            ['HGNC', '6091', 'INSR'],
+                            ['MESH', 'D007333', 'Insulin Resistance'],
+                            ['MESH', 'D011839', 'Radiation, Ionizing']]
+        identifiers_file = os.path.join(TEST_RESOURCES_PATH, 'groundings.csv')
+        with open(identifiers_file, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, delimiter=',', quotechar='"')
+            for row in groundings_table:
+                writer.writerow(row)
+
         app = create_app(longforms, scores, grounding_map, names_map,
-                         labels, pos_labels, outpath, verbose)
+                         labels, pos_labels, identifiers_file, outpath,
+                         verbose)
         app.testing = True
         self.longforms = longforms
         self.grounding_map = grounding_map
         self.names_map = names_map
+        self.identifiers_file = \
+            os.path.realpath(os.path.expanduser(identifiers_file))
         self.outpath = outpath
         self.app = app
+
+    def tearDown(self):
+        if os.path.exists(self.identifiers_file):
+            os.remove(self.identifiers_file)
 
     # Tests
     def test_init(self):
@@ -51,7 +68,8 @@ class GroundingTestCase1(unittest.TestCase):
 
             res = tc.post('ground_add',
                           data={'name': 'INSR',
-                                'grounding': 'HGNC:6091',
+                                'namespace': 'HGNC',
+                                'identifier': '6091',
                                 'select': '1'})
             assert res.status_code == 200, res
             names_map['insulin receptor'] = 'INSR'
@@ -71,7 +89,8 @@ class GroundingTestCase1(unittest.TestCase):
 
             res = tc.post('ground_add',
                           data={'name': 'Radiation, Ionizing',
-                                'grounding': 'MESH:D011839',
+                                'namespace': 'MESH',
+                                'identifier': 'D011839',
                                 'select': ['0', '3']})
             assert res.status_code == 200, res
 
@@ -91,12 +110,14 @@ class GroundingTestCase1(unittest.TestCase):
             grounding_map = self.grounding_map.copy()
             res = tc.post('ground_add',
                           data={'name': 'Radiation, Ionizing',
-                                'grounding': 'MESH:D011839',
+                                'namespace': 'MESH',
+                                'identifier': 'D011839',
                                 'select': ['0', '3']})
             assert res.status_code == 200, res
             res = tc.post('ground_add',
                           data={'name': 'INSR',
-                                'grounding': 'HGNC:6090',
+                                'namespace': 'HGNC',
+                                'identifier': '6090',
                                 'select': '1'})
             assert res.status_code == 200, res
 
@@ -112,11 +133,44 @@ class GroundingTestCase1(unittest.TestCase):
 
             res = tc.post('ground_add',
                           data={'name': 'INSR',
-                                'grounding': 'HGNC:6091',
+                                'namespace': 'HGNC',
+                                'identifier': '6091',
                                 'select': '1'})
             assert res.status_code == 200, res
 
             grounding_map['insulin receptor'] = 'HGNC:6091'
+            assert grounding_map == flask.session['grounding_map']
+
+    def test_add_groundings_infer1(self):
+        """Test inference of name or id using potential groundings in csv"""
+        with self.app.test_client() as tc:
+            res = tc.get('/')
+            assert res.status_code == 200, res
+
+            names_map = self.names_map.copy()
+            grounding_map = self.grounding_map.copy()
+
+            res = tc.post('ground_add',
+                          data={'namespace': 'HGNC',
+                                'name': 'INSR',
+                                'identifier': '',
+                                'select': '1'})
+            assert res.status_code == 200, res
+            names_map['insulin receptor'] = 'INSR'
+            grounding_map['insulin receptor'] = 'HGNC:6091'
+
+            res = tc.post('ground_add',
+                          data={'name': '',
+                                'namespace': 'MESH',
+                                'identifier': 'D011839',
+                                'select': ['0', '3']})
+            assert res.status_code == 200, res
+            names_map['ionizing radiation'] = 'Radiation, Ionizing'
+            names_map['irradiation'] = 'Radiation, Ionizing'
+            grounding_map['ionizing radiation'] = 'MESH:D011839'
+            grounding_map['irradiation'] = 'MESH:D011839'
+
+            assert names_map == flask.session['names_map']
             assert grounding_map == flask.session['grounding_map']
 
     def test_add_and_delete_groundings(self):
@@ -127,13 +181,15 @@ class GroundingTestCase1(unittest.TestCase):
             grounding_map = self.grounding_map.copy()
             res = tc.post('ground_add',
                           data={'name': 'Radiation, Ionizing',
-                                'grounding': 'MESH:D011839',
+                                'namespace': 'MESH',
+                                'identifier': 'D011839',
                                 'select': ['0', '3']})
             assert res.status_code == 200, res
 
             res = tc.post('ground_add',
                           data={'name': 'INSR',
-                                'grounding': 'HGNC:6090',
+                                'namespace': 'HGNC',
+                                'identifier': '6090',
                                 'select': '1'})
             assert res.status_code == 200, res
 
@@ -163,19 +219,22 @@ class GroundingTestCase1(unittest.TestCase):
             # and insulin resistance
             res = tc.post('ground_add',
                           data={'name': 'Radiation, Ionizing',
-                                'grounding': 'MESH:D011839',
+                                'namespace': 'MESH',
+                                'identifier': 'D011839',
                                 'select': ['0', '3']})
             assert res.status_code == 200, res
 
             res = tc.post('ground_add',
                           data={'name': 'INSR',
-                                'grounding': 'HGNC:6091',
+                                'namespace': 'HGNC',
+                                'identifier': '6091',
                                 'select': '1'})
             assert res.status_code == 200, res
 
             res = tc.post('ground_add',
                           data={'name': 'Insulin Resistance',
-                                'grounding': 'MESH:D007333',
+                                'namespace': 'MESH',
+                                'identifier': 'D007333',
                                 'select': '2'})
 
             # Labels are the unique groundings stored in sorted order
@@ -207,19 +266,22 @@ class GroundingTestCase1(unittest.TestCase):
             assert res.status_code == 200, res
             res = tc.post('ground_add',
                           data={'name': 'Radiation, Ionizing',
-                                'grounding': 'MESH:D011839',
+                                'namespace': 'MESH',
+                                'identifier': 'D011839',
                                 'select': ['0', '3']})
             assert res.status_code == 200, res
 
             res = tc.post('ground_add',
                           data={'name': 'INSR',
-                                'grounding': 'HGNC:6091',
+                                'namespace': 'HGNC',
+                                'identifier': '6091',
                                 'select': '1'})
             assert res.status_code == 200, res
 
             res = tc.post('ground_add',
                           data={'name': 'Insulin Resistance',
-                                'grounding': 'MESH:D007333',
+                                'namespace': 'MESH',
+                                'identifier': 'D007333',
                                 'select': '2'})
 
             assert res.status_code == 200, res
@@ -245,7 +307,8 @@ class GroundingTestCase1(unittest.TestCase):
 
             res = tc.post('ground_add',
                           data={'name': 'Insulin Resistance',
-                                'grounding': 'MESH:D007332',
+                                'namespace': 'MESH',
+                                'identifier': 'D007332',
                                 'select': '2'})
             assert flask.session['pos_labels'] == [0, 2]
 
@@ -255,7 +318,8 @@ class GroundingTestCase1(unittest.TestCase):
 
             tc.post('ground_add',
                     data={'name': 'Insulin Resistance',
-                          'grounding': 'MESH:D007333',
+                          'namespace': 'MESH',
+                          'identifier': 'D007333',
                           'select': '2'})
             assert flask.session['pos_labels'] == [0, 2]
 
@@ -265,19 +329,22 @@ class GroundingTestCase1(unittest.TestCase):
             assert res.status_code == 200, res
             res = tc.post('ground_add',
                           data={'name': 'Radiation, Ionizing',
-                                'grounding': 'MESH:D011839',
+                                'namespace': 'MESH',
+                                'identifier': 'D011839',
                                 'select': ['0', '3']})
             assert res.status_code == 200, res
 
             res = tc.post('ground_add',
                           data={'name': 'INSR',
-                                'grounding': 'HGNC:6091',
+                                'namespace': 'HGNC',
+                                'identifier': '6091',
                                 'select': '1'})
             assert res.status_code == 200, res
 
             res = tc.post('ground_add',
                           data={'name': 'Insulin Resistance',
-                                'grounding': 'MESH:D007333',
+                                'namespace': 'MESH',
+                                'identifier': 'D007333',
                                 'select': '2'})
 
             assert res.status_code == 200, res

@@ -9,30 +9,54 @@
   </head>
   <body>
     <h1>Adeft Grounding Assistant</h1>
-    <form action="{{ url_for('ground.add_groundings') }}" method="POST">
-      <p>
+    <form action="{{ url_for('ground.add_groundings') }}" method="POST"
+	  onsubmit="setScrollPosition()">
+      <p class="sticky">
+	Namespace: <input name="namespace" type="namespace" id="namespace-box">
 	Name: <input name="name" type="text" id="name-box">
-	Grounding: <input name="grounding" type="text" id="grounding-box">
+	Identifier: <input name="identifier" type="text" id="identifier-box">
 	<input type="submit" value="submit">
       </p>
       <table>
-	<th>
+	<tr>
 	  <td>
-	    Longform
+	    <form action="{{ url_for('ground.sort_rows') }}"
+		  method="POST">
+	    </form>
 	  </td>
 	  <td>
-	    Score
+	    <form id="sort-lf" action="{{ url_for('ground.sort_rows') }}"
+		  method="POST"
+		  onsubmit="setScrollPositionAndInputBoxContent()">
+		  <input class="link" name="sort.longform"
+			 value="Longform" type="submit" form="sort-lf">
+	    </form>
 	  </td>
 	  <td>
-	    Name
+	    <form id="sort-score" action="{{ url_for('ground.sort_rows') }}"
+		  method="POST"
+		  onsubmit="setScrollPositionAndInputBoxContent()">
+		  <input class="link" name="sort.score"
+			 value="Score" type="submit" form="sort-score">
+	    </form>
 	  </td>
 	  <td>
-	    Grounding
+	    <form id="sort-name" action="{{ url_for('ground.sort_rows') }}"
+		  method="POST"
+		  onsubmit="setScrollPositionAndInputBoxContent()">
+		  <input class="link" name="sort.name"
+			 value="Name" type="submit" form="sort-name">
+	    </form>
 	  </td>
 	  <td>
-	    <!-- For mysterious reasons and to my utmost horror, the first form
-		 of this kind is ignored within the table, so here's an empty one
-		 that can be safely ignored. -->
+	    <form id="sort-gr" action="{{ url_for('ground.sort_rows') }}"
+		  method="POST"
+		  onsubmit="setScrollPositionAndInputBoxContent()">
+		  <input class="link" name="sort.grounding"
+			 value="Grounding" type="submit" form="sort-gr">
+	    </form>
+	  </td>
+	  <td>
 	    <form action="{{ url_for('ground.delete_grounding') }}"
 		  method="POST">
 	    </form>
@@ -42,48 +66,53 @@
 	  <td class="labels-head">
 	    Labels
 	  </td>
-	</th>
+	</tr>
 	{# load config and session variables into local variables to save space #}
 	{% set longforms = config['LONGFORMS'] %}
 	{% set scores = config['SCORES'] %}
 	{% set grounding_map = session['grounding_map'] %}
 	{% set names_map = session['names_map'] %}
 	{% set pos_labels = session['pos_labels'] %}
+	{% set matches_list = session['matches_list'] %}
 	{# pad labels with empty strings to length of longforms #}
-	{% set labels = session['labels'] + ['']*(config['LONGFORMS']|length - session['labels']|length) %}
-	{% for longform in config['LONGFORMS'] %}
-	  {% set index = loop.index - 1 %}
+	{% set labels = session['labels'] + ['']*(config['LONGFORMS']|length -
+	session['labels']|length) %}
+	{% for row_num in session['sorted_order'] %}
+	  {% set index = loop.index-1 %}
+	  {% set longform = config['LONGFORMS'][row_num] %}
 	  {% set grounding = grounding_map[longform] %}
 	  {% set name = names_map[longform] %}
+	  {% set matches = matches_list[row_num] %}
 	  <tr>
 	    <td>
-	      <input name="select" value="{{ index }}" type="checkbox">
+	      <input name="select" value="{{ row_num }}" type="checkbox">
 	    <td>
 	      <div>
 		{{ longform }}
 	      </div>
 	    </td>
 	    <td class="score">
-	      {{ scores[index] }}
+	      {{ scores[row_num] }}
 	    </td>
 	    <td class="pad">
-		<div class="click-grounded" data-name="{{ name }}"
+	      <div class="click-grounded {{ matches }}" data-name="{{ name }}"
 		  data-grounding="{{ grounding }}">
 		  {{ name }}
 		</div>
 	    </td>
 	    <td class="pad"> 
-	      <div class="click-grounded" data-name="{{ name }}"
+	      <div class="click-grounded {{ matches }}" data-name="{{ name }}"
 		data-grounding="{{ grounding }}">
 		   {{ grounding }}
 	      </div>
 	    </td>
 	    <td>
-	      <form id="delete-form-{{ index }}"
+	      <form id="delete-form-{{ row_num }}"
 		    action="{{ url_for('ground.delete_grounding') }}"
-		    method="POST">
-		<input name="delete.{{ index }}" class="delete"
-		       value="X" type="submit" form="delete-form-{{ index }}">
+		    method="POST"
+		    onsubmit="setScrollPositionAndInputBoxContent()">
+		<input name="delete.{{ row_num }}" class="delete"
+		       value="X" type="submit" form="delete-form-{{ row_num }}">
 	      </form>
 	    </td>
 	    <td class="pad blank">
@@ -96,7 +125,8 @@
 	    <td class="blank">
 	      {% if labels[index] %}
 	      <form action="{{ url_for('ground.add_positive') }}"
-		    method="POST">
+		    method="POST"
+		    onsubmit="setScrollPositionAndInputBoxContent()">
 		<input name="pos-label.{{ index }}" value="+"
 		       type="submit">
 	      </form>
