@@ -215,6 +215,10 @@ class AdeftDisambiguator(object):
                               count
                               for label, count in label_dist.items()}
                 classifier.stats['label_distribution'] = label_dist
+                classifier.stats = {new_groundings[label]
+                                    if label in new_groundings else label:
+                                    value for label, value in
+                                    classifier.stats.items()}
 
     def dump(self, model_name, path=None):
         """Save disambiguator to disk
