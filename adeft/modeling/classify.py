@@ -216,7 +216,7 @@ class AdeftClassifier(object):
         scorer = {'f1': f1_scorer,
                   'pr': pr_scorer,
                   'rc': rc_scorer}
-        all_labels = set(y)
+        all_labels = sorted(set(y))
         for label in all_labels:
             f1 = make_scorer(f1_score, labels=[label], average=None)
             pr = make_scorer(recall_score, labels=[label], average=None)
@@ -224,6 +224,11 @@ class AdeftClassifier(object):
             scorer.update({'f1_%s' % label: f1,
                            'pr_%s' % label: pr,
                            'rc_%s' % label: rc})
+        for label1 in all_labels:
+            for label2 in all_labels:
+                count_score = make_scorer(_count_score, label1=label1,
+                                          label2=label2)
+                scorer['count_%s_%s' % (label1, label2)] = count_score
         logger.info('Beginning grid search in parameter space:\n'
                     '%s' % param_grid)
 
@@ -512,3 +517,8 @@ def load_model_info(model_info):
     if 'version' in model_info:
         longform_model.version == model_info['version']
     return longform_model
+
+
+def _count_score(y_true, y_pred, label1=0, label2=1):
+    return sum((y == label1 and pred == label2)
+               for y, pred in zip(y_true, y_pred))
