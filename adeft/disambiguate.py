@@ -37,7 +37,7 @@ class AdeftDisambiguator(object):
         Set of labels that the classifier is able to predict.
     pos_labels : list of str
         List of labels of interest. Only these are considered when
-        calculating the weighted f1 score for a classifier.
+        calculating the micro averaged f1 score for a classifier.
     """
     def __init__(self, classifier, grounding_dict, names):
         self.classifier = classifier
@@ -241,7 +241,7 @@ class AdeftDisambiguator(object):
         model_path = os.path.join(path, model_name)
         # Create model directory if it does not already exist
         if not os.path.exists(model_path):
-            os.mkdir(model_path)
+            os.makedirs(model_path)
 
         classifier.dump_model(os.path.join(model_path,
                                            '%s_model.gz' % model_name))
@@ -282,10 +282,12 @@ class AdeftDisambiguator(object):
         Displays disambiguations model is able to produce. Shows class
         balance of disambiguation labels in the models training data and
         crossvalidated F1 score, precision, and recall on training data.
-        Classification metrics are given by the weighted average of these
-        metrics over positive labels, weighted by number of examples in
-        each class in test data. Positive labels are appended with stars in
-        the displayed info. Classification metrics may not be available
+        Classification metrics for multi-label data are calculated by taking
+        the micro-average over the positive labels. This means the metrics
+        are calculated globally by counting the total true positives,
+        false negatives, and false positives. Positive labels are starred in
+        in the displayed output. F1, Precision, and Recall are also shown for
+        for each label separately. Classification metrics may not be available
         depending upon how the model was trained.
 
         Returns
@@ -336,7 +338,7 @@ class AdeftDisambiguator(object):
                                           str(count).rjust(count_pad),
                                           str(f1).rjust(metric_pad))
         output += '\n'
-        output += 'Weighted Metrics:\n'
+        output += 'Global Metrics:\n'
         output += '-----------------\n'
         f1 = round(model_stats['f1']['mean'], 5)
         output += '\tF1 score:\t%s\n' % f1

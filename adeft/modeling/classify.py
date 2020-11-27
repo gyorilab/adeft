@@ -59,10 +59,10 @@ class AdeftClassifier(object):
         along with the shortform(s) for which the model is being built
     params : dict
         Dictionary mapping parameters to their values. If fit with cv, this
-        contains the parameters with best weighted f1 score over
+        contains the parameters with best micro averaged f1 score over
         crossvalidation runs.
     best_score : float
-        Best weighted average f1 score for positive labels over crossvalidation
+        Best micro averaged f1 score for positive labels over crossvalidation
         runs. This information can also be found in the stats dict and is not
         included when models are serialized. Only available if model is fit
         with the cv method.
@@ -74,7 +74,7 @@ class AdeftClassifier(object):
     timestamp : str
         Human readable timestamp for when model was fit
     training_set_digest : str
-        Digest of training set calculated using md5 hashing. Can be
+        Digest of training set calculated using md5 hash. Can be
         used at a glance to determine if two models used the same
         training set.
     _std : py:class:`numpy.ndarray`
@@ -201,32 +201,21 @@ class AdeftClassifier(object):
 
         # Create scorer for use in grid search. Best params decided using
         # f1 score. The positive labels are specified when the classifier is
-        # initialized. Uses the average of the f1 scores for each positive
-        # label weighted by the frequency in which it appears in the training
-        # data.
-        if len(set(y)) > 2 or len(self.pos_labels) > 1:
-            weighted_f1_scorer = make_scorer(f1_score, labels=self.pos_labels,
-                                             average='weighted')
-            weighted_pr_scorer = make_scorer(precision_score,
-                                             labels=self.pos_labels,
-                                             average='weighted')
-            weighted_rc_scorer = make_scorer(recall_score,
-                                             labels=self.pos_labels,
-                                             average='weighted')
-        else:
-            weighted_f1_scorer = make_scorer(f1_score,
-                                             pos_label=self.pos_labels[0],
-                                             average='binary')
-            weighted_pr_scorer = make_scorer(precision_score,
-                                             pos_label=self.pos_labels[0],
-                                             average='binary')
-            weighted_rc_scorer = make_scorer(recall_score,
-                                             pos_label=self.pos_labels[0],
-                                             average='binary')
+        # initialized. Uses micro-average f1, precision, and recall scores.
+        # This means metrics are calculated globally by counting all true
+        # positives, false negatives, and false positives
+        f1_scorer = make_scorer(f1_score, labels=self.pos_labels,
+                                average='micro')
+        pr_scorer = make_scorer(precision_score,
+                                labels=self.pos_labels,
+                                average='micro')
+        rc_scorer = make_scorer(recall_score,
+                                labels=self.pos_labels,
+                                average='micro')
 
-        scorer = {'f1_weighted': weighted_f1_scorer,
-                  'pr_weighted': weighted_pr_scorer,
-                  'rc_weighted': weighted_rc_scorer}
+        scorer = {'f1': f1_scorer,
+                  'pr': pr_scorer,
+                  'rc': rc_scorer}
         all_labels = set(y)
         for label in all_labels:
             f1 = make_scorer(f1_score, labels=[label], average=None)
@@ -252,28 +241,28 @@ class AdeftClassifier(object):
         # Fit grid_search and set the estimator for the instance of the class
         grid_search = GridSearchCV(logit_pipeline, param_grid,
                                    cv=cv, n_jobs=n_jobs, scoring=scorer,
-                                   refit='f1_weighted',
+                                   refit='f1',
                                    return_train_score=False)
         grid_search.fit(texts, y)
         logger.info('Best f1 score of %s found for' % grid_search.best_score_
                     + ' parameter values:\n%s' % grid_search.best_params_)
 
         cv = grid_search.cv_results_
-        best_index = cv['rank_test_f1_weighted'][0] - 1
+        best_index = cv['rank_test_f1'][0] - 1
         labels = dict(Counter(y))
         stats = {'label_distribution': labels,
                  'f1': {'mean':
-                        np.round(cv['mean_test_f1_weighted'][best_index], 6),
+                        np.round(cv['mean_test_f1'][best_index], 6),
                         'std':
-                        np.round(cv['std_test_f1_weighted'][best_index], 6)},
+                        np.round(cv['std_test_f1'][best_index], 6)},
                  'precision': {'mean':
-                               np.round(cv['mean_test_pr_weighted']
+                               np.round(cv['mean_test_pr']
                                         [best_index], 6),
-                               'std': np.round(cv['std_test_pr_weighted']
+                               'std': np.round(cv['std_test_pr']
                                                [best_index], 6)},
-                 'recall': {'mean': np.round(cv['mean_test_rc_weighted']
+                 'recall': {'mean': np.round(cv['mean_test_rc']
                                              [best_index], 6),
-                            'std': np.round(cv['std_test_rc_weighted']
+                            'std': np.round(cv['std_test_rc']
                                             [best_index], 6)}}
         for label in all_labels:
             stats.update({label:
