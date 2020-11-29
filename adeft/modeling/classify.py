@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 from hashlib import md5
 from datetime import datetime
-from collections import Counter
+from collections import Counter, defaultdict
 
 from sklearn.pipeline import Pipeline
 from sklearn.exceptions import ConvergenceWarning
@@ -69,6 +69,13 @@ class AdeftClassifier(object):
     grid_search : py:class:`sklearn.model_selection.GridSearchCV`
         sklearn gridsearch object if model was fit with cv. This is not
         included when model is serialized.
+    confusion_info : dict
+        Contains the confusion matrix for each pair of labels per
+        crossvalidation split. Only available if the model has been fit with
+        crossvalidation. Nested dictionary,
+        `confusion_info[label1][label2][i]` gives the number of test examples
+        where the true label is label1 and the classifier has made prediction
+        label2 in split i.
     version : str
         Adeft version used when model was fit
     timestamp : str
@@ -90,6 +97,7 @@ class AdeftClassifier(object):
         self.random_state = random_state
         self.estimator = None
         self.stats = None
+        self.confusion_info = None
         # Add shortforms to list of stopwords
         self.stop = set(english_stopwords).union([sf.lower() for sf
                                                   in self.shortforms])
@@ -241,7 +249,7 @@ class AdeftClassifier(object):
 
         param_grid = {param_mapping[key]: value
                       for key, value in param_grid.items()}
-
+        num_splits = cv
         cv = StratifiedKFold(n_splits=cv, shuffle=True, random_state=seed)
         # Fit grid_search and set the estimator for the instance of the class
         grid_search = GridSearchCV(logit_pipeline, param_grid,
@@ -286,6 +294,15 @@ class AdeftClassifier(object):
                                                 % label][best_index], 6),
                             'std': np.round(cv['std_test_rc_%s'
                                                % label][best_index], 6)}}})
+
+        confusion = defaultdict(lambda: defaultdict(list))
+        for label1 in all_labels:
+            for label2 in all_labels:
+                for i in range(num_splits):
+                    key = 'split%s_test_count_%s_%s' % (i, label1, label2)
+                    val = int(cv[key][best_index])
+                    confusion[label1][label2].append(val)
+        confusion = {key: dict(value) for key, value in confusion.items()}
         params = {inverse_param_mapping[key]: value for key, value
                   in grid_search.best_params_.items()}
         params['random_state'] = self.random_state
@@ -294,6 +311,7 @@ class AdeftClassifier(object):
         self.best_score = grid_search.best_score_
         self.grid_search = grid_search
         self.stats = stats
+        self.confusion_info = confusion
         self.timestamp = self._get_current_time()
         self.training_set_digest = self._training_set_digest(texts)
         self._set_variance(texts)
