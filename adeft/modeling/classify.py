@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 from hashlib import md5
 from datetime import datetime
-from collections import Counter
+from collections import Counter, defaultdict
 
 from sklearn.pipeline import Pipeline
 from sklearn.exceptions import ConvergenceWarning
@@ -59,22 +59,32 @@ class AdeftClassifier(object):
         along with the shortform(s) for which the model is being built
     params : dict
         Dictionary mapping parameters to their values. If fit with cv, this
-        contains the parameters with best weighted f1 score over
+        contains the parameters with best micro averaged f1 score over
         crossvalidation runs.
     best_score : float
-        Best weighted average f1 score for positive labels over crossvalidation
+        Best micro averaged f1 score for positive labels over crossvalidation
         runs. This information can also be found in the stats dict and is not
         included when models are serialized. Only available if model is fit
         with the cv method.
     grid_search : py:class:`sklearn.model_selection.GridSearchCV`
         sklearn gridsearch object if model was fit with cv. This is not
         included when model is serialized.
+    confusion_info : dict
+        Contains the confusion matrix for each pair of labels per
+        crossvalidation split. Only available if the model has been fit with
+        crossvalidation. Nested dictionary,
+        `confusion_info[label1][label2][i]` gives the number of test examples
+        where the true label is label1 and the classifier has made prediction
+        label2 in split i.
+    other_metadata : dict
+        Data set here by the user will be included when the model is serialized
+        and remain available when the classifier is loaded again.
     version : str
         Adeft version used when model was fit
     timestamp : str
         Human readable timestamp for when model was fit
     training_set_digest : str
-        Digest of training set calculated using md5 hashing. Can be
+        Digest of training set calculated using md5 hash. Can be
         used at a glance to determine if two models used the same
         training set.
     _std : py:class:`numpy.ndarray`
@@ -90,6 +100,8 @@ class AdeftClassifier(object):
         self.random_state = random_state
         self.estimator = None
         self.stats = None
+        self.confusion_info = None
+        self.other_metadata = None
         # Add shortforms to list of stopwords
         self.stop = set(english_stopwords).union([sf.lower() for sf
                                                   in self.shortforms])
@@ -201,33 +213,22 @@ class AdeftClassifier(object):
 
         # Create scorer for use in grid search. Best params decided using
         # f1 score. The positive labels are specified when the classifier is
-        # initialized. Uses the average of the f1 scores for each positive
-        # label weighted by the frequency in which it appears in the training
-        # data.
-        if len(set(y)) > 2 or len(self.pos_labels) > 1:
-            weighted_f1_scorer = make_scorer(f1_score, labels=self.pos_labels,
-                                             average='weighted')
-            weighted_pr_scorer = make_scorer(precision_score,
-                                             labels=self.pos_labels,
-                                             average='weighted')
-            weighted_rc_scorer = make_scorer(recall_score,
-                                             labels=self.pos_labels,
-                                             average='weighted')
-        else:
-            weighted_f1_scorer = make_scorer(f1_score,
-                                             pos_label=self.pos_labels[0],
-                                             average='binary')
-            weighted_pr_scorer = make_scorer(precision_score,
-                                             pos_label=self.pos_labels[0],
-                                             average='binary')
-            weighted_rc_scorer = make_scorer(recall_score,
-                                             pos_label=self.pos_labels[0],
-                                             average='binary')
+        # initialized. Uses micro-average f1, precision, and recall scores.
+        # This means metrics are calculated globally by counting all true
+        # positives, false negatives, and false positives
+        f1_scorer = make_scorer(f1_score, labels=self.pos_labels,
+                                average='micro')
+        pr_scorer = make_scorer(precision_score,
+                                labels=self.pos_labels,
+                                average='micro')
+        rc_scorer = make_scorer(recall_score,
+                                labels=self.pos_labels,
+                                average='micro')
 
-        scorer = {'f1_weighted': weighted_f1_scorer,
-                  'pr_weighted': weighted_pr_scorer,
-                  'rc_weighted': weighted_rc_scorer}
-        all_labels = set(y)
+        scorer = {'f1': f1_scorer,
+                  'pr': pr_scorer,
+                  'rc': rc_scorer}
+        all_labels = sorted(set(y))
         for label in all_labels:
             f1 = make_scorer(f1_score, labels=[label], average=None)
             pr = make_scorer(recall_score, labels=[label], average=None)
@@ -235,6 +236,11 @@ class AdeftClassifier(object):
             scorer.update({'f1_%s' % label: f1,
                            'pr_%s' % label: pr,
                            'rc_%s' % label: rc})
+        for label1 in all_labels:
+            for label2 in all_labels:
+                count_score = make_scorer(_count_score, label1=label1,
+                                          label2=label2)
+                scorer['count_%s_%s' % (label1, label2)] = count_score
         logger.info('Beginning grid search in parameter space:\n'
                     '%s' % param_grid)
 
@@ -247,33 +253,33 @@ class AdeftClassifier(object):
 
         param_grid = {param_mapping[key]: value
                       for key, value in param_grid.items()}
-
+        num_splits = cv
         cv = StratifiedKFold(n_splits=cv, shuffle=True, random_state=seed)
         # Fit grid_search and set the estimator for the instance of the class
         grid_search = GridSearchCV(logit_pipeline, param_grid,
                                    cv=cv, n_jobs=n_jobs, scoring=scorer,
-                                   refit='f1_weighted',
+                                   refit='f1',
                                    return_train_score=False)
         grid_search.fit(texts, y)
         logger.info('Best f1 score of %s found for' % grid_search.best_score_
                     + ' parameter values:\n%s' % grid_search.best_params_)
 
         cv = grid_search.cv_results_
-        best_index = cv['rank_test_f1_weighted'][0] - 1
+        best_index = cv['rank_test_f1'][0] - 1
         labels = dict(Counter(y))
         stats = {'label_distribution': labels,
                  'f1': {'mean':
-                        np.round(cv['mean_test_f1_weighted'][best_index], 6),
+                        np.round(cv['mean_test_f1'][best_index], 6),
                         'std':
-                        np.round(cv['std_test_f1_weighted'][best_index], 6)},
+                        np.round(cv['std_test_f1'][best_index], 6)},
                  'precision': {'mean':
-                               np.round(cv['mean_test_pr_weighted']
+                               np.round(cv['mean_test_pr']
                                         [best_index], 6),
-                               'std': np.round(cv['std_test_pr_weighted']
+                               'std': np.round(cv['std_test_pr']
                                                [best_index], 6)},
-                 'recall': {'mean': np.round(cv['mean_test_rc_weighted']
+                 'recall': {'mean': np.round(cv['mean_test_rc']
                                              [best_index], 6),
-                            'std': np.round(cv['std_test_rc_weighted']
+                            'std': np.round(cv['std_test_rc']
                                             [best_index], 6)}}
         for label in all_labels:
             stats.update({label:
@@ -292,6 +298,15 @@ class AdeftClassifier(object):
                                                 % label][best_index], 6),
                             'std': np.round(cv['std_test_rc_%s'
                                                % label][best_index], 6)}}})
+
+        confusion = defaultdict(lambda: defaultdict(list))
+        for label1 in all_labels:
+            for label2 in all_labels:
+                for i in range(num_splits):
+                    key = 'split%s_test_count_%s_%s' % (i, label1, label2)
+                    val = int(cv[key][best_index])
+                    confusion[label1][label2].append(val)
+        confusion = {key: dict(value) for key, value in confusion.items()}
         params = {inverse_param_mapping[key]: value for key, value
                   in grid_search.best_params_.items()}
         params['random_state'] = self.random_state
@@ -300,6 +315,7 @@ class AdeftClassifier(object):
         self.best_score = grid_search.best_score_
         self.grid_search = grid_search
         self.stats = stats
+        self.confusion_info = confusion
         self.timestamp = self._get_current_time()
         self.training_set_digest = self._training_set_digest(texts)
         self._set_variance(texts)
@@ -360,6 +376,10 @@ class AdeftClassifier(object):
             model_info['params'] = self.params
         if hasattr(self, 'version') and self.version is not None:
             model_info['version'] = self.version
+        if hasattr(self, 'confusion_info') and self.confusion_info is not None:
+            model_info['confusion_info'] = self.confusion_info
+        if hasattr(self, 'other_metadata') and self.other_metadata is not None:
+            model_info['other_metadata'] = self.other_metadata
         return model_info
 
     def dump_model(self, filepath):
@@ -522,4 +542,13 @@ def load_model_info(model_info):
         longform_model.params = model_info['params']
     if 'version' in model_info:
         longform_model.version == model_info['version']
+    if 'confusion_info' in model_info:
+        longform_model.confusion_info = model_info['confusion_info']
+    if 'other_metadata' in model_info:
+        longform_model.other_metadata = model_info['other_metadata']
     return longform_model
+
+
+def _count_score(y_true, y_pred, label1=0, label2=1):
+    return sum((y == label1 and pred == label2)
+               for y, pred in zip(y_true, y_pred))

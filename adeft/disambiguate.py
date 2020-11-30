@@ -2,8 +2,10 @@
 
 import os
 import json
-from hashlib import md5
 import logging
+import numpy as np
+from hashlib import md5
+
 
 from adeft.locations import ADEFT_MODELS_PATH
 from adeft.recognize import AdeftRecognizer
@@ -37,7 +39,7 @@ class AdeftDisambiguator(object):
         Set of labels that the classifier is able to predict.
     pos_labels : list of str
         List of labels of interest. Only these are considered when
-        calculating the weighted f1 score for a classifier.
+        calculating the micro averaged f1 score for a classifier.
     """
     def __init__(self, classifier, grounding_dict, names):
         self.classifier = classifier
@@ -134,6 +136,48 @@ class AdeftDisambiguator(object):
                 pred_index += 1
         return result
 
+    def update_pos_labels(self, pos_labels):
+        """Update which labels are considered pos_labels
+
+        Micro-averaged precision, recall, and f1 scores are also updated.
+
+        Parameters
+        ----------
+        pos_labels : list
+            list of strs. Should be a subset of the labels produced by the
+            underlying classifier. Check the labels attribute of the
+            AdeftDisambiguator to see which labels are produced.
+        """
+        self.pos_labels = pos_labels
+        labels = list(self.labels)
+        confusion = self.classifier.confusion_info
+        num_splits = len(confusion[labels[0]][labels[0]])
+        TP = np.zeros(num_splits, dtype=int)
+        FP = np.zeros(num_splits, dtype=int)
+        FN = np.zeros(num_splits, dtype=int)
+        for label1 in self.labels:
+            for label2 in self.labels:
+                row = np.array(confusion[label1][label2])
+                if label1 == label2 and label1 in pos_labels:
+                    TP += row
+                if label1 != label2 and label1 in pos_labels:
+                    FN += row
+                if label1 != label2 and label2 in pos_labels:
+                    FP += row
+        Pr = TP/(TP + FP)
+        Rc = TP/(TP + FN)
+        Pr[Pr == np.float('inf')] = 0.
+        Rc[Rc == np.float('inf')] = 0.
+        F1 = 2/(1/Pr + 1/Rc)
+        stats = self.classifier.stats
+        stats['f1']['mean'] = np.round(np.mean(F1), 6)
+        stats['f1']['std'] = np.round(np.std(F1), 6)
+        stats['precision']['mean'] = np.round(np.mean(Pr), 6)
+        stats['precision']['std'] = np.round(np.std(Pr), 6)
+        stats['recall']['mean'] = np.round(np.mean(Rc), 6)
+        stats['recall']['std'] = np.round(np.std(Rc), 6)
+        self.classifier.stats = stats
+
     def modify_groundings(self, new_groundings=None, new_names=None):
         """Update groundings and standardized names
 
@@ -215,6 +259,10 @@ class AdeftDisambiguator(object):
                               count
                               for label, count in label_dist.items()}
                 classifier.stats['label_distribution'] = label_dist
+                classifier.stats = {new_groundings[label]
+                                    if label in new_groundings else label:
+                                    value for label, value in
+                                    classifier.stats.items()}
 
     def dump(self, model_name, path=None):
         """Save disambiguator to disk
@@ -237,7 +285,7 @@ class AdeftDisambiguator(object):
         model_path = os.path.join(path, model_name)
         # Create model directory if it does not already exist
         if not os.path.exists(model_path):
-            os.mkdir(model_path)
+            os.makedirs(model_path)
 
         classifier.dump_model(os.path.join(model_path,
                                            '%s_model.gz' % model_name))
@@ -278,10 +326,12 @@ class AdeftDisambiguator(object):
         Displays disambiguations model is able to produce. Shows class
         balance of disambiguation labels in the models training data and
         crossvalidated F1 score, precision, and recall on training data.
-        Classification metrics are given by the weighted average of these
-        metrics over positive labels, weighted by number of examples in
-        each class in test data. Positive labels are appended with stars in
-        the displayed info. Classification metrics may not be available
+        Classification metrics for multi-label data are calculated by taking
+        the micro-average over the positive labels. This means the metrics
+        are calculated globally by counting the total true positives,
+        false negatives, and false positives. Positive labels are starred in
+        in the displayed output. F1, Precision, and Recall are also shown for
+        for each label separately. Classification metrics may not be available
         depending upon how the model was trained.
 
         Returns
@@ -332,7 +382,7 @@ class AdeftDisambiguator(object):
                                           str(count).rjust(count_pad),
                                           str(f1).rjust(metric_pad))
         output += '\n'
-        output += 'Weighted Metrics:\n'
+        output += 'Global Metrics:\n'
         output += '-----------------\n'
         f1 = round(model_stats['f1']['mean'], 5)
         output += '\tF1 score:\t%s\n' % f1

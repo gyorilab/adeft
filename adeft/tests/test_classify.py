@@ -109,6 +109,7 @@ def test_serialize():
     classifier1.dump_model(temp_filename)
 
     classifier2 = load_model(temp_filename)
+    classifier2.other_metadata = {'test': 'This is a test.'}
     classifier2.dump_model(temp_filename)
 
     classifier3 = load_model(temp_filename)
@@ -142,4 +143,5 @@ def test_serialize():
         classifier3.version
     # Check that model params are unchanged
     assert classifier1.params == classifier2.params == classifier3.params
+    assert classifier2.other_metadata == classifier3.other_metadata
     os.remove(temp_filename)
