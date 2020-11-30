@@ -104,6 +104,17 @@ def test_modify_groundings():
     assert ad.names['UP:P06213'] == 'Insulin Receptor'
 
 
+def test_update_pos_labels():
+    """Test updating of positive labels in existing model."""
+    ad1 = load_disambiguator('IR', path=TEST_MODEL_PATH)
+    ad2 = load_disambiguator('IR', path=TEST_MODEL_PATH)
+    ad2.update_pos_labels(ad1.pos_labels)
+    assert ad1.classifier.stats == ad2.classifier.stats
+    ad2.update_pos_labels(ad1.pos_labels + ['MESH:D007333'])
+    assert set(ad2.pos_labels) == set(['HGNC:6091', 'MESH:D011839',
+                                       'MESH:D007333'])
+
+
 @raises(ValueError)
 def test_modify_groundings_error():
     ad = load_disambiguator('IR', path=TEST_MODEL_PATH)
