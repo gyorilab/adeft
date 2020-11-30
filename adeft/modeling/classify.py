@@ -76,6 +76,9 @@ class AdeftClassifier(object):
         `confusion_info[label1][label2][i]` gives the number of test examples
         where the true label is label1 and the classifier has made prediction
         label2 in split i.
+    other_metadata : dict
+        Data set here by the user will be included when the model is serialized
+        and remain available when the classifier is loaded again.
     version : str
         Adeft version used when model was fit
     timestamp : str
@@ -98,6 +101,7 @@ class AdeftClassifier(object):
         self.estimator = None
         self.stats = None
         self.confusion_info = None
+        self.other_metadata = None
         # Add shortforms to list of stopwords
         self.stop = set(english_stopwords).union([sf.lower() for sf
                                                   in self.shortforms])
@@ -374,6 +378,8 @@ class AdeftClassifier(object):
             model_info['version'] = self.version
         if hasattr(self, 'confusion_info') and self.confusion_info is not None:
             model_info['confusion_info'] = self.confusion_info
+        if hasattr(self, 'other_metadata') and self.other_metadata is not None:
+            model_info['other_metadata'] = self.other_metadata
         return model_info
 
     def dump_model(self, filepath):
@@ -538,6 +544,8 @@ def load_model_info(model_info):
         longform_model.version == model_info['version']
     if 'confusion_info' in model_info:
         longform_model.confusion_info = model_info['confusion_info']
+    if 'other_metadata' in model_info:
+        longform_model.other_metadata = model_info['other_metadata']
     return longform_model
 
 
