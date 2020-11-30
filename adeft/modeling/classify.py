@@ -372,6 +372,8 @@ class AdeftClassifier(object):
             model_info['params'] = self.params
         if hasattr(self, 'version') and self.version is not None:
             model_info['version'] = self.version
+        if hasattr(self, 'confusion_info') and self.confusion_info is not None:
+            model_info['confusion_info'] = self.confusion_info
         return model_info
 
     def dump_model(self, filepath):
@@ -534,6 +536,8 @@ def load_model_info(model_info):
         longform_model.params = model_info['params']
     if 'version' in model_info:
         longform_model.version == model_info['version']
+    if 'confusion_info' in model_info:
+        longform_model.confusion_info = model_info['confusion_info']
     return longform_model
 
 
