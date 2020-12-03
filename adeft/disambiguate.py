@@ -191,7 +191,8 @@ class AdeftDisambiguator(object):
             stats['recall']['mean'] = float('nan')
             stats['recall']['std'] = float('nan')
         self.classifier.stats = stats
-        self.pos_labels = pos_labels
+        self.classifier.pos_labels = list(pos_labels)
+        self.pos_labels = list(pos_labels)
 
     def modify_groundings(self, new_groundings=None, new_names=None):
         """Update groundings and standardized names
