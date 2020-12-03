@@ -50,8 +50,9 @@ class AdeftDisambiguator(object):
                             grounding_map in grounding_dict.items()]
         self.grounding_dict = grounding_dict
         self.names = names
-        self.labels = set(value for grounding_map in grounding_dict.values()
-                          for value in grounding_map.values())
+        self.labels = (set(value for grounding_map in grounding_dict.values()
+                           for value in grounding_map.values()) |
+                       set(classifier.estimator.classes_))
         self.pos_labels = classifier.pos_labels
 
     def disambiguate(self, texts):
