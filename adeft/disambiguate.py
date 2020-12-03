@@ -142,6 +142,11 @@ class AdeftDisambiguator(object):
 
         Micro-averaged precision, recall, and f1 scores are also updated.
 
+        Warning: If this method is called on a disambiguator trained with a
+        a version prior to 0.10.0, global precision, recall, and f1 will be set
+        to NaN. Older disambiguators must be retrained to update positive
+        labels and recompute model statistics.
+
         Parameters
         ----------
         pos_labels : list
