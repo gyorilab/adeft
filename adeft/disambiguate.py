@@ -50,8 +50,9 @@ class AdeftDisambiguator(object):
                             grounding_map in grounding_dict.items()]
         self.grounding_dict = grounding_dict
         self.names = names
-        self.labels = set(value for grounding_map in grounding_dict.values()
-                          for value in grounding_map.values())
+        self.labels = (set(value for grounding_map in grounding_dict.values()
+                           for value in grounding_map.values()) |
+                       set(classifier.estimator.classes_))
         self.pos_labels = classifier.pos_labels
 
     def disambiguate(self, texts):
@@ -141,6 +142,11 @@ class AdeftDisambiguator(object):
 
         Micro-averaged precision, recall, and f1 scores are also updated.
 
+        Warning: If this method is called on a disambiguator trained with a
+        a version prior to 0.10.0, global precision, recall, and f1 will be set
+        to NaN. Older disambiguators must be retrained to update positive
+        labels and recompute model statistics.
+
         Parameters
         ----------
         pos_labels : list
@@ -185,7 +191,8 @@ class AdeftDisambiguator(object):
             stats['recall']['mean'] = float('nan')
             stats['recall']['std'] = float('nan')
         self.classifier.stats = stats
-        self.pos_labels = pos_labels
+        self.classifier.pos_labels = list(pos_labels)
+        self.pos_labels = list(pos_labels)
 
     def modify_groundings(self, new_groundings=None, new_names=None):
         """Update groundings and standardized names
