@@ -6,12 +6,14 @@ specified by setting the environment variable ADEFT_HOME in the user's profile.
 """
 
 import os
+import pystow
 from adeft import __version__
 
-
-ADEFT_HOME = os.environ.get('ADEFT_HOME')
-if ADEFT_HOME is None:
-    ADEFT_HOME = os.path.join(os.path.expanduser('~'), '.adeft')
+# If the adeft resource directory does not exist, try to create it using PyStow
+# Can be specified with ADEFT_HOME environment variable, otherwise defaults
+# to $HOME/.data/adeft/<__version__>. The location of $HOME can be overridden with
+# the PYSTOW_HOME environment variable
+ADEFT_HOME = pystow.join('adeft').as_posix()
 
 ADEFT_PATH = os.path.join(ADEFT_HOME, __version__)
 ADEFT_MODELS_PATH = os.path.join(ADEFT_PATH, 'models')
