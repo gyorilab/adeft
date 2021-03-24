@@ -66,7 +66,7 @@ er_dd = load_disambiguator('ER')
 er_dd.disambiguate(texts)
 ```
 
-Users may also build and train their own disambiguators. See the documention
+Users may also build and train their own disambiguators. See the documentation
 for more info.
 
 
@@ -82,16 +82,14 @@ Jupyter notebooks illustrating Adeft workflows are available under `notebooks`:
 
 ## Testing
 
-Adeft uses `nosetests` for unit testing, and is integrated with the Travis
-continuous integration environment. To run tests locally, make sure
-to install the test-specific requirements listed in setup.py as
+Adeft uses `tox` to automate unit testing, and is integrated with the GitHub Actions
+continuous integration environment. To run unit tests locally, simply
+install and run `tox` with the following:
 
 ```bash
-pip install adeft[test]
+$ pip install tox
+$ tox
 ```
-
-and download all pre-trained models as shown above.
-Then run `nosetests` in the top-level `adeft` folder.
 
 ## Funding
 
