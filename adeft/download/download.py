@@ -8,7 +8,7 @@ import requests
 
 
 from adeft.locations import ADEFT_MODELS_PATH, S3_BUCKET_URL, \
-    RESOURCES_PATH, TEST_RESOURCES_PATH
+    RESOURCES_PATH, TEST_RESOURCES_PATH, ADEFT_VERSION_MODULE
 
 
 logger = logging.getLogger(__file__)
@@ -24,7 +24,7 @@ def setup_models_folder():
     return
 
 
-def download_models(models=None):
+def download_models(models=None, force: bool = True):
     """Download models from S3
 
     Models are downloaded and placed into a models directory in the users
@@ -43,6 +43,8 @@ def download_models(models=None):
         models to download. If this option is set, update will be treated
         as True regardless of how it was set. These should be considered
         as mutually exclusive parameters.
+    force : bool
+        Should the models be forced to be re-downloaded? Defaults to true.
     """
     s3_models = set(get_s3_models().values())
     if models is None:
@@ -50,20 +52,14 @@ def download_models(models=None):
     else:
         models = set(models) & set(s3_models)
     for model in models:
-        # create model directory if it does not currently exist
-        if not os.path.exists(os.path.join(ADEFT_MODELS_PATH, model)):
-            os.makedirs(os.path.join(ADEFT_MODELS_PATH, model))
-        for resource in (model + '_grounding_dict.json',
-                         model + '_names.json',
-                         model + '_model.gz'):
-            resource_path = os.path.join(ADEFT_MODELS_PATH, model, resource)
-            # if resource already exists, remove it since wget will not
-            # overwrite existing files, choosing a new name instead
-            _remove_if_exists(resource_path)
-            wget.download(url=os.path.join(S3_BUCKET_URL, 'Models',
-                                           model, resource),
-                          out=resource_path)
-
+        for suffix in ('grounding_dict.json', 'names.json', 'model.gz'):
+            name = f'{model}_{suffix}'
+            ADEFT_VERSION_MODULE.ensure(
+                model,
+                name=name,
+                url=os.path.join(S3_BUCKET_URL, 'Models', model, name),
+                force=force,
+            )
 
 def setup_resources_folder():
     """Make resources folder and download resources
@@ -81,11 +77,9 @@ def download_resources():
     for resource in resources:
         resource_path = os.path.join(RESOURCES_PATH, resource)
         _remove_if_exists(resource_path + '.gz')
-        wget.download(url=os.path.join(S3_BUCKET_URL, 'Resources',
-                                       resource + '.gz'),
+        wget.download(url=os.path.join(S3_BUCKET_URL, 'Resources', resource + '.gz'),
                       out=resource_path + '.gz')
-        with gzip.open(os.path.join(RESOURCES_PATH, resource + '.gz'),
-                       'rb') as f_in:
+        with gzip.open(os.path.join(RESOURCES_PATH, resource + '.gz'), 'rb') as f_in:
             with open(os.path.join(RESOURCES_PATH, resource), 'wb') as f_out:
                 shutil.copyfileobj(f_in, f_out)
         os.remove(resource_path + '.gz')
