@@ -8,7 +8,7 @@ import requests
 
 
 from adeft.locations import ADEFT_MODELS_PATH, S3_BUCKET_URL, \
-    RESOURCES_PATH, TEST_RESOURCES_PATH, ADEFT_VERSION_MODULE
+    RESOURCES_PATH, TEST_RESOURCES_PATH, ADEFT_MODULE
 
 
 logger = logging.getLogger(__file__)
@@ -54,12 +54,13 @@ def download_models(models=None, force: bool = True):
     for model in models:
         for suffix in ('grounding_dict.json', 'names.json', 'model.gz'):
             name = f'{model}_{suffix}'
-            ADEFT_VERSION_MODULE.ensure(
+            ADEFT_MODULE.ensure(
                 model,
                 name=name,
                 url=os.path.join(S3_BUCKET_URL, 'Models', model, name),
                 force=force,
             )
+
 
 def setup_resources_folder():
     """Make resources folder and download resources
