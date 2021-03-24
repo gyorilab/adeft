@@ -2,7 +2,7 @@
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.01708/status.svg)](https://doi.org/10.21105/joss.01708)
 [![DOI](https://zenodo.org/badge/156276061.svg)](https://zenodo.org/badge/latestdoi/156276061)
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
-[![Build](https://travis-ci.org/indralab/adeft.svg)](https://travis-ci.org/indralab/adeft)
+[![Tests](https://github.com/indralab/adeft/actions/workflows/tests.yml/badge.svg)](https://github.com/indralab/adeft/actions/workflows/tests.yml)
 [![Documentation](https://readthedocs.org/projects/adeft/badge/?version=latest)](https://adeft.readthedocs.io/en/latest/?badge=latest)
 [![PyPI version](https://badge.fury.io/py/adeft.svg)](https://badge.fury.io/py/adeft)
 [![Python 3](https://img.shields.io/pypi/pyversions/adeft.svg)](https://www.python.org/downloads/release/python-357/)
