@@ -17,7 +17,7 @@ from adeft import __version__
 # the PYSTOW_HOME environment variable
 ADEFT_HOME = pystow.join('adeft').as_posix()
 
-ADEFT_MODULE = pystow.module(ADEFT_HOME, __version__)
+ADEFT_MODULE = pystow.module('adeft', __version__)
 ADEFT_PATH = os.path.join(ADEFT_HOME, __version__)
 ADEFT_MODELS_PATH = os.path.join(ADEFT_PATH, 'models')
 RESOURCES_MODULE = ADEFT_MODULE.submodule('resources')
