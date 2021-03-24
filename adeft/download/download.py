@@ -1,15 +1,13 @@
-import os
 import gzip
 import json
-import wget
-import shutil
 import logging
+import os
+import shutil
+
 import requests
+import wget
 
-
-from adeft.locations import ADEFT_MODELS_PATH, S3_BUCKET_URL, \
-    RESOURCES_PATH, TEST_RESOURCES_PATH, ADEFT_MODULE
-
+from adeft.locations import ADEFT_MODELS_PATH, ADEFT_MODULE, RESOURCES_PATH, S3_BUCKET_URL, TEST_RESOURCES_PATH
 
 logger = logging.getLogger(__file__)
 
