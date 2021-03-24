@@ -3,6 +3,8 @@ import json
 import logging
 import os
 import shutil
+from pathlib import Path
+from typing import Optional, Union
 
 import requests
 import wget
@@ -71,17 +73,25 @@ def setup_resources_folder():
     download_resources()
 
 
-def download_resources():
-    resources = ['groundings.csv']
-    for resource in resources:
+def download_resources(force: bool = True):
+    resources = [
+        ('groundings.csv', 'groundings.csv.gz'),
+    ]
+    for resource, resource_gz in resources:
         resource_path = os.path.join(RESOURCES_PATH, resource)
-        _remove_if_exists(resource_path + '.gz')
-        wget.download(url=os.path.join(S3_BUCKET_URL, 'Resources', resource + '.gz'),
-                      out=resource_path + '.gz')
-        with gzip.open(os.path.join(RESOURCES_PATH, resource + '.gz'), 'rb') as f_in:
-            with open(os.path.join(RESOURCES_PATH, resource), 'wb') as f_out:
-                shutil.copyfileobj(f_in, f_out)
-        os.remove(resource_path + '.gz')
+        resource_path_gz = os.path.join(RESOURCES_PATH, resource_gz)
+        if force:
+            _remove_if_exists(resource_path_gz)
+        url = os.path.join(S3_BUCKET_URL, 'Resources', resource_path_gz)
+        wget.download(url=url, out=resource_path_gz)
+        gunzip(resource_path_gz, resource_path)
+
+
+def gunzip(in_path: Union[str, Path], out_path: Union[str, Path]) -> None:
+    """Decompress the in file and write it to the out path, then delete the original."""
+    with gzip.open(in_path, 'rb') as f_in, open(out_path, 'wb') as f_out:
+        shutil.copyfileobj(f_in, f_out)
+    os.remove(in_path)
 
 
 def setup_test_resource_folder():
@@ -125,8 +135,11 @@ def download_test_resources():
                                        'example_training_data.json'))
 
 
-def get_available_models(path=ADEFT_MODELS_PATH):
+def get_available_models(path: Optional[str] = None):
     """Returns set of all models currently in models folder"""
+    if path is None:
+        path = ADEFT_MODELS_PATH
+
     if not os.path.exists(path):
         return {}
     output = {}
@@ -151,8 +164,7 @@ def get_available_models(path=ADEFT_MODELS_PATH):
 
 def get_s3_models():
     """Returns set of all models currently available on s3"""
-    result = requests.get(os.path.join(S3_BUCKET_URL, 'Models',
-                                       's3_models.json'))
+    result = requests.get(os.path.join(S3_BUCKET_URL, 'Models', 's3_models.json'))
     try:
         output = result.json()
         assert isinstance(output, dict)

@@ -6,7 +6,9 @@ specified by setting the environment variable ADEFT_HOME in the user's profile.
 """
 
 import os
+
 import pystow
+
 from adeft import __version__
 
 # If the adeft resource directory does not exist, try to create it using PyStow
@@ -18,7 +20,16 @@ ADEFT_HOME = pystow.join('adeft').as_posix()
 ADEFT_MODULE = pystow.module(ADEFT_HOME, __version__)
 ADEFT_PATH = os.path.join(ADEFT_HOME, __version__)
 ADEFT_MODELS_PATH = os.path.join(ADEFT_PATH, 'models')
+RESOURCES_MODULE = ADEFT_MODULE.submodule('resources')
+
+# TODO remove
 RESOURCES_PATH = os.path.join(ADEFT_PATH, 'resources')
-GROUNDINGS_FILE_PATH = os.path.join(RESOURCES_PATH, 'groundings.csv')
+
+
+def get_groundings_file_path():
+    return os.path.join(RESOURCES_PATH, 'groundings.csv')
+
+
+GROUNDINGS_FILE_PATH = get_groundings_file_path()
 TEST_RESOURCES_PATH = os.path.join(ADEFT_PATH, 'test_resources')
 S3_BUCKET_URL = os.path.join('http://adeft.s3.amazonaws.com', __version__)
