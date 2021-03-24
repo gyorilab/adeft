@@ -60,8 +60,8 @@ def download_models(models=None):
             # if resource already exists, remove it since wget will not
             # overwrite existing files, choosing a new name instead
             _remove_if_exists(resource_path)
-            wget.download(url=os.path.join(S3_BUCKET_URL, 'Models',
-                                           model, resource),
+            wget.download(url='/'.join((S3_BUCKET_URL, 'Models',
+                                        model, resource)),
                           out=resource_path)
 
 
@@ -79,16 +79,15 @@ def setup_resources_folder():
 def download_resources():
     resources = ['groundings.csv']
     for resource in resources:
-        resource_path = os.path.join(RESOURCES_PATH, resource)
-        _remove_if_exists(resource_path + '.gz')
-        wget.download(url=os.path.join(S3_BUCKET_URL, 'Resources',
-                                       resource + '.gz'),
-                      out=resource_path + '.gz')
-        with gzip.open(os.path.join(RESOURCES_PATH, resource + '.gz'),
-                       'rb') as f_in:
+        resource_path = os.path.join(RESOURCES_PATH, f'{resource}.gz')
+        _remove_if_exists(resource_path)
+        wget.download(url='/'.join((S3_BUCKET_URL, 'Resources',
+                                    f'{resource}.gz')),
+                      out=resource_path)
+        with gzip.open(resource_path, 'rb') as f_in:
             with open(os.path.join(RESOURCES_PATH, resource), 'wb') as f_out:
                 shutil.copyfileobj(f_in, f_out)
-        os.remove(resource_path + '.gz')
+        os.remove(resource_path)
 
 
 def setup_test_resource_folder():
@@ -121,13 +120,13 @@ def download_test_resources():
         os.mkdir(test_model_path)
     for resource in ('IR_grounding_dict.json', 'IR_names.json', 'IR_model.gz'):
         if not os.path.exists(os.path.join(test_model_path, resource)):
-            wget.download(url=os.path.join(S3_BUCKET_URL, 'Test', 'IR',
-                                           resource),
+            wget.download(url='/'.join((S3_BUCKET_URL, 'Test', 'IR',
+                                        resource)),
                           out=os.path.join(test_model_path, resource))
     if not os.path.exists(os.path.join(TEST_RESOURCES_PATH,
                                        'example_training_data.json')):
-        wget.download(url=os.path.join(S3_BUCKET_URL, 'Test',
-                                       'example_training_data.json'),
+        wget.download(url='/'.join((S3_BUCKET_URL, 'Test',
+                                   'example_training_data.json')),
                       out=os.path.join(TEST_RESOURCES_PATH,
                                        'example_training_data.json'))
 
@@ -158,8 +157,8 @@ def get_available_models(path=ADEFT_MODELS_PATH):
 
 def get_s3_models():
     """Returns set of all models currently available on s3"""
-    result = requests.get(os.path.join(S3_BUCKET_URL, 'Models',
-                                       's3_models.json'))
+    result = requests.get('/'.join((S3_BUCKET_URL, 'Models',
+                                    's3_models.json')))
     try:
         output = result.json()
         assert isinstance(output, dict)

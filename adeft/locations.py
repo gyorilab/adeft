@@ -13,11 +13,11 @@ from adeft import __version__
 # Can be specified with ADEFT_HOME environment variable, otherwise defaults
 # to $HOME/.data/adeft/<__version__>. The location of $HOME can be overridden with
 # the PYSTOW_HOME environment variable
-ADEFT_HOME = pystow.join('adeft').as_posix()
+ADEFT_HOME = pystow.join('adeft')
 
 ADEFT_PATH = os.path.join(ADEFT_HOME, __version__)
 ADEFT_MODELS_PATH = os.path.join(ADEFT_PATH, 'models')
 RESOURCES_PATH = os.path.join(ADEFT_PATH, 'resources')
 GROUNDINGS_FILE_PATH = os.path.join(RESOURCES_PATH, 'groundings.csv')
 TEST_RESOURCES_PATH = os.path.join(ADEFT_PATH, 'test_resources')
-S3_BUCKET_URL = os.path.join('http://adeft.s3.amazonaws.com', __version__)
+S3_BUCKET_URL = f'https://adeft.s3.amazonaws.com/{__version__}'
