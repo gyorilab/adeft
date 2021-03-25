@@ -57,12 +57,11 @@ def download_models(models=None):
                          model + '_names.json',
                          model + '_model.gz'):
             resource_path = os.path.join(ADEFT_MODELS_PATH, model, resource)
-            # if resource already exists, remove it since wget will not
-            # overwrite existing files, choosing a new name instead
-            _remove_if_exists(resource_path)
-            wget.download(url='/'.join((S3_BUCKET_URL, 'Models',
-                                        model, resource)),
-                          out=resource_path)
+            if not os.path.exists(resource_path):
+                wget.download(
+                    url='/'.join((S3_BUCKET_URL, 'Models', model, resource)),
+                    out=resource_path,
+                )
 
 
 def setup_resources_folder():
