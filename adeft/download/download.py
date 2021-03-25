@@ -78,11 +78,15 @@ def setup_resources_folder():
 def download_resources():
     resources = ['groundings.csv']
     for resource in resources:
+        resource_path_unzipped = os.path.join(RESOURCES_PATH, resource)
+        if os.path.exists(resource_path_unzipped):
+            continue  # no need to re-download and unpack again
         resource_path = os.path.join(RESOURCES_PATH, f'{resource}.gz')
-        _remove_if_exists(resource_path)
-        wget.download(url='/'.join((S3_BUCKET_URL, 'Resources',
-                                    f'{resource}.gz')),
-                      out=resource_path)
+        if not os.path.exists(resource_path):
+            wget.download(
+                url='/'.join((S3_BUCKET_URL, 'Resources', f'{resource}.gz')),
+                out=resource_path,
+            )
         with gzip.open(resource_path, 'rb') as f_in:
             with open(os.path.join(RESOURCES_PATH, resource), 'wb') as f_out:
                 shutil.copyfileobj(f_in, f_out)
@@ -165,17 +169,3 @@ def get_s3_models():
         output = {}
         logger.warning('Online deft models are currently unavailable')
     return output
-
-
-def _remove_if_exists(path):
-    """Remove file if it exists, otherwise do nothing
-
-    Parameters
-    ----------
-    path : str
-        file to attempt to remove
-    """
-    try:
-        os.remove(path)
-    except OSError:
-        pass
