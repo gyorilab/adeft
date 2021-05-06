@@ -23,4 +23,4 @@ jobs:
           python -m adeft.download
       - name: Test with nose
         run:
-          nosetests adeft -v --with-coverage --cover-inclusive --cover-package=adeft
+          pytest --cov=adeft
