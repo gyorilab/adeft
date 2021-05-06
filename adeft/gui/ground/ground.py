@@ -5,7 +5,9 @@ from numpy import argsort
 
 from flask import Blueprint, request, render_template, session, current_app
 
-bp = Blueprint('ground', __name__)
+here = os.path.dirname(os.path.realpath(__file__))
+bp = Blueprint('ground', __name__,
+               template_folder=os.path.join(here, 'templates'))
 
 
 @bp.route('/ground_add', methods=['POST'])
