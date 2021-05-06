@@ -2,8 +2,8 @@ import os
 import uuid
 import json
 import shutil
+import pytest
 import logging
-from nose.tools import raises
 
 from numpy import array_equal
 
@@ -115,7 +115,7 @@ def test_update_pos_labels():
                                        'MESH:D007333'])
 
 
-@raises(ValueError)
 def test_modify_groundings_error():
     ad = load_disambiguator('IR', path=TEST_MODEL_PATH)
-    ad.modify_groundings(new_groundings={'MESH:D011839': 'HGNC:6091'})
+    with pytest.raises(ValueError):
+        ad.modify_groundings(new_groundings={'MESH:D011839': 'HGNC:6091'})

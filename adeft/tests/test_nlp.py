@@ -1,5 +1,4 @@
-from nose.tools import raises
-
+import pytest
 from adeft.nlp import WatchfulStemmer, word_tokenize, word_detokenize
 
 
@@ -31,7 +30,6 @@ def test_tokenize_untokenize():
         assert word_detokenize(result) == text
 
 
-@raises(ValueError)
 def test_watchful_stemmer():
     """Test the watchful stemmer"""
     stemmer = WatchfulStemmer()
@@ -51,4 +49,5 @@ def test_watchful_stemmer():
     assert stemmer.counts['verbif']['verbifications'] == 3
 
     # raises value error if stem has not been observed
-    stemmer.most_frequent('ver')
+    with pytest.raises(ValueError):
+        stemmer.most_frequent('ver')
