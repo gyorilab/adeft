@@ -47,7 +47,6 @@ def test_train():
     assert np.array_equal(coef1, coef2)
 
 
-@attr('slow')
 def test_cv_multiclass():
     params = {'C': [1.0],
               'max_features': [10]}
@@ -65,7 +64,6 @@ def test_cv_multiclass():
     assert np.array_equal(coef1, coef2)
 
 
-@attr('slow')
 def test_cv_binary():
     params = {'C': [1.0],
               'max_features': [10]}
