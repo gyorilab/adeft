@@ -82,7 +82,7 @@ Jupyter notebooks illustrating Adeft workflows are available under `notebooks`:
 
 ## Testing
 
-Adeft uses `nosetests` for unit testing, and is integrated with the Travis
+Adeft uses `pytest` for unit testing, and uses Github Actions as a
 continuous integration environment. To run tests locally, make sure
 to install the test-specific requirements listed in setup.py as
 
@@ -91,7 +91,7 @@ pip install adeft[test]
 ```
 
 and download all pre-trained models as shown above.
-Then run `nosetests` in the top-level `adeft` folder.
+Then run `pytest` in the top-level `adeft` folder.
 
 ## Funding
 

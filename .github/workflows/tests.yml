@@ -21,6 +21,6 @@ jobs:
           pip install .[test]
           python setup.py build_ext --inplace
           python -m adeft.download
-      - name: Test with nose
+      - name: Test with pytest
         run:
-          nosetests adeft -v --with-coverage --cover-inclusive --cover-package=adeft
+          pytest --cov=adeft

@@ -47,7 +47,7 @@ setup(name='adeft',
       packages=find_packages(),
       install_requires=['nltk', 'scikit-learn>=0.20.0', 'wget',
                         'requests', 'flask', 'pystow'],
-      extras_require={'test': ['nose', 'coverage', 'python-coveralls']},
+      extras_require={'test': ['pytest', 'pytest-cov']},
       keywords=['nlp', 'biology', 'disambiguation'],
       ext_modules=extensions,
       include_package_data=True)

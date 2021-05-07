@@ -5,6 +5,7 @@ from numpy import argsort
 
 from flask import Blueprint, request, render_template, session, current_app
 
+here = os.path.dirname(os.path.realpath(__file__))
 bp = Blueprint('ground', __name__)
 
 

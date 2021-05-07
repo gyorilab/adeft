@@ -173,8 +173,8 @@ class AdeftDisambiguator(object):
                         FP += row
             Pr = TP/(TP + FP)
             Rc = TP/(TP + FN)
-            Pr[Pr == np.float('inf')] = 0.
-            Rc[Rc == np.float('inf')] = 0.
+            Pr[Pr == float('inf')] = 0.
+            Rc[Rc == float('inf')] = 0.
             F1 = 2/(1/Pr + 1/Rc)
             stats['f1']['mean'] = np.round(np.mean(F1), 6)
             stats['f1']['std'] = np.round(np.std(F1), 6)

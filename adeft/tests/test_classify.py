@@ -2,7 +2,6 @@ import os
 import uuid
 import json
 import numpy as np
-from nose.plugins.attrib import attr
 from sklearn.metrics import f1_score
 
 from adeft.locations import TEST_RESOURCES_PATH
@@ -22,7 +21,6 @@ with open(os.path.join(TEST_RESOURCES_PATH,
 
 # The classifier works slightly differently for multiclass than it does for
 # binary labels. Both cases must be tested separately.
-@attr('slow')
 def test_train():
     params = {'C': 1.0,
               'ngram_range': (1, 2),
@@ -49,7 +47,6 @@ def test_train():
     assert np.array_equal(coef1, coef2)
 
 
-@attr('slow')
 def test_cv_multiclass():
     params = {'C': [1.0],
               'max_features': [10]}
@@ -67,7 +64,6 @@ def test_cv_multiclass():
     assert np.array_equal(coef1, coef2)
 
 
-@attr('slow')
 def test_cv_binary():
     params = {'C': [1.0],
               'max_features': [10]}

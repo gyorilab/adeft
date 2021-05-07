@@ -1,1 +1,3 @@
 include adeft/nlp/stopwords.json
+graft adeft/gui/ground/static
+graft adeft/gui/ground/templates
