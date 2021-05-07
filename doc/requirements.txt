@@ -5,3 +5,4 @@ nltk
 wget
 requests
 flask
+appdirs
