@@ -36,9 +36,7 @@ def create_app(longforms, scores,
                 identifiers_dict[namespace]['id_name'][identifier] = name
     identifiers_dict = dict(identifiers_dict)
 
-    here = os.path.dirname(os.path.realpath(__file__))
-    app = Flask(__name__,
-                template_folder=os.path.join(here, 'templates'))
+    app = Flask(__name__)
     # longforms, scores, and outpath will not change. These can be stored
     # in config variables
     app.config.from_mapping(SECRET_KEY='dev',
