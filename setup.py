@@ -39,10 +39,11 @@ setup(name='adeft',
       author_email='albert_steppi@hms.harvard.edu',
       classifiers=[
           'Development Status :: 4 - Beta',
-          'Programming Language :: Python :: 3.5',
+          'License :: OSI Approved :: BSD License',
           'Programming Language :: Python :: 3.6',
           'Programming Language :: Python :: 3.7',
-          'Programming Language :: Python :: 3.8'
+          'Programming Language :: Python :: 3.8',
+          'Programming Language :: Python :: 3.9'
       ],
       packages=find_packages(),
       install_requires=['nltk', 'scikit-learn>=0.20.0', 'wget',
