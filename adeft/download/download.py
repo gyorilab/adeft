@@ -94,7 +94,7 @@ def download_resources():
                     os.path.join(loc.RESOURCES_PATH, resource), 'wb'
             ) as f_out:
                 shutil.copyfileobj(f_in, f_out)
-                os.remove(resource_path)
+        os.remove(resource_path)
 
 
 def setup_test_resource_folder():
