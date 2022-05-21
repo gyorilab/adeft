@@ -61,8 +61,8 @@ def download_models(models=None):
             resource_path = os.path.join(
                 loc.ADEFT_MODELS_PATH, model, resource
             )
-            # if resource already exists, remove it since wget will not
-            # overwrite existing files, choosing a new name instead
+            # if resource already exists, remove it. Ensures that
+            # models path stays in a consistent state.
             _remove_if_exists(resource_path)
             download_adeft_object(
                 'Models', model, resource, outpath=resource_path
