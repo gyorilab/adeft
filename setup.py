@@ -46,8 +46,9 @@ setup(name='adeft',
           'Programming Language :: Python :: 3.9'
       ],
       packages=find_packages(),
-      install_requires=['nltk', 'scikit-learn>=0.20.0', 'wget',
-                        'requests', 'flask', 'appdirs'],
+      install_requires=[
+          'nltk', 'scikit-learn>=0.20.0', 'boto3', 'flask', 'appdirs'
+      ],
       extras_require={'test': ['pytest', 'pytest-cov']},
       keywords=['nlp', 'biology', 'disambiguation'],
       ext_modules=extensions,
