@@ -36,7 +36,7 @@ setup(name='adeft',
       url='https://github.com/indralab/adeft',
       download_url='https://github.com/indralab/adeft/archive/0.11.1.tar.gz',
       author='adeft developers, Harvard Medical School',
-      author_email='albert_steppi@hms.harvard.edu',
+      author_email='albert.steppi@gmail.com',
       classifiers=[
           'Development Status :: 4 - Beta',
           'License :: OSI Approved :: BSD License',
