@@ -19,4 +19,6 @@ ADEFT_MODELS_PATH = os.path.join(ADEFT_PATH, 'models')
 RESOURCES_PATH = os.path.join(ADEFT_PATH, 'resources')
 GROUNDINGS_FILE_PATH = os.path.join(RESOURCES_PATH, 'groundings.csv')
 TEST_RESOURCES_PATH = os.path.join(ADEFT_PATH, 'test_resources')
-S3_BUCKET_URL = f'https://adeft.s3.amazonaws.com/{__version__}'
+S3_BUCKET = "adeft"
+BUCKET_REGION = "us-east-1"
+S3_KEY_PREFIX = __version__
