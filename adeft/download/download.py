@@ -180,7 +180,7 @@ def get_s3_models():
 
 
 def download_adeft_object(*args, outpath):
-    print(f"Downloading {'/'.join(args)}")
+    logger.info(f"Downloading {'/'.join(args)}")
     return _anonymous_s3_download(loc.S3_BUCKET, _get_s3_key(*args), outpath)
 
 
