@@ -1,14 +1,14 @@
+import adeft.locations as loc
+import boto3
+import botocore
 import os
 import gzip
 import json
-import wget
 import shutil
 import logging
-import requests
 
-
-from adeft.locations import ADEFT_MODELS_PATH, S3_BUCKET_URL, \
-    RESOURCES_PATH, TEST_RESOURCES_PATH
+from botocore import UNSIGNED
+from botocore.config import Config
 
 
 logger = logging.getLogger(__file__)
@@ -17,9 +17,9 @@ logger = logging.getLogger(__file__)
 def setup_models_folder():
     """Create models folder if it does not exist and download models
     """
-    if os.path.isdir(ADEFT_MODELS_PATH):
-        shutil.rmtree(ADEFT_MODELS_PATH)
-    os.mkdir(ADEFT_MODELS_PATH)
+    if os.path.isdir(loc.ADEFT_MODELS_PATH):
+        shutil.rmtree(loc.ADEFT_MODELS_PATH)
+    os.mkdir(loc.ADEFT_MODELS_PATH)
     download_models()
     return
 
@@ -51,18 +51,22 @@ def download_models(models=None):
         models = set(models) & set(s3_models)
     for model in models:
         # create model directory if it does not currently exist
-        if not os.path.exists(os.path.join(ADEFT_MODELS_PATH, model)):
-            os.makedirs(os.path.join(ADEFT_MODELS_PATH, model))
-        for resource in (model + '_grounding_dict.json',
-                         model + '_names.json',
-                         model + '_model.gz'):
-            resource_path = os.path.join(ADEFT_MODELS_PATH, model, resource)
+        if not os.path.exists(os.path.join(loc.ADEFT_MODELS_PATH, model)):
+            os.makedirs(os.path.join(loc.ADEFT_MODELS_PATH, model))
+        for resource in (
+                model + '_grounding_dict.json',
+                model + '_names.json',
+                model + '_model.gz'
+        ):
+            resource_path = os.path.join(
+                loc.ADEFT_MODELS_PATH, model, resource
+            )
             # if resource already exists, remove it since wget will not
             # overwrite existing files, choosing a new name instead
             _remove_if_exists(resource_path)
-            wget.download(url='/'.join((S3_BUCKET_URL, 'Models',
-                                        model, resource)),
-                          out=resource_path)
+            download_adeft_object(
+                'Models', model, resource, outpath=resource_path
+            )
 
 
 def setup_resources_folder():
@@ -70,24 +74,27 @@ def setup_resources_folder():
 
     Replaces content in existing resources folder if it already exists
     """
-    if os.path.isdir(RESOURCES_PATH):
-        shutil.rmtree(RESOURCES_PATH)
-    os.mkdir(RESOURCES_PATH)
+    if os.path.isdir(loc.RESOURCES_PATH):
+        shutil.rmtree(loc.RESOURCES_PATH)
+    os.mkdir(loc.RESOURCES_PATH)
     download_resources()
 
 
 def download_resources():
     resources = ['groundings.csv']
     for resource in resources:
-        resource_path = os.path.join(RESOURCES_PATH, f'{resource}.gz')
+        resource_path = os.path.join(loc.RESOURCES_PATH, f'{resource}.gz')
         _remove_if_exists(resource_path)
-        wget.download(url='/'.join((S3_BUCKET_URL, 'Resources',
-                                    f'{resource}.gz')),
-                      out=resource_path)
+        download_adeft_object(
+            'Resources', f'{resource}.gz',
+            outpath=resource_path
+        )
         with gzip.open(resource_path, 'rb') as f_in:
-            with open(os.path.join(RESOURCES_PATH, resource), 'wb') as f_out:
+            with open(
+                    os.path.join(loc.RESOURCES_PATH, resource), 'wb'
+            ) as f_out:
                 shutil.copyfileobj(f_in, f_out)
-        os.remove(resource_path)
+                os.remove(resource_path)
 
 
 def setup_test_resource_folder():
@@ -96,12 +103,12 @@ def setup_test_resource_folder():
     Replaces content in existing test_resource_folders if they already
     exist.
     """
-    if os.path.isdir(TEST_RESOURCES_PATH):
-        shutil.rmtree(TEST_RESOURCES_PATH)
-    os.mkdir(TEST_RESOURCES_PATH)
-    os.mkdir(os.path.join(TEST_RESOURCES_PATH, 'test_model'))
-    os.mkdir(os.path.join(TEST_RESOURCES_PATH, 'scratch'))
-    os.mkdir(os.path.join(TEST_RESOURCES_PATH, 'test_model', 'IR'))
+    if os.path.isdir(loc.TEST_RESOURCES_PATH):
+        shutil.rmtree(loc.TEST_RESOURCES_PATH)
+    os.mkdir(loc.TEST_RESOURCES_PATH)
+    os.mkdir(os.path.join(loc.TEST_RESOURCES_PATH, 'test_model'))
+    os.mkdir(os.path.join(loc.TEST_RESOURCES_PATH, 'scratch'))
+    os.mkdir(os.path.join(loc.TEST_RESOURCES_PATH, 'test_model', 'IR'))
     download_test_resources()
     return
 
@@ -115,23 +122,27 @@ def download_test_resources():
     not already exist they will be created when running
     python -m adeft.download
     """
-    test_model_path = os.path.join(TEST_RESOURCES_PATH, 'test_model', 'IR')
+    test_model_path = os.path.join(loc.TEST_RESOURCES_PATH, 'test_model', 'IR')
     if not os.path.exists(test_model_path):
         os.mkdir(test_model_path)
     for resource in ('IR_grounding_dict.json', 'IR_names.json', 'IR_model.gz'):
         if not os.path.exists(os.path.join(test_model_path, resource)):
-            wget.download(url='/'.join((S3_BUCKET_URL, 'Test', 'IR',
-                                        resource)),
-                          out=os.path.join(test_model_path, resource))
-    if not os.path.exists(os.path.join(TEST_RESOURCES_PATH,
+            download_adeft_object(
+                'Test', 'IR', resource,
+                outpath=os.path.join(test_model_path, resource),
+            )
+    if not os.path.exists(os.path.join(loc.TEST_RESOURCES_PATH,
                                        'example_training_data.json')):
-        wget.download(url='/'.join((S3_BUCKET_URL, 'Test',
-                                   'example_training_data.json')),
-                      out=os.path.join(TEST_RESOURCES_PATH,
-                                       'example_training_data.json'))
+        download_adeft_object(
+            'Test', 'example_training_data.json',
+            outpath=os.path.join(
+                loc.TEST_RESOURCES_PATH,
+                'example_training_data.json'
+            ),
+        )
 
 
-def get_available_models(path=ADEFT_MODELS_PATH):
+def get_available_models(path=loc.ADEFT_MODELS_PATH):
     """Returns set of all models currently in models folder"""
     if not os.path.exists(path):
         return {}
@@ -157,15 +168,37 @@ def get_available_models(path=ADEFT_MODELS_PATH):
 
 def get_s3_models():
     """Returns set of all models currently available on s3"""
-    result = requests.get('/'.join((S3_BUCKET_URL, 'Models',
-                                    's3_models.json')))
     try:
-        output = result.json()
-        assert isinstance(output, dict)
-    except json.JSONDecodeError or AssertionError:
-        output = {}
-        logger.warning('Online deft models are currently unavailable')
-    return output
+        response = _read_s3_content(
+            bucket=loc.S3_BUCKET,
+            key=_get_s3_key('Models', 's3_models.json'),
+        )
+    except botocore.exceptions.ClientError:
+        logger.warning("Online Adeft models not available.")
+        return
+    return json.loads(response["Body"].read())
+
+
+def download_adeft_object(*args, outpath):
+    print(f"Downloading {'/'.join(args)}")
+    return _anonymous_s3_download(loc.S3_BUCKET, _get_s3_key(*args), outpath)
+
+
+def _get_s3_key(*args):
+    return '/'.join((loc.S3_KEY_PREFIX, ) + args)
+
+
+def _read_s3_content(bucket, key):
+    config = Config(signature_version=UNSIGNED)
+    s3 = boto3.client('s3', config=config, region_name='us-east-1')
+    response = s3.get_object(Bucket=bucket, Key=key)
+    return response
+
+
+def _anonymous_s3_download(bucket, key, outpath):
+    config = Config(signature_version=UNSIGNED)
+    s3 = boto3.client('s3', config=config, region_name='us-east-1')
+    s3.download_file(bucket, key, outpath)
 
 
 def _remove_if_exists(path):
