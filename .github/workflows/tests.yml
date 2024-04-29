@@ -18,6 +18,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
+          pip install setuptools
           pip install .[test]
           python setup.py build_ext --inplace
           python -m adeft.download
