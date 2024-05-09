@@ -103,8 +103,10 @@ class AdeftClassifier(object):
         self.confusion_info = None
         self.other_metadata = None
         # Add shortforms to list of stopwords
-        self.stop = set(english_stopwords).union([sf.lower() for sf
-                                                  in self.shortforms])
+        self.stop = list(
+            set(english_stopwords).union([sf.lower() for sf
+                                          in self.shortforms])
+        )
         self.best_score = None
         self.grid_search = None
         self.version = __version__
@@ -217,12 +219,15 @@ class AdeftClassifier(object):
         # This means metrics are calculated globally by counting all true
         # positives, false negatives, and false positives
         f1_scorer = make_scorer(f1_score, labels=self.pos_labels,
+                                pos_label=None,
                                 average='micro')
         pr_scorer = make_scorer(precision_score,
                                 labels=self.pos_labels,
+                                pos_label=None,
                                 average='micro')
         rc_scorer = make_scorer(recall_score,
                                 labels=self.pos_labels,
+                                pos_label=None,
                                 average='micro')
 
         scorer = {'f1': f1_scorer,
@@ -230,9 +235,9 @@ class AdeftClassifier(object):
                   'rc': rc_scorer}
         all_labels = sorted(set(y))
         for label in all_labels:
-            f1 = make_scorer(f1_score, labels=[label], average=None)
-            pr = make_scorer(recall_score, labels=[label], average=None)
-            rc = make_scorer(precision_score, labels=[label], average=None)
+            f1 = make_scorer(f1_score, labels=[label], pos_label=None, average=None)
+            pr = make_scorer(recall_score, labels=[label], pos_label=None, average=None)
+            rc = make_scorer(precision_score, labels=[label], pos_label=None, average=None)
             scorer.update({'f1_%s' % label: f1,
                            'pr_%s' % label: pr,
                            'rc_%s' % label: rc})
@@ -424,7 +429,7 @@ class AdeftClassifier(object):
         output = {}
         tfidf = self.estimator.named_steps['tfidf']
         logit = self.estimator.named_steps['logit']
-        feature_names = tfidf.get_feature_names()
+        feature_names = tfidf.get_feature_names_out()
         classes = logit.classes_
         # Binary and multiclass cases most be handled separately
         # When there are greater than two classes, the logistic
