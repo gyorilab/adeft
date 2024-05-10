@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "adeft"
-version = "0.12.0"
+version = "0.12.3"
 keywords=['nlp', 'biology', 'disambiguation']
 license = {file = "LICENSE"}
 description = "Acromine based Disambiguation of Entities From Text"

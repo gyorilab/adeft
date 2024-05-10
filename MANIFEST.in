@@ -2,3 +2,4 @@ include src/adeft/nlp/stopwords.json
 graft src/adeft/gui/ground/static
 graft src/adeft/gui/ground/templates
 include src/adeft/score/_score.pyx
+include src/adeft/score/permutations.pyx
