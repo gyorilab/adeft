@@ -156,3 +156,29 @@ class SearchTrie(object):
             current = current.children[mapped_token]
         match_text = ' '.join(match_text[::-1])
         return result, match_text
+
+
+def str2filename(name: str) -> str:
+    """Convert name into a string which can be safely used in filenames
+
+    For good or ill, adeft extensively uses shortform names in file and
+    directory names, which requires special care to work across
+    platforms, e.g. by default Mac OS uses case insensitive filesystem
+    by default. This function replaces lower case letters with underscore
+    followed by an upper case letter, e.g. "Lu" -> "L_U". There is also
+    the possibility of shortforms containing characters which cannot
+    be used in filenames, but this situation hasn't appeared yet and
+    we follow YAGNI.
+
+    Parameters
+    ----------
+    name : str
+        A string, most likely representing a shortform agent text.
+
+    Returns
+    -------
+    str
+        The string transformed to avoid clashes on case insensitive
+        filesystems.
+    """
+    return ''.join(f'_{c.upper()}' if c.islower() else c for c in name)
