@@ -8,7 +8,9 @@ import shutil
 import logging
 import tempfile
 import webbrowser
-from multiprocessing import Process
+
+from threading import Thread
+from werkzeug.serving import make_server
 
 
 logger = logging.getLogger(__name__)
@@ -113,8 +115,8 @@ def ground_with_gui(longforms, scores, grounding_map=None,
                      names_map, labels, pos_labels, groundings_file, outpath,
                      verbose, test=test)
 
-    # Run flask server in new process
-    flask_server = Process(target=_run_app, args=(app, port))
+    # Run flask server in new thread
+    flask_server = Thread(target=_run_app, args=(app, port))
     flask_server.start()
     # Open app in browser unless a test is being run
     if not test and not no_browser:
@@ -140,4 +142,5 @@ def ground_with_gui(longforms, scores, grounding_map=None,
 
 
 def _run_app(app, port):
-    return app.run(port=port)
+    server = make_server('127.0.0.1', port, app)
+    server.serve_forever()
