@@ -52,7 +52,8 @@ class BaselineModel(BaseEstimator, ClassifierMixin):
                                    LogisticRegression(C=C,
                                                       solver='saga',
                                                       penalty=penalty,
-                                                      random_state=random_state))])
+                                                      random_state=random_state,
+                                                      max_iter=1000))])
         self._feature_stds = None
             
 
