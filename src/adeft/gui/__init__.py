@@ -116,16 +116,17 @@ def ground_with_gui(longforms, scores, grounding_map=None,
                      verbose, test=test)
 
     # Run flask server in new thread
-    flask_server = Thread(target=_run_app, args=(app, port))
-    flask_server.start()
-    # Open app in browser unless a test is being run
-    if not test and not no_browser:
-        webbrowser.open('http://localhost:%d/' % port)
-    # Poll until user submits groundings. Checks if output file exists
-    while not os.path.exists(os.path.join(outpath, 'output.json')):
-        time.sleep(1)
-    # Stop server
-    flask_server.terminate()
+    if test:
+        app.run(port=port)
+    else:
+        flask_server = Thread(target=_run_app, args=(app, port))
+        flask_server.start()
+        # Open app in browser unless a test is being run
+        if not no_browser:
+            webbrowser.open('http://localhost:%d/' % port)
+        # Poll until user submits groundings. Checks if output file exists
+        while not os.path.exists(os.path.join(outpath, 'output.json')):
+            time.sleep(1)
     # Get output from temporary file
     with open(os.path.join(outpath, 'output.json')) as f:
         output = json.load(f)
