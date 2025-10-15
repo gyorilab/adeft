@@ -53,21 +53,29 @@ class BaselineModel(BaseEstimator, ClassifierMixin):
                                                       solver='saga',
                                                       penalty=penalty,
                                                       random_state=random_state))])
+        self._feature_stds = None
             
 
     def fit(self, X, y, sample_weight=None):
-        self.pipeline.fit(X, y, sample_weight=sample_weight)
+        self.pipeline.fit(X, y, logit__sample_weight=sample_weight)
         tfidf = self.pipeline.named_steps['tfidf']
         # Feature standard deviations are computed in this way to avoid
         # unnecessary conversion to dense arrays.
         X_tfidf = tfidf.transform(X)
-        temp = X.copy()
+        temp = X_tfidf.copy()
         temp.data **= 2
         second_moment = temp.mean(0)
         first_moment_squared = np.square(X_tfidf.mean(0))
         result = second_moment - first_moment_squared
+        self.classes_ = self.pipeline.classes_
         self._feature_stds = np.sqrt(np.squeeze(np.asarray(result)))
         return self
+
+    def predict(self, X):
+        return self.pipeline.predict(X)
+
+    def predict_proba(self, X):
+        return self.pipeline.predict_proba(X)
 
     def feature_importances(self):
         """Return feature importance scores for each label
@@ -188,15 +196,15 @@ class BaselineModel(BaseEstimator, ClassifierMixin):
     @classmethod
     def load_from_model_info(cls, model_info):
         tfidf = TfidfVectorizer(
-            ngram_range=model_info["tfidf"]["ngram_range"],
-            stop_words=model_info["tfidf"]["stop_words"],
+            ngram_range=model_info["tfidf"].get("ngram_range", (1, 1)),
+            stop_words=model_info["tfidf"].get("stop_words"),
         )
         tfidf.vocabulary_ = model_info["tfidf"]["vocabulary_"]
         tfidf.idf_ = model_info["tfidf"]["idf_"]
         logit = LogisticRegression(
-            C=model_info["logit"]["C"],
-            penalty=model_info["logit"]["penalty"],
-            class_weight=model_info["class_weight"][class_weight],
+            C=model_info["logit"].get("C", 1.0),
+            penalty=model_info["logit"].get("penalty", "l2"),
+            class_weight=model_info["logit"].get("class_weight"),
         )
             
         logit.intercept_ = np.asarray(model_info["logit"]["intercept_"])
@@ -222,7 +230,7 @@ class AdeftClassifier:
     Fits logistic regression models with tfidf vectorized ngram features.
     Uses sklearns LogisticRegression and TfidfVectorizer classes.
     Models can be serialized and loaded for later use.
-
+p
     Parameters
     ----------
     shortforms : str or list of str
@@ -283,9 +291,6 @@ class AdeftClassifier:
         Digest of training set calculated using md5 hash. Can be
         used at a glance to determine if two models used the same
         training set.
-    _std : py:class:`numpy.ndarray`
-        Array of standard deviations of feature values over training
-        set. This is used to calculate feature importance
     """
     def __init__(self, shortforms, pos_labels, estimator=None, random_state=None):
         # handle case where single string is passed
@@ -396,15 +401,6 @@ class AdeftClassifier:
         logger.info('Beginning grid search in parameter space:\n'
                     '%s' % param_grid)
 
-        param_mapping = {'C': 'logit__C',
-                         'class_weight': 'logit__class_weight',
-                         'max_features': 'tfidf__max_features',
-                         'ngram_range':  'tfidf__ngram_range'}
-        inverse_param_mapping = {value: key
-                                 for key, value in param_mapping.items()}
-
-        param_grid = {param_mapping[key]: value
-                      for key, value in param_grid.items()}
         num_splits = cv
         cv = StratifiedKFold(n_splits=cv, shuffle=True, random_state=self.random_state)
         # Fit grid_search and set the estimator for the instance of the class
@@ -459,8 +455,7 @@ class AdeftClassifier:
                     val = int(cv[key][best_index])
                     confusion[label1][label2].append(val)
         confusion = {key: dict(value) for key, value in confusion.items()}
-        params = {inverse_param_mapping[key]: value for key, value
-                  in grid_search.best_params_.items()}
+        params = grid_search.best_params_
         params['random_state'] = self.random_state
         self.estimator = grid_search.best_estimator_
         self.best_score = grid_search.best_score_
@@ -472,7 +467,7 @@ class AdeftClassifier:
 
     def predict_proba(self, texts):
         """Predict class probabilities for a list-like of texts"""
-        labels = self.estimator.classes_
+        labels = self.estimator.pipeline.classes_
         preds = self.estimator.predict_proba(texts)
         return [{labels[i]: prob for i, prob in enumerate(probs)}
                 for probs in preds]
@@ -490,14 +485,19 @@ class AdeftClassifier:
             A JSON object representing the attributes of the classifier needed
             to make it portable/serializable and enabling its reload.
         """
-        model_info = self.estimator.get_model_info()
+        
+        model_info = {"estimator_info": self.estimator.get_model_info()}
+        model_info.update(
+            {
+                "shortforms": self.shortforms,
+                "pos_labels": self.pos_labels,
+            }
+        )
         # Model statistics may not be available depending on
         # how the model was fit
         if hasattr(self, 'stats') and self.stats is not None:
             model_info['stats'] = self.stats
         # These attributes may not exist in older models
-        if hasattr(self, '_std') and self._std is not None:
-            model_info['std'] = self._std.tolist()
         if hasattr(self, 'timestamp') and self.timestamp is not None:
             model_info['timestamp'] = self.timestamp
         if hasattr(self, 'training_set_digest') and \
@@ -565,7 +565,7 @@ def load_model(filepath):
     return load_model_info(model_info)
 
 
-def load_model_info(model_info):
+def load_model_info(model_info, *, estimator_class=BaselineModel):
     """Return a longform model from a model info JSON object.
 
     Parameters
@@ -580,29 +580,20 @@ def load_model_info(model_info):
     """
     shortforms = model_info['shortforms']
     pos_labels = model_info['pos_labels']
-    longform_model = AdeftClassifier(shortforms=shortforms,
-                                     pos_labels=pos_labels)
-    ngram_range = model_info['tfidf']['ngram_range']
-    tfidf = TfidfVectorizer(ngram_range=ngram_range,
-                            stop_words='english')
-    logit = LogisticRegression(multi_class='auto')
+    if "estimator_info" in model_info:
+        estimator_info = model_info["estimator_info"]
+    else:
+        estimator_info = {"logit": model_info["logit"], "tfidf": model_info["tfidf"]}
 
-    tfidf.vocabulary_ = model_info['tfidf']['vocabulary_']
-    tfidf.idf_ = model_info['tfidf']['idf_']
-    logit.classes_ = np.array(model_info['logit']['classes_'],
-                              dtype='<U64')
-    logit.intercept_ = np.array(model_info['logit']['intercept_'])
-    logit.coef_ = np.array(model_info['logit']['coef_'])
-
-    pipeline = Pipeline([('tfidf', tfidf),
-                         ('logit', logit)])
+    estimator = estimator_class.load_from_model_info(estimator_info)
+    longform_model = AdeftClassifier(
+        shortforms=shortforms, pos_labels=pos_labels, estimator=estimator
+    )
     longform_model.estimator = estimator
     # These attributes do not exist in older adeft models.
     # For backwards compatibility we check if they are present
     if 'stats' in model_info:
         longform_model.stats = model_info['stats']
-    if 'std' in model_info:
-        longform_model._std = np.array(model_info['std'])
     if 'timestamp' in model_info:
         longform_model.timestamp = model_info['timestamp']
     if 'training_set_digest' in model_info:

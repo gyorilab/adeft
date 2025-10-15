@@ -41,9 +41,9 @@ def test_train():
                  if feature == 'irs'][0]
     assert irs_score > 0
     # test that results are repeatable
-    coef1 = classifier.estimator.named_steps['logit'].coef_
+    coef1 = classifier.estimator.pipeline.named_steps['logit'].coef_
     classifier.train(texts, labels, **params)
-    coef2 = classifier.estimator.named_steps['logit'].coef_
+    coef2 = classifier.estimator.pipeline.named_steps['logit'].coef_
     assert np.array_equal(coef1, coef2)
 
 
@@ -58,9 +58,9 @@ def test_cv_multiclass():
     assert classifier.stats['f1']['mean'] > 0.5
     assert classifier.stats['ungrounded']['f1']['mean'] > 0.5
     # Test that results are repeatable
-    coef1 = classifier.estimator.named_steps['logit'].coef_
+    coef1 = classifier.estimator.pipeline.named_steps['logit'].coef_
     classifier.cv(texts, labels, param_grid=params, cv=2)
-    coef2 = classifier.estimator.named_steps['logit'].coef_
+    coef2 = classifier.estimator.pipeline.named_steps['logit'].coef_
     assert np.array_equal(coef1, coef2)
 
 
@@ -130,10 +130,10 @@ def test_serialize():
         classifier2.training_set_digest == \
         classifier3.training_set_digest
     # Check standard deviations of feature values are unchanged
-    assert np.array_equal(classifier1._std,
-                          classifier2._std)
-    assert np.array_equal(classifier2._std,
-                          classifier3._std)
+    assert np.array_equal(classifier1.estimator._feature_stds,
+                          classifier2.estimator._feature_stds)
+    assert np.array_equal(classifier2.estimator._feature_stds,
+                          classifier3.estimator._feature_stds)
     # Check classifier versions are unchanged
     assert classifier1.version == classifier2.version == \
         classifier3.version

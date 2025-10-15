@@ -49,8 +49,8 @@ def test_dump_disambiguator():
     assert ad1.grounding_dict == ad2.grounding_dict
     assert ad1.names == ad2.names
     assert ad1.pos_labels == ad2.pos_labels
-    assert (array_equal(ad1.classifier.estimator.named_steps['logit'].coef_,
-                        ad2.classifier.estimator.named_steps['logit'].coef_))
+    assert (array_equal(ad1.classifier.estimator.pipeline.named_steps['logit'].coef_,
+                        ad2.classifier.estimator.pipeline.named_steps['logit'].coef_))
     assert ad1.info() == ad2.info(), (ad1.info(), ad2.info())
     assert ad1.version() == ad2.version()
     try:
@@ -98,7 +98,7 @@ def test_modify_groundings():
 
     assert 'UP:P06213' in ad.pos_labels
     assert 'UP:P06213' in ad.classifier.pos_labels
-    assert 'UP:P06213' in ad.classifier.estimator.classes_
+    assert 'UP:P06213' in ad.classifier.estimator.pipeline.classes_
     assert 'UP:P06213' in ad.names
     assert 'UP:P06213' in ad.grounding_dict['IR'].values()
     assert ad.names['UP:P06213'] == 'Insulin Receptor'
