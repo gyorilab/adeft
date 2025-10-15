@@ -228,10 +228,11 @@ class BaselineModel(BaseEstimator, ClassifierMixin):
 class AdeftClassifier:
     """Trains classifiers to disambiguate shortforms based on context
 
-    Fits logistic regression models with tfidf vectorized ngram features.
-    Uses sklearns LogisticRegression and TfidfVectorizer classes.
-    Models can be serialized and loaded for later use.
-p
+    By default, fits logistic regression models with tfidf vectorized ngram
+    features. It is possible to use other types of model pipelines
+    writing an estimator which conforms to the interface of
+    py:class:`adeft.modeling.classify.BaselineModel` defined above.
+
     Parameters
     ----------
     shortforms : str or list of str
@@ -242,16 +243,13 @@ p
         interest in an application. For adeft pretrained models these are
         typically genes and other relevant biological terms.
 
-    estimator : Optional[py:class:`sklearn.pipeline.Pipeline`]
-        An sklearn pipeline which featurizes text data and applies a
-        classification model. If the user does not pass an estimator,
-        by default, the text data will be transformed with sklearn's
-        TfidfVectorizer, and logistic regression will be used for
-        classification.
+    estimator : Optional[py:class:`sklearn.base.BaseEstimator`]
+        An sklearn api compatible estimator conforming to the API of
+        py:class:`adeft.modeling.classify.BaselineModel` defined above.
 
     random_state : Optional[int]
-        Optional specification of seed used when calculating crossvalidation
-        folds and fitting the logistic regression model. Default: None
+        Controls random number generation for cross_validation splits and
+        in estimator. Default: None
 
     Attributes
     ----------
