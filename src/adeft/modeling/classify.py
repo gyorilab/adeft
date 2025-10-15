@@ -200,13 +200,13 @@ class BaselineModel(BaseEstimator, ClassifierMixin):
             stop_words=model_info["tfidf"].get("stop_words"),
         )
         tfidf.vocabulary_ = model_info["tfidf"]["vocabulary_"]
-        tfidf.idf_ = model_info["tfidf"]["idf_"]
+        tfidf.idf_ = np.asarray(model_info["tfidf"]["idf_"])
         logit = LogisticRegression(
             C=model_info["logit"].get("C", 1.0),
             penalty=model_info["logit"].get("penalty", "l2"),
             class_weight=model_info["logit"].get("class_weight"),
         )
-            
+ 
         logit.intercept_ = np.asarray(model_info["logit"]["intercept_"])
         logit.coef_ = np.asarray(model_info["logit"]["coef_"])
         logit.classes_ = np.asarray(model_info["logit"]["classes_"], dtype="<U64")
