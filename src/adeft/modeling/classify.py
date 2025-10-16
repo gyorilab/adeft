@@ -25,7 +25,47 @@ warnings.filterwarnings("ignore", category=ConvergenceWarning)
 logger = logging.getLogger(__file__)
 
 
-class BaselineModel(BaseEstimator, ClassifierMixin):
+class BaseModel(BaseEstimator, ClassifierMixin):
+    """Abstract base class for Adeft's classification models."""
+    def predict(self, X):
+        return self.pipeline.predict(X)
+
+    def predict_proba(self, X):
+        return self.pipeline.predict_proba(X)
+
+    def set_params(self, **params):
+        new_params = {}
+        for key, val in params.items():
+            if key not in self._param_prefixes:
+                raise ValueError(f"received invalid param {key}")
+            setattr(self, key, val)
+            new_params[f"{self._param_prefixes[key]}__{key}"] = val
+        self.pipeline.set_params(**new_params)
+        return self
+
+    def get_params(self, deep=True):
+        params = {}
+        for key in self._param_prefixes:
+            params[key] = getattr(self, key)
+        if deep:
+            # Add nested pipeline params with sklearn convention
+            nested_params = self.pipeline.get_params(deep=True)
+            params.update(nested_params)
+        return params
+
+    def get_model_info(self):
+        raise NotImplementedError
+
+    @classmethod
+    def load_from_model_info(cls, model_info):
+        raise NotImplementedError
+
+
+class BaselineLogisticRegressionModel(BaseModel):
+    """Implements the original Adeft model.
+
+    Fits a logistic regression classifier with tfidf vectorized features.
+    """
     _param_prefixes = {
         'ngram_range': 'tfidf',
         'max_features': 'tfidf',
@@ -71,12 +111,6 @@ class BaselineModel(BaseEstimator, ClassifierMixin):
         self.classes_ = self.pipeline.classes_
         self._feature_stds = np.sqrt(np.squeeze(np.asarray(result)))
         return self
-
-    def predict(self, X):
-        return self.pipeline.predict(X)
-
-    def predict_proba(self, X):
-        return self.pipeline.predict_proba(X)
 
     def feature_importances(self):
         """Return feature importance scores for each label
@@ -130,26 +164,6 @@ class BaselineModel(BaseEstimator, ClassifierMixin):
                                   for feature, value
                                   in output[classes[1]][::-1]]
         return output
-        
-    def set_params(self, **params):
-        new_params = {}
-        for key, val in params.items():
-            if key not in self._param_prefixes:
-                raise ValueError(f"received invalid param {key}")
-            setattr(self, key, val)
-            new_params[f"{self._param_prefixes[key]}__{key}"] = val
-        self.pipeline.set_params(**new_params)
-        return self
-
-    def get_params(self, deep=True):
-        params = {}
-        for key in self._param_prefixes:
-            params[key] = getattr(self, key)
-        if deep:
-            # Add nested pipeline params with sklearn convention
-            nested_params = self.pipeline.get_params(deep=True)
-            params.update(nested_params)
-        return params
 
     def get_model_info(self):
         """Return a JSON object representing a model for portability.
@@ -231,7 +245,7 @@ class AdeftClassifier:
     By default, fits logistic regression models with tfidf vectorized ngram
     features. It is possible to use other types of model pipelines
     writing an estimator which conforms to the interface of
-    py:class:`adeft.modeling.classify.BaselineModel` defined above.
+    py:class:`adeft.modeling.classify.BaseModel` defined above.
 
     Parameters
     ----------
@@ -245,7 +259,7 @@ class AdeftClassifier:
 
     estimator : Optional[py:class:`sklearn.base.BaseEstimator`]
         An sklearn api compatible estimator conforming to the API of
-        py:class:`adeft.modeling.classify.BaselineModel` defined above.
+        py:class:`adeft.modeling.classify.BaseModel` defined above.
 
     random_state : Optional[int]
         Controls random number generation for cross_validation splits and
@@ -304,7 +318,9 @@ class AdeftClassifier:
                 set(english_stopwords).union([sf.lower() for sf
                                               in self.shortforms])
             )
-            estimator = BaselineModel(stop_words=stop, random_state=random_state)
+            estimator = BaselineLogisticRegressionModel(
+                stop_words=stop, random_state=random_state
+            )
         self.estimator = estimator
         self.stats = None
         self.confusion_info = None
@@ -564,7 +580,9 @@ def load_model(filepath):
     return load_model_info(model_info)
 
 
-def load_model_info(model_info, *, estimator_class=BaselineModel):
+def load_model_info(
+        model_info, *, estimator_class=BaselineLogisticRegressionModel
+):
     """Return a longform model from a model info JSON object.
 
     Parameters
