@@ -95,7 +95,7 @@ class BaselineLogisticRegressionModel(BaseModel):
                                                       random_state=random_state,
                                                       max_iter=1000))])
         self._feature_stds = None
-            
+
 
     def fit(self, X, y, sample_weight=None):
         self.pipeline.fit(X, y, logit__sample_weight=sample_weight)
@@ -195,7 +195,7 @@ class BaselineLogisticRegressionModel(BaseModel):
                 "C": self.C,
                 "penalty": self.penalty,
                 "class_weight": self.class_weight,
-                
+
             },
             "tfidf": {
                 "vocabulary_": vocabulary_,
@@ -221,7 +221,7 @@ class BaselineLogisticRegressionModel(BaseModel):
             penalty=model_info["logit"].get("penalty", "l2"),
             class_weight=model_info["logit"].get("class_weight"),
         )
- 
+
         logit.intercept_ = np.asarray(model_info["logit"]["intercept_"])
         logit.coef_ = np.asarray(model_info["logit"]["coef_"])
         logit.classes_ = np.asarray(model_info["logit"]["classes_"], dtype="<U64")
@@ -235,7 +235,7 @@ class BaselineLogisticRegressionModel(BaseModel):
             class_weight=logit.class_weight,
         )
         estimator.pipeline = Pipeline([("tfidf", tfidf), ("logit", logit)])
-        
+
         return estimator
 
 
@@ -343,7 +343,7 @@ class AdeftClassifier:
             True labels for training texts
         **params :
             Parameter values for estimator.
-        
+
         """
         # Initialize pipeline
         self.estimator.set_params(**params)
@@ -500,7 +500,7 @@ class AdeftClassifier:
             A JSON object representing the attributes of the classifier needed
             to make it portable/serializable and enabling its reload.
         """
-        
+
         model_info = {"estimator_info": self.estimator.get_model_info()}
         model_info.update(
             {
@@ -545,7 +545,7 @@ class AdeftClassifier:
     def feature_importances(self):
         """Return feature importance scores for each label."""
         return self.estimator.feature_importances()
-    
+
     def _get_current_time(self):
         unix_timestamp = datetime.now().timestamp()
         return datetime.fromtimestamp(unix_timestamp).isoformat()
