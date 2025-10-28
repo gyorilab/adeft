@@ -52,7 +52,7 @@ class AdeftDisambiguator(object):
         self.names = names
         self.labels = (set(value for grounding_map in grounding_dict.values()
                            for value in grounding_map.values()) |
-                       set(classifier.estimator.classes_))
+                       set(classifier.estimator.pipeline.classes_))
         self.pos_labels = classifier.pos_labels
 
     def disambiguate(self, texts):
@@ -262,10 +262,10 @@ class AdeftDisambiguator(object):
             classifier.pos_labels = self.pos_labels
             # Updated class labels. (This will change the labels for the
             # predictions the classifier makes)
-            for index, label in enumerate(classifier.estimator.classes_):
+            for index, label in enumerate(classifier.estimator.pipeline.classes_):
                 if label in new_groundings:
                     new_label = new_groundings[label]
-                    classifier.estimator.classes_[index] = new_label
+                    classifier.estimator.pipeline.classes_[index] = new_label
             # Update labels in model statistics so info can be updated
             if hasattr(classifier, 'stats') and classifier.stats:
                 label_dist = classifier.stats['label_distribution']

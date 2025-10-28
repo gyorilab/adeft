@@ -14,6 +14,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.metrics import f1_score, precision_score, recall_score,\
     make_scorer
+from sklearn.base import BaseEstimator, ClassifierMixin
 
 
 from adeft import __version__
@@ -24,12 +25,227 @@ warnings.filterwarnings("ignore", category=ConvergenceWarning)
 logger = logging.getLogger(__file__)
 
 
-class AdeftClassifier(object):
+class BaseModel(BaseEstimator, ClassifierMixin):
+    """Abstract base class for Adeft's classification models."""
+    def predict(self, X):
+        return self.pipeline.predict(X)
+
+    def predict_proba(self, X):
+        return self.pipeline.predict_proba(X)
+
+    def set_params(self, **params):
+        new_params = {}
+        for key, val in params.items():
+            if key not in self._param_prefixes:
+                raise ValueError(f"received invalid param {key}")
+            setattr(self, key, val)
+            new_params[f"{self._param_prefixes[key]}__{key}"] = val
+        self.pipeline.set_params(**new_params)
+        return self
+
+    def get_params(self, deep=True):
+        params = {}
+        for key in self._param_prefixes:
+            params[key] = getattr(self, key)
+        if deep:
+            # Add nested pipeline params with sklearn convention
+            nested_params = self.pipeline.get_params(deep=True)
+            params.update(nested_params)
+        return params
+
+    def get_model_info(self):
+        raise NotImplementedError
+
+    @classmethod
+    def load_from_model_info(cls, model_info):
+        raise NotImplementedError
+
+
+class BaselineLogisticRegressionModel(BaseModel):
+    """Implements the original Adeft model.
+
+    Fits a logistic regression classifier with tfidf vectorized features.
+    """
+    _param_prefixes = {
+        'ngram_range': 'tfidf',
+        'max_features': 'tfidf',
+        'stop_words': 'tfidf',
+        'C': 'logit',
+        'penalty': 'logit',
+        'class_weight': 'logit',
+        'random_state': 'logit',
+        }
+    def __init__(self, *, stop_words=None, ngram_range=(1, 2), C=100.0, penalty='l1',
+                 max_features=1000, class_weight=None, random_state=None):
+        self.C = C
+        self.penalty = penalty
+        self.class_weight = class_weight
+        self.ngram_range = ngram_range
+        self.max_features = max_features
+        self.stop_words = stop_words
+        self.random_state = random_state
+        self.pipeline = Pipeline([('tfidf',
+                                   TfidfVectorizer(ngram_range=ngram_range,
+                                                   max_features=max_features,
+                                                   stop_words=stop_words)),
+                                  ('logit',
+                                   LogisticRegression(C=C,
+                                                      solver='saga',
+                                                      penalty=penalty,
+                                                      random_state=random_state,
+                                                      max_iter=1000))])
+        self._feature_stds = None
+
+
+    def fit(self, X, y, sample_weight=None):
+        self.pipeline.fit(X, y, logit__sample_weight=sample_weight)
+        tfidf = self.pipeline.named_steps['tfidf']
+        # Feature standard deviations are computed in this way to avoid
+        # unnecessary conversion to dense arrays.
+        X_tfidf = tfidf.transform(X)
+        temp = X_tfidf.copy()
+        temp.data **= 2
+        second_moment = temp.mean(0)
+        first_moment_squared = np.square(X_tfidf.mean(0))
+        result = second_moment - first_moment_squared
+        self.classes_ = self.pipeline.classes_
+        self._feature_stds = np.sqrt(np.squeeze(np.asarray(result)))
+        return self
+
+    def feature_importances(self):
+        """Return feature importance scores for each label
+
+        The feature importance scores are given by multiplying the coefficients
+        of the logistic regression model by the standard deviations of the
+        tf-idf scores for the associated features over all texts. Note that
+        there is a coefficient associated to each label feature pair.
+
+        One can interpret the feature importance score as the change in the
+        linear predictor for a given label associated to a one standard
+        deviation change in a feature's value. The predicted probability being
+        given by the composition of the logit link function and the linear
+        predictor.
+
+        Returns
+        -------
+        dict
+            Dictionary with class labels as keys. The associated values
+            are lists of two element tuples each with first element an ngram
+            feature and second element a feature importance score
+        """
+        if not hasattr(self, '_feature_stds') or self._feature_stds is None:
+            logger.warning('Feature importance information not available for'
+                           ' this model.')
+            return None
+        output = {}
+        tfidf = self.pipeline.named_steps['tfidf']
+        logit = self.pipeline.named_steps['logit']
+        feature_names = tfidf.get_feature_names_out()
+        classes = logit.classes_
+        # Binary and multiclass cases most be handled separately
+        # When there are greater than two classes, the logistic
+        # regression model will have a row of coefficients for
+        # each class. When there are only two classes, there is
+        # only one row of coefficients corresponding to the label classes[1]
+        if len(classes) > 2:
+            for index, label in enumerate(classes):
+                importance = np.round(
+                    logit.coef_[index] * self._feature_stds, 4
+                )
+                output[label] = sorted(zip(feature_names, importance),
+                                       key=lambda x: -x[1])
+        else:
+            importance = np.round(
+                np.squeeze(logit.coef_) * self._feature_stds, 4
+            )
+            output[classes[1]] = sorted(zip(feature_names, importance),
+                                        key=lambda x: -x[1])
+            output[classes[0]] = [(feature, -value)
+                                  for feature, value
+                                  in output[classes[1]][::-1]]
+        return output
+
+    def get_model_info(self):
+        """Return a JSON object representing a model for portability.
+
+        Returns
+        -------
+        dict
+            A JSON object representing the attributes of the classifier needed
+            to make it portable/serializable and enabling its reload.
+        """
+        logit = self.pipeline.named_steps['logit']
+        if not hasattr(logit, 'coef_'):
+            raise RuntimeError('Estimator has not been fit.')
+        classes_ = logit.classes_.tolist()
+        intercept_ = logit.intercept_.tolist()
+        coef_ = logit.coef_.tolist()
+
+        tfidf = self.pipeline.named_steps['tfidf']
+        vocabulary_ = {term: int(frequency)
+                       for term, frequency in tfidf.vocabulary_.items()}
+        idf_ = tfidf.idf_.tolist()
+        ngram_range = tfidf.ngram_range
+        stop_words = tfidf.stop_words
+        model_info = {
+            "logit": {
+                "classes_": classes_,
+                "intercept_": intercept_,
+                "coef_": coef_,
+                "C": self.C,
+                "penalty": self.penalty,
+                "class_weight": self.class_weight,
+
+            },
+            "tfidf": {
+                "vocabulary_": vocabulary_,
+                "idf_": idf_,
+                "ngram_range": ngram_range,
+                "stop_words": stop_words,
+                "max_features": self.max_features,
+            }
+        }
+
+        return model_info
+
+    @classmethod
+    def load_from_model_info(cls, model_info):
+        tfidf = TfidfVectorizer(
+            ngram_range=model_info["tfidf"].get("ngram_range", (1, 1)),
+            stop_words=model_info["tfidf"].get("stop_words"),
+        )
+        tfidf.vocabulary_ = model_info["tfidf"]["vocabulary_"]
+        tfidf.idf_ = np.asarray(model_info["tfidf"]["idf_"])
+        logit = LogisticRegression(
+            C=model_info["logit"].get("C", 1.0),
+            penalty=model_info["logit"].get("penalty", "l2"),
+            class_weight=model_info["logit"].get("class_weight"),
+        )
+
+        logit.intercept_ = np.asarray(model_info["logit"]["intercept_"])
+        logit.coef_ = np.asarray(model_info["logit"]["coef_"])
+        logit.classes_ = np.asarray(model_info["logit"]["classes_"], dtype="<U64")
+
+        estimator = cls(
+            stop_words=tfidf.stop_words,
+            ngram_range=tfidf.ngram_range,
+            C=logit.C,
+            penalty=logit.penalty,
+            max_features=tfidf.max_features,
+            class_weight=logit.class_weight,
+        )
+        estimator.pipeline = Pipeline([("tfidf", tfidf), ("logit", logit)])
+
+        return estimator
+
+
+class AdeftClassifier:
     """Trains classifiers to disambiguate shortforms based on context
 
-    Fits logistic regression models with tfidf vectorized ngram features.
-    Uses sklearns LogisticRegression and TfidfVectorizer classes.
-    Models can be serialized and loaded for later use.
+    By default, fits logistic regression models with tfidf vectorized ngram
+    features. It is possible to use other types of model pipelines
+    writing an estimator which conforms to the interface of
+    py:class:`adeft.modeling.classify.BaseModel` defined above.
 
     Parameters
     ----------
@@ -41,15 +257,16 @@ class AdeftClassifier(object):
         interest in an application. For adeft pretrained models these are
         typically genes and other relevant biological terms.
 
+    estimator : Optional[py:class:`sklearn.base.BaseEstimator`]
+        An sklearn api compatible estimator conforming to the API of
+        py:class:`adeft.modeling.classify.BaseModel` defined above.
+
     random_state : Optional[int]
-        Optional specification of seed used when calculating crossvalidation
-        folds and fitting the logistic regression model. Default: None
+        Controls random number generation for cross_validation splits and
+        in estimator. Default: None
 
     Attributes
     ----------
-    estimator : py:class:`sklearn.pipeline.Pipeline`
-        An sklearn pipeline that transforms text data with a TfidfVectorizer
-        and fits a logistic regression.
     stats : dict
        Statistics describing model performance. Only available after model is
        fit with crossvalidation
@@ -87,36 +304,35 @@ class AdeftClassifier(object):
         Digest of training set calculated using md5 hash. Can be
         used at a glance to determine if two models used the same
         training set.
-    _std : py:class:`numpy.ndarray`
-        Array of standard deviations of feature values over training
-        set. This is used to calculate feature importance
     """
-    def __init__(self, shortforms, pos_labels, random_state=None):
+    def __init__(self, shortforms, pos_labels, estimator=None, random_state=None):
         # handle case where single string is passed
         if isinstance(shortforms, str):
             shortforms = [shortforms]
         self.shortforms = shortforms
         self.pos_labels = pos_labels
         self.random_state = random_state
-        self.estimator = None
+        if estimator is None:
+            # Add shortforms to list of stopwords
+            stop = list(
+                set(english_stopwords).union([sf.lower() for sf
+                                              in self.shortforms])
+            )
+            estimator = BaselineLogisticRegressionModel(
+                stop_words=stop, random_state=random_state
+            )
+        self.estimator = estimator
         self.stats = None
         self.confusion_info = None
         self.other_metadata = None
-        # Add shortforms to list of stopwords
-        self.stop = list(
-            set(english_stopwords).union([sf.lower() for sf
-                                          in self.shortforms])
-        )
+
         self.best_score = None
         self.grid_search = None
         self.version = __version__
-        self._std = None
-        self.params = None
         self.timestamp = None
         self.training_set_digest = None
 
-    def train(self, texts, y, C=1.0, ngram_range=(1, 2), max_features=1000,
-              class_weight=None):
+    def train(self, texts, y, **params):
         """Fits a disambiguation model
 
         Parameters
@@ -125,54 +341,18 @@ class AdeftClassifier(object):
             Training texts
         y : iterable of str
             True labels for training texts
-        C : Optional[float]
-             L1 regularization parameter logistic regression model. Follows
-             convention of support vector machines with smaller values
-             corresponding to stronger regularization. Default: 1.0
-        ngram_range : Optional[tuple of int]
-            Range of ngram features to use. Must be a tuple of ints of the
-            form (a, b) with a <= b. When ngram_range is (1, 2), unigrams and
-            bigrams will be used as features. Default: (1, 2)
-        max_features : int
-            Maximum number of tfidf-vectorized ngrams to use as features in
-            model. Selects top_features by term frequency Default: 1000
-        class_weight : Optional[dict or 'balanced']
-            Weights associated with classes in the form {class_label:
-            weight}. If not given, all classes are supposed to have weight one.
+        **params :
+            Parameter values for estimator.
 
-            The “balanced” mode uses the values of y to automatically adjust
-            weights inversely proportional to class frequencies in the input
-            data as n_samples / (n_classes * np.bincount(y)).
-
-            Note that these weights will be multiplied with sample_weight
-            (passed through the fit method) if sample_weight is specified.
         """
         # Initialize pipeline
-        seed = self.random_state
-        logit_pipeline = \
-            Pipeline([('tfidf',
-                       TfidfVectorizer(ngram_range=ngram_range,
-                                       max_features=max_features,
-                                       stop_words=self.stop)),
-                      ('logit',
-                       LogisticRegression(C=C,
-                                          solver='saga',
-                                          penalty='l1',
-                                          multi_class='auto',
-                                          class_weight=class_weight,
-                                          random_state=seed))])
-        logit_pipeline.fit(texts, y)
+        self.estimator.set_params(**params)
+        self.estimator.fit(texts, y)
 
-        self.params = {'C': C, 'ngram_grange': ngram_range,
-                       'max_features': max_features,
-                       'class_weight': class_weight,
-                       'random_state': self.random_state}
-        self.estimator = logit_pipeline
         self.best_score = None
         self.grid_search = None
         self.timestamp = self._get_current_time()
         self.training_set_digest = self._training_set_digest(texts)
-        self._set_variance(texts)
 
     def cv(self, texts, y, param_grid, n_jobs=1, cv=5):
         """Performs grid search to select and fit a disambiguation model
@@ -200,19 +380,6 @@ class AdeftClassifier(object):
         >>> classifier = LongformClassifier('IR', ['insulin receptor'])
         >>> classifier.train(texts, labels, param_grid=params, n_jobs=4)
         """
-        # Initialize pipeline
-        seed = self.random_state
-        logit_pipeline = Pipeline([('tfidf',
-                                    TfidfVectorizer(ngram_range=(1, 2),
-                                                    max_features=1000,
-                                                    stop_words=self.stop)),
-                                   ('logit',
-                                    LogisticRegression(C=100.,
-                                                       solver='saga',
-                                                       penalty='l1',
-                                                       multi_class='auto',
-                                                       random_state=seed))])
-
         # Create scorer for use in grid search. Best params decided using
         # f1 score. The positive labels are specified when the classifier is
         # initialized. Uses micro-average f1, precision, and recall scores.
@@ -249,19 +416,10 @@ class AdeftClassifier(object):
         logger.info('Beginning grid search in parameter space:\n'
                     '%s' % param_grid)
 
-        param_mapping = {'C': 'logit__C',
-                         'class_weight': 'logit__class_weight',
-                         'max_features': 'tfidf__max_features',
-                         'ngram_range':  'tfidf__ngram_range'}
-        inverse_param_mapping = {value: key
-                                 for key, value in param_mapping.items()}
-
-        param_grid = {param_mapping[key]: value
-                      for key, value in param_grid.items()}
         num_splits = cv
-        cv = StratifiedKFold(n_splits=cv, shuffle=True, random_state=seed)
+        cv = StratifiedKFold(n_splits=cv, shuffle=True, random_state=self.random_state)
         # Fit grid_search and set the estimator for the instance of the class
-        grid_search = GridSearchCV(logit_pipeline, param_grid,
+        grid_search = GridSearchCV(self.estimator, param_grid,
                                    cv=cv, n_jobs=n_jobs, scoring=scorer,
                                    refit='f1',
                                    return_train_score=False)
@@ -312,10 +470,8 @@ class AdeftClassifier(object):
                     val = int(cv[key][best_index])
                     confusion[label1][label2].append(val)
         confusion = {key: dict(value) for key, value in confusion.items()}
-        params = {inverse_param_mapping[key]: value for key, value
-                  in grid_search.best_params_.items()}
+        params = grid_search.best_params_
         params['random_state'] = self.random_state
-        self.params = params
         self.estimator = grid_search.best_estimator_
         self.best_score = grid_search.best_score_
         self.grid_search = grid_search
@@ -323,11 +479,10 @@ class AdeftClassifier(object):
         self.confusion_info = confusion
         self.timestamp = self._get_current_time()
         self.training_set_digest = self._training_set_digest(texts)
-        self._set_variance(texts)
 
     def predict_proba(self, texts):
         """Predict class probabilities for a list-like of texts"""
-        labels = self.estimator.classes_
+        labels = self.estimator.pipeline.classes_
         preds = self.estimator.predict_proba(texts)
         return [{labels[i]: prob for i, prob in enumerate(probs)}
                 for probs in preds]
@@ -345,33 +500,19 @@ class AdeftClassifier(object):
             A JSON object representing the attributes of the classifier needed
             to make it portable/serializable and enabling its reload.
         """
-        logit = self.estimator.named_steps['logit']
-        if not hasattr(logit, 'coef_'):
-            raise RuntimeError('Estimator has not been fit.')
-        classes_ = logit.classes_.tolist()
-        intercept_ = logit.intercept_.tolist()
-        coef_ = logit.coef_.tolist()
 
-        tfidf = self.estimator.named_steps['tfidf']
-        vocabulary_ = {term: int(frequency)
-                       for term, frequency in tfidf.vocabulary_.items()}
-        idf_ = tfidf.idf_.tolist()
-        ngram_range = tfidf.ngram_range
-        model_info = {'logit': {'classes_': classes_,
-                                'intercept_': intercept_,
-                                'coef_': coef_},
-                      'tfidf': {'vocabulary_': vocabulary_,
-                                'idf_': idf_,
-                                'ngram_range': ngram_range},
-                      'shortforms': self.shortforms,
-                      'pos_labels': self.pos_labels}
+        model_info = {"estimator_info": self.estimator.get_model_info()}
+        model_info.update(
+            {
+                "shortforms": self.shortforms,
+                "pos_labels": self.pos_labels,
+            }
+        )
         # Model statistics may not be available depending on
         # how the model was fit
         if hasattr(self, 'stats') and self.stats is not None:
             model_info['stats'] = self.stats
         # These attributes may not exist in older models
-        if hasattr(self, '_std') and self._std is not None:
-            model_info['std'] = self._std.tolist()
         if hasattr(self, 'timestamp') and self.timestamp is not None:
             model_info['timestamp'] = self.timestamp
         if hasattr(self, 'training_set_digest') and \
@@ -402,70 +543,8 @@ class AdeftClassifier(object):
             fout.write(json_bytes)
 
     def feature_importances(self):
-        """Return feature importance scores for each label
-
-        The feature importance scores are given by multiplying the coefficients
-        of the logistic regression model by the standard deviations of the
-        tf-idf scores for the associated features over all texts. Note that
-        there is a coefficient associated to each label feature pair.
-
-        One can interpret the feature importance score as the change in the
-        linear predictor for a given label associated to a one standard
-        deviation change in a feature's value. The predicted probability being
-        given by the composition of the logit link function and the linear
-        predictor.
-
-        Returns
-        -------
-        dict
-            Dictionary with class labels as keys. The associated values
-            are lists of two element tuples each with first element an ngram
-            feature and second element a feature importance score
-        """
-        if not hasattr(self, '_std') or self._std is None:
-            logger.warning('Feature importance information not available for'
-                           ' this model.')
-            return None
-        output = {}
-        tfidf = self.estimator.named_steps['tfidf']
-        logit = self.estimator.named_steps['logit']
-        feature_names = tfidf.get_feature_names_out()
-        classes = logit.classes_
-        # Binary and multiclass cases most be handled separately
-        # When there are greater than two classes, the logistic
-        # regression model will have a row of coefficients for
-        # each class. When there are only two classes, there is
-        # only one row of coefficients corresponding to the label classes[1]
-        if len(classes) > 2:
-            for index, label in enumerate(classes):
-                importance = np.round(logit.coef_[index] * self._std, 4)
-                output[label] = sorted(zip(feature_names, importance),
-                                       key=lambda x: -x[1])
-        else:
-            importance = np.round(np.squeeze(logit.coef_) * self._std, 4)
-            output[classes[1]] = sorted(zip(feature_names, importance),
-                                        key=lambda x: -x[1])
-            output[classes[0]] = [(feature, -value)
-                                  for feature, value
-                                  in output[classes[1]][::-1]]
-        return output
-
-    def _set_variance(self, texts):
-        """Set attribute containing array of variances for features
-
-        Parameters
-        __________
-        texts : iterable of str
-            Training texts
-        """
-        tfidf = self.estimator.named_steps['tfidf']
-        X = tfidf.transform(texts)
-        temp = X.copy()
-        temp.data **= 2
-        second_moment = temp.mean(0)
-        first_moment_squared = np.square(X.mean(0))
-        result = second_moment - first_moment_squared
-        self._std = np.sqrt(np.squeeze(np.asarray(result)))
+        """Return feature importance scores for each label."""
+        return self.estimator.feature_importances()
 
     def _get_current_time(self):
         unix_timestamp = datetime.now().timestamp()
@@ -501,7 +580,9 @@ def load_model(filepath):
     return load_model_info(model_info)
 
 
-def load_model_info(model_info):
+def load_model_info(
+        model_info, *, estimator_class=BaselineLogisticRegressionModel
+):
     """Return a longform model from a model info JSON object.
 
     Parameters
@@ -516,29 +597,20 @@ def load_model_info(model_info):
     """
     shortforms = model_info['shortforms']
     pos_labels = model_info['pos_labels']
-    longform_model = AdeftClassifier(shortforms=shortforms,
-                                     pos_labels=pos_labels)
-    ngram_range = model_info['tfidf']['ngram_range']
-    tfidf = TfidfVectorizer(ngram_range=ngram_range,
-                            stop_words='english')
-    logit = LogisticRegression(multi_class='auto')
+    if "estimator_info" in model_info:
+        estimator_info = model_info["estimator_info"]
+    else:
+        estimator_info = {"logit": model_info["logit"], "tfidf": model_info["tfidf"]}
 
-    tfidf.vocabulary_ = model_info['tfidf']['vocabulary_']
-    tfidf.idf_ = model_info['tfidf']['idf_']
-    logit.classes_ = np.array(model_info['logit']['classes_'],
-                              dtype='<U64')
-    logit.intercept_ = np.array(model_info['logit']['intercept_'])
-    logit.coef_ = np.array(model_info['logit']['coef_'])
-
-    estimator = Pipeline([('tfidf', tfidf),
-                          ('logit', logit)])
+    estimator = estimator_class.load_from_model_info(estimator_info)
+    longform_model = AdeftClassifier(
+        shortforms=shortforms, pos_labels=pos_labels, estimator=estimator
+    )
     longform_model.estimator = estimator
     # These attributes do not exist in older adeft models.
     # For backwards compatibility we check if they are present
     if 'stats' in model_info:
         longform_model.stats = model_info['stats']
-    if 'std' in model_info:
-        longform_model._std = np.array(model_info['std'])
     if 'timestamp' in model_info:
         longform_model.timestamp = model_info['timestamp']
     if 'training_set_digest' in model_info:

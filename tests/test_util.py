@@ -1,4 +1,7 @@
+import pytest
+
 from adeft.util import get_candidate, get_candidate_fragments
+from adeft.util import str2filename
 
 
 text1 = ('Integrated Network and Dynamical Reasoning Assembler'
@@ -59,3 +62,13 @@ def test_get_candidate_fragments():
     assert not get_candidate_fragments('Integrated Network'
                                        'and dynamical reasoning assembler',
                                        'INDRA')
+
+
+
+@pytest.mark.parametrize(
+    "name,expected",
+    [("ER", "ER"), ("MSCs", "MSC_S"), ("Lu", "L_U"),
+     ("dIsAmBiGuAtE", "_DI_SA_MB_IG_UA_TE"), ("123", "123")],
+)
+def test_str2filename(name, expected):
+    assert str2filename(name) == expected
