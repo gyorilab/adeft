@@ -347,7 +347,12 @@ class AdeftClassifier:
         )
         grid_search.fit(X, y)
         estimator = grid_search.best_estimator_
-        return estimator, grid_search.best_score_, grid_search.cv_results_
+        return (
+            estimator,
+            grid_search.best_score_,
+            grid_search.cv_results_,
+            grid_search.best_params_,
+        )
 
     def train(self, X, y, **params):
         """Fits a disambiguation model
@@ -377,22 +382,23 @@ class AdeftClassifier:
             n_outer_splits=5,
             n_inner_splits=5,
             n_jobs=1,
+            refit=False,
     ):
         
-        outter_splitter = StratifiedKFold(
+        outer_splitter = StratifiedKFold(
             n_splits=n_outer_splits, shuffle=True, random_state=self.random_state
         )
         inner_splitter = StratifiedKFold(
             n_splits=n_inner_splits, shuffle=True, random_state=self.random_state
         )
-        splits = outter_splitter.split(X, y)
+        splits = outer_splitter.split(X, y)
         validation_results = {}
         labels = np.unique(y)
         for i, (train_idx, test_idx) in enumerate(splits):
             X_train, y_train = _safe_split(self.estimator, X, y, train_idx)
             # TODO: allow custom parameter tuning strategies to be passed in,
             # rather than just hardcoding in a single round of grid search.
-            estimator, best_score, cv_results = self.grid_search_to_select_model(
+            estimator, _, _, _ = self.grid_search_to_select_model(
                 X_train, y_train, param_grid, cv=inner_splitter, refit=True,
                 n_jobs=n_jobs
             )
@@ -412,6 +418,12 @@ class AdeftClassifier:
             }
         self.validation_results = validation_results
         self.labels = labels
+        if refit:
+            _, _, _, best_params = self.grid_search_to_select_model(
+                X, y, param_grid, cv=outer_splitter, refit=False, n_jobs=n_jobs
+            )
+            self.train(X, y, **best_params)
+        return self
 
     def predict_proba(self, texts):
         """Predict class probabilities for a list-like of texts"""
