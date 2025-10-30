@@ -390,6 +390,8 @@ class AdeftClassifier:
         labels = np.unique(y)
         for i, (train_idx, test_idx) in enumerate(splits):
             X_train, y_train = _safe_split(self.estimator, X, y, train_idx)
+            # TODO: allow custom parameter tuning strategies to be passed in,
+            # rather than just hardcoding in a single round of grid search.
             estimator, best_score, cv_results = self.grid_search_to_select_model(
                 X_train, y_train, param_grid, cv=inner_splitter, refit=True,
                 n_jobs=n_jobs
