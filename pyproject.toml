@@ -16,6 +16,7 @@ requires-python = ">=3.7"
 dependencies = [
              "nltk",
              "scikit-learn>=1.0",
+	     "imblearn",
              "boto3",
              "flask",
              "appdirs"
