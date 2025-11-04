@@ -21,6 +21,7 @@ from sklearn.utils.metaestimators import _safe_split
 from adeft import __version__
 from adeft.modeling.validate import PooledFbetaGridSearchCV
 from adeft.nlp import english_stopwords
+from adeft.util import load_array, serialize_array
 
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
@@ -179,9 +180,9 @@ class BaselineLogisticRegressionModel(BaseModel):
         logit = self.pipeline.named_steps['logit']
         if not hasattr(logit, 'coef_'):
             raise RuntimeError('Estimator has not been fit.')
-        classes_ = logit.classes_.tolist()
-        intercept_ = logit.intercept_.tolist()
-        coef_ = logit.coef_.tolist()
+        classes_ = serialize_array(logit.classes_)
+        intercept_ = serialize_array(logit.intercept_)
+        coef_ = serialize_array(logit.coef_)
 
         tfidf = self.pipeline.named_steps['tfidf']
         vocabulary_ = {term: int(frequency)
@@ -223,10 +224,10 @@ class BaselineLogisticRegressionModel(BaseModel):
             penalty=model_info["logit"].get("penalty", "l2"),
             class_weight=model_info["logit"].get("class_weight"),
         )
-
-        logit.intercept_ = np.asarray(model_info["logit"]["intercept_"])
-        logit.coef_ = np.asarray(model_info["logit"]["coef_"])
-        logit.classes_ = np.asarray(model_info["logit"]["classes_"], dtype="<U64")
+ 
+        logit.intercept_ = load_array(model_info["logit"]["intercept_"])
+        logit.coef_ = load_array(model_info["logit"]["coef_"])
+        logit.classes_ = load_array(model_info["logit"]["classes_"])
 
         estimator = cls(
             stop_words=tfidf.stop_words,
