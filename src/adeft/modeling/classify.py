@@ -369,7 +369,7 @@ class AdeftClassifier:
         self.estimator.set_params(**params)
         self.estimator.fit(X, y)
         self.timestamp = self._get_current_time()
-        self.training_set_digest = self._training_set_digest(texts)
+        self.training_set_digest = self._training_set_digest(X)
 
     def validate(
             self,
@@ -391,7 +391,7 @@ class AdeftClassifier:
         )
         splits = outer_splitter.split(X, y)
         validation_results = {}
-        inner_cv_results = {}
+        model_selection_results = {}
         labels = np.unique(y)
         for i, (train_idx, test_idx) in enumerate(splits):
             X_train, y_train = _safe_split(self.estimator, X, y, train_idx)
@@ -418,7 +418,7 @@ class AdeftClassifier:
             model_selection_results[i] = {
                 "best_score": best_score,
                 "best_params": best_params,
-                "cv_results": cv_reults,
+                "cv_results": cv_results,
             }
         self.validation_results = validation_results
         self.inner_model_selection_results = model_selection_results
