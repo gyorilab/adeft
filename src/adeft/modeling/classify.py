@@ -4,6 +4,7 @@ import logging
 import warnings
 import numpy as np
 from hashlib import md5
+from importlib import import_module
 from datetime import datetime
 from collections import Counter, defaultdict
 
@@ -16,7 +17,6 @@ from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.metrics import confusion_matrix
 from sklearn.base import BaseEstimator, ClassifierMixin, clone
 from sklearn.utils.metaestimators import _safe_split
-
 
 from adeft import __version__
 from adeft.modeling.validate import PooledFbetaGridSearchCV
@@ -224,7 +224,7 @@ class BaselineLogisticRegressionModel(BaseModel):
             penalty=model_info["logit"].get("penalty", "l2"),
             class_weight=model_info["logit"].get("class_weight"),
         )
- 
+
         logit.intercept_ = load_array(model_info["logit"]["intercept_"])
         logit.coef_ = load_array(model_info["logit"]["coef_"])
         logit.classes_ = load_array(model_info["logit"]["classes_"])
@@ -330,7 +330,6 @@ class AdeftClassifier:
         self.validation_results = None
         self.inner_model_selection_results = None
         self.outer_model_selection_results = None
-        self.score = None
         self.labels = None
         self.version = __version__
         self.timestamp = None
@@ -391,7 +390,7 @@ class AdeftClassifier:
             n_jobs=1,
             refit=False,
     ):
-        
+
         outer_splitter = StratifiedKFold(
             n_splits=n_outer_splits, shuffle=True, random_state=self.random_state
         )
@@ -466,6 +465,10 @@ class AdeftClassifier:
         """
 
         model_info = {"estimator_info": self.estimator.get_model_info()}
+        estimator_class = self.estimator.__class__
+        model_info["estimator_module"] = estimator_class.__module__
+        model_info["estimator_name"] = estimator_class.__qualname__
+
         model_info.update(
             {
                 "shortforms": self.shortforms,
@@ -473,7 +476,31 @@ class AdeftClassifier:
             }
         )
         model_info["validation_results"] = self.validation_results
+        model_info["inner_model_selection_results"] = self.inner_model_selection_results
+        model_info["outer_model_selection_results"] = self.outer_model_selection_results
+        model_info["labels"] = self.labels
+        model_info["score"] = self.score
+        model_info["version"] = self.version
+        model_info["timestamp"] = self.timestamp
+        model_info["training_set_digest"] = self.training_set_digest
+        model_info["other_metadata"] = self.other_metadata
+
         return model_info
+
+    @classmethod
+    def load_from_model_info(cls, model_info):
+        shortforms = model_info['shortforms']
+        pos_labels = model_info['pos_labels']
+        estimator_info = model_info["estimator_info"]
+        estimator_module = import_module(model_info["estimator_module"])
+        estimator_class = getattr(estimator_module, model_info["estimator_class"])
+        estimator = estimator_class.load_from_model_info(estimator_info)
+        longform_model = cls(
+            shortforms=shortforms, pos_labels=pos_labels, estimator=estimator
+        )
+        longform_model.estimator = estimator
+        longform_model["validation_results"] = model_info["validation_results"]
+        return longform_model
 
     def dump_model(self, filepath):
         """Serialize model to gzipped json
@@ -488,6 +515,14 @@ class AdeftClassifier:
         json_bytes = json_str.encode('utf-8')
         with gzip.GzipFile(filepath, 'w') as fout:
             fout.write(json_bytes)
+
+    @classmethod
+    def load_model(cls, filepath):
+        with gzip.GzipFile(filepath, 'r') as fin:
+            json_bytes = fin.read()
+        json_str = json_bytes.decode('utf-8')
+        model_info = json.loads(json_str)
+        return cls.load_from_model_info(model_info)
 
     def feature_importances(self):
         """Return feature importance scores for each label."""
@@ -505,74 +540,3 @@ class AdeftClassifier:
         hashed_texts = ''.join(md5(text.encode('utf-8')).hexdigest()
                                for text in sorted(texts))
         return md5(hashed_texts.encode('utf-8')).hexdigest()
-
-
-def load_model(filepath):
-    """Load previously serialized model
-
-    Parameters
-    ----------
-    filepath : str
-       path to model file
-
-    Returns
-    -------
-    longform_model : py:class:`adeft.classify.AdeftClassifier`
-        The classifier that was loaded from the given path.
-    """
-    with gzip.GzipFile(filepath, 'r') as fin:
-        json_bytes = fin.read()
-    json_str = json_bytes.decode('utf-8')
-    model_info = json.loads(json_str)
-    return load_model_info(model_info)
-
-
-def load_model_info(
-        model_info, *, estimator_class=BaselineLogisticRegressionModel
-):
-    """Return a longform model from a model info JSON object.
-
-    Parameters
-    ----------
-    model_info : dict
-        The JSON object containing the attributes of a model.
-
-    Returns
-    -------
-    longform_model : py:class:`adeft.classify.AdeftClassifier`
-        The classifier that was loaded from the given JSON object.
-    """
-    shortforms = model_info['shortforms']
-    pos_labels = model_info['pos_labels']
-    if "estimator_info" in model_info:
-        estimator_info = model_info["estimator_info"]
-    else:
-        estimator_info = {"logit": model_info["logit"], "tfidf": model_info["tfidf"]}
-
-    estimator = estimator_class.load_from_model_info(estimator_info)
-    longform_model = AdeftClassifier(
-        shortforms=shortforms, pos_labels=pos_labels, estimator=estimator
-    )
-    longform_model.estimator = estimator
-    # These attributes do not exist in older adeft models.
-    # For backwards compatibility we check if they are present
-    if 'stats' in model_info:
-        longform_model.stats = model_info['stats']
-    if 'timestamp' in model_info:
-        longform_model.timestamp = model_info['timestamp']
-    if 'training_set_digest' in model_info:
-        longform_model.training_set_digest = model_info['training_set_digest']
-    if 'params' in model_info:
-        longform_model.params = model_info['params']
-    if 'version' in model_info:
-        longform_model.version == model_info['version']
-    if 'confusion_info' in model_info:
-        longform_model.confusion_info = model_info['confusion_info']
-    if 'other_metadata' in model_info:
-        longform_model.other_metadata = model_info['other_metadata']
-    return longform_model
-
-
-def _count_score(y_true, y_pred, label1=0, label2=1):
-    return sum((y == label1 and pred == label2)
-               for y, pred in zip(y_true, y_pred))
