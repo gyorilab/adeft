@@ -78,7 +78,7 @@ class PooledFbetaGridSearchCV(MetaEstimatorMixin, BaseEstimator):
                 (1 + beta2) * precision * recall / (beta2 * precision + recall)
                 if (precision + recall) > 0 else 0.0
             )
-            fbeta_scores[key] = fbeta
+            fbeta_scores[key] = float(fbeta)
         best_key = max(fbeta_scores, key=fbeta_scores.get)
         best_score = fbeta_scores[best_key]
         best_params = dict(best_key)
