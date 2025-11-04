@@ -1,19 +1,15 @@
 import gzip
 import json
-import logging
-import warnings
 import numpy as np
 from hashlib import md5
 from importlib import import_module
 from datetime import datetime
-from collections import Counter, defaultdict
 
 from imblearn.metrics import sensitivity_specificity_support
 from sklearn.pipeline import Pipeline
-from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import LogisticRegression
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.model_selection import GridSearchCV, StratifiedKFold
+from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import confusion_matrix
 from sklearn.base import BaseEstimator, ClassifierMixin, clone
 from sklearn.utils.metaestimators import _safe_split
@@ -22,9 +18,6 @@ from adeft import __version__
 from adeft.modeling.validate import PooledFbetaGridSearchCV
 from adeft.nlp import english_stopwords
 from adeft.util import load_array, serialize_array
-
-
-logger = logging.getLogger(__file__)
 
 
 class BaseModel(BaseEstimator, ClassifierMixin):
