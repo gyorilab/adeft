@@ -327,11 +327,17 @@ class AdeftClassifier:
         self.other_metadata = None
 
         self.validation_results = None
+        self.inner_model_selection_results = None
+        self.outer_model_selection_results = None
+        self.score = None
         self.labels = None
         self.version = __version__
         self.timestamp = None
         self.training_set_digest = None
 
+    @property
+    def params(self):
+        return self.estimator.get_params()
 
     def grid_search_to_select_model(
             self, X, y, param_grid, *, cv=None, refit=False, n_jobs=1
@@ -393,12 +399,13 @@ class AdeftClassifier:
         )
         splits = outer_splitter.split(X, y)
         validation_results = {}
+        inner_cv_results = {}
         labels = np.unique(y)
         for i, (train_idx, test_idx) in enumerate(splits):
             X_train, y_train = _safe_split(self.estimator, X, y, train_idx)
             # TODO: allow custom parameter tuning strategies to be passed in,
             # rather than just hardcoding in a single round of grid search.
-            estimator, _, _, _ = self.grid_search_to_select_model(
+            estimator, best_score, cv_results, best_params = self.grid_search_to_select_model(
                 X_train, y_train, param_grid, cv=inner_splitter, refit=True,
                 n_jobs=n_jobs
             )
@@ -416,13 +423,24 @@ class AdeftClassifier:
                 "support": support,
                 "confusion_matrix": confusion,
             }
+            model_selection_results[i] = {
+                "best_score": best_score,
+                "best_params": best_params,
+                "cv_results": cv_reults,
+            }
         self.validation_results = validation_results
+        self.inner_model_selection_results = model_selection_results
         self.labels = labels
         if refit:
-            _, _, _, best_params = self.grid_search_to_select_model(
+            _, best_score, cv_results, best_params = self.grid_search_to_select_model(
                 X, y, param_grid, cv=outer_splitter, refit=False, n_jobs=n_jobs
             )
             self.train(X, y, **best_params)
+            self.outer_model_selection_results = {
+                "best_score": best_score,
+                "best_params": best_params,
+                "cv_results": cv_results,
+            }
         return self
 
     def predict_proba(self, texts):
@@ -453,24 +471,7 @@ class AdeftClassifier:
                 "pos_labels": self.pos_labels,
             }
         )
-        # Model statistics may not be available depending on
-        # how the model was fit
-        if hasattr(self, 'stats') and self.stats is not None:
-            model_info['stats'] = self.stats
-        # These attributes may not exist in older models
-        if hasattr(self, 'timestamp') and self.timestamp is not None:
-            model_info['timestamp'] = self.timestamp
-        if hasattr(self, 'training_set_digest') and \
-           self.training_set_digest is not None:
-            model_info['training_set_digest'] = self.training_set_digest
-        if hasattr(self, 'params') and self.params is not None:
-            model_info['params'] = self.params
-        if hasattr(self, 'version') and self.version is not None:
-            model_info['version'] = self.version
-        if hasattr(self, 'confusion_info') and self.confusion_info is not None:
-            model_info['confusion_info'] = self.confusion_info
-        if hasattr(self, 'other_metadata') and self.other_metadata is not None:
-            model_info['other_metadata'] = self.other_metadata
+        model_info["validation_results"] = self.validation_results
         return model_info
 
     def dump_model(self, filepath):
