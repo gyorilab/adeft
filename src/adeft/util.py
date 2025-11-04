@@ -1,8 +1,12 @@
 """Utility functions used by Adeft internally.
 
 """
+import base64
+import io
 import re
 from unicodedata import category
+
+import scipy.sparse as sparse
 
 from adeft.nlp import word_tokenize, word_detokenize
 
@@ -182,3 +186,31 @@ def str2filename(name: str) -> str:
         filesystems.
     """
     return ''.join(f'_{c.upper()}' if c.islower() else c for c in name)
+
+
+def serialize_array(X):
+    memfile = io.BytesIO()
+    if sparse.issparse(X):
+        sparse.save_npz(memfile, X)
+    else:
+        np.save(memfile, X)
+    memfile.seek(0)
+    return base64.b64encode(memfile.read()).decode('utf-8')
+
+
+def load_array(data):
+    data = base64.b64decode(data.encode('utf-8'))
+    memfile = io.BytesIO(data)
+
+    memfile.seek(0)
+    X = np.load(memfile)
+    if isinstance(X, np.ndarray):
+        return X
+    memfile.seek(0)
+    X = sparse.load_npz(memfile)
+    if sparse.issparse(X):
+        return X
+    raise ValueError(
+        "data seems to be in NPZ format, but did not decode into"
+        " a numpy array or sparse array."
+    )
