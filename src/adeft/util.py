@@ -3,6 +3,7 @@
 """
 import base64
 import io
+import numpy as np
 import re
 from unicodedata import category
 

@@ -320,9 +320,6 @@ class AdeftClassifier:
         self.other_metadata = None
 
         self.validation_results = None
-        self.inner_model_selection_results = None
-        self.outer_model_selection_results = None
-        self.labels = None
         self.version = __version__
         self.timestamp = None
         self.training_set_digest = None
@@ -330,6 +327,12 @@ class AdeftClassifier:
     @property
     def params(self):
         return self.estimator.get_params()
+
+    @property
+    def labels(self):
+        if hasattr(self.estimator, "classes_"):
+            return self.estimator.classes_
+        return None
 
     def grid_search_to_select_model(
             self, X, y, param_grid, *, cv=None, refit=False, n_jobs=1
@@ -421,14 +424,13 @@ class AdeftClassifier:
                 "cv_results": cv_results,
             }
         self.validation_results = validation_results
-        self.inner_model_selection_results = model_selection_results
-        self.labels = labels
+        self.inner_model_selection_results_ = model_selection_results
         if refit:
             _, best_score, cv_results, best_params = self.grid_search_to_select_model(
                 X, y, param_grid, cv=outer_splitter, refit=False, n_jobs=n_jobs
             )
             self.train(X, y, **best_params)
-            self.outer_model_selection_results = {
+            self.outer_model_selection_results_ = {
                 "best_score": best_score,
                 "best_params": best_params,
                 "cv_results": cv_results,
@@ -467,11 +469,10 @@ class AdeftClassifier:
                 "pos_labels": self.pos_labels,
             }
         )
-        model_info["validation_results"] = self.validation_results
-        model_info["inner_model_selection_results"] = self.inner_model_selection_results
-        model_info["outer_model_selection_results"] = self.outer_model_selection_results
-        model_info["labels"] = self.labels
-        model_info["score"] = self.score
+        model_info["validation_results"] = {
+            fold_id: {key: val.tolist() for key, val in entry.items()}
+            for fold_id, entry in self.validation_results.items()
+        }
         model_info["version"] = self.version
         model_info["timestamp"] = self.timestamp
         model_info["training_set_digest"] = self.training_set_digest
@@ -485,13 +486,17 @@ class AdeftClassifier:
         pos_labels = model_info['pos_labels']
         estimator_info = model_info["estimator_info"]
         estimator_module = import_module(model_info["estimator_module"])
-        estimator_class = getattr(estimator_module, model_info["estimator_class"])
+        estimator_class = getattr(estimator_module, model_info["estimator_name"])
         estimator = estimator_class.load_from_model_info(estimator_info)
         longform_model = cls(
             shortforms=shortforms, pos_labels=pos_labels, estimator=estimator
         )
         longform_model.estimator = estimator
-        longform_model["validation_results"] = model_info["validation_results"]
+        validation_results = model_info["validation_results"]
+        longform_model.validation_results = {
+            fold_id: {key: np.asarray(val) for key, val in entry.items()}
+            for fold_id, entry in validation_results.items()
+        }
         return longform_model
 
     def dump_model(self, filepath):
