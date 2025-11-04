@@ -23,7 +23,6 @@ from adeft.modeling.validate import PooledFbetaGridSearchCV
 from adeft.nlp import english_stopwords
 from adeft.util import load_array, serialize_array
 
-warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
 logger = logging.getLogger(__file__)
 
