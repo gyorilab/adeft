@@ -235,7 +235,7 @@ class BaselineLogisticRegressionModel(BaseModel):
 
 
 class AdeftClassifier:
-    """Trains classifiers to disambiguate shortforms based on context
+    """Validates and trains classifiers to disambiguate shortforms
 
     By default, fits logistic regression models with tfidf vectorized ngram
     features. It is possible to use other types of model pipelines
@@ -250,44 +250,53 @@ class AdeftClassifier:
     pos_labels : list of str
         Labels for positive classes. These correspond to the longforms of
         interest in an application. For adeft pretrained models these are
-        typically genes and other relevant biological terms.
-
+        typically genes and other relevant biological terms. Determines
+        the positive labels for the macro-averaged F_beta metric used for
+        model selection.
     estimator : Optional[py:class:`sklearn.base.BaseEstimator`]
         An sklearn api compatible estimator conforming to the API of
         py:class:`adeft.modeling.classify.BaseModel` defined above.
-
     random_state : Optional[int]
         Controls random number generation for cross_validation splits and
-        in estimator. Default: None
+        in the estimator if the default estimator is used. Default: None
 
     Attributes
     ----------
-    stats : dict
-       Statistics describing model performance. Only available after model is
-       fit with crossvalidation
-    stop : list of str
-        List of stopwords to exclude when performing tfidf vectorization.
-        These consist of the set of stopwords in adeft.nlp.english_stopwords
-        along with the shortform(s) for which the model is being built
-    params : dict
-        Dictionary mapping parameters to their values. If fit with cv, this
-        contains the parameters with best micro averaged f1 score over
-        crossvalidation runs.
-    best_score : float
-        Best micro averaged f1 score for positive labels over crossvalidation
-        runs. This information can also be found in the stats dict and is not
-        included when models are serialized. Only available if model is fit
-        with the cv method.
-    grid_search : py:class:`sklearn.model_selection.GridSearchCV`
-        sklearn gridsearch object if model was fit with cv. This is not
-        included when model is serialized.
-    confusion_info : dict
-        Contains the confusion matrix for each pair of labels per
-        crossvalidation split. Only available if the model has been fit with
-        crossvalidation. Nested dictionary,
-        `confusion_info[label1][label2][i]` gives the number of test examples
-        where the true label is label1 and the classifier has made prediction
-        label2 in split i.
+    labels : ndarray|None
+        A readonly property containing labels seen in training data in
+        sorted order.
+        
+    validation_results : list[dict]|None
+        A list of validation results found when running the ``validate``
+        method. ``validation_results`` will be ``None`` if the ``validate``
+        method has not been run. Validation employs nested cross validation,
+        with inner splits used for model selection and outer splits used for
+        validation.  There is an entry of the `validation_results` list for
+        each outer cross validation split. Each ``dict`` entry has the
+        following keys and associated values:
+
+        "sensitivity" : ndarray
+            Array of classwise sensitivity scores (True Positive Rate) on hold
+            out set for each class in ``labels``. Classes are ordered in the same
+            order they appear in ``labels``.
+        "specificity" : ndarray
+            Array of classwise specificity scores (True Negative Rate) on hold
+            out set for each class in ``labels``. Classes are ordered in the same
+            order they appear in ``labels``.
+        "support" : ndarray
+            Array of support values, counts for each class label in the hold out
+            Classes are ordered in the same order they appear in ``labels``.
+        "confusion_matrix": ndarray
+            Full un-normalized confusion matrix with classes associated to rows
+            and columns appearing in the order classes appear in ``labels``.
+
+        Note that specific care is taken to report only metrics which do not
+        depend on the class balance in unseen data. This is because the class
+        balances in training data may not reflect balances in unseen data, due
+        to training data being sampled from high precision, low recall longform
+        expansion recognition, rather than randomly sampled from the population
+        of relevant documents.
+        
     other_metadata : dict
         Data set here by the user will be included when the model is serialized
         and remain available when the classifier is loaded again.
@@ -337,6 +346,31 @@ class AdeftClassifier:
     def grid_search_to_select_model(
             self, X, y, param_grid, *, cv=None, refit=False, n_jobs=1
     ):
+        """Perform a grid search to select a model
+
+        Model selection is based on a pooled macro averaged F1 score as
+        recommended in the classic Apples-to-Apples paper by Forman and
+        Scholz. With positive labels determined by the ``pos_labels``.
+        F1 is used for model selection because it is of no concern whether
+        negatively labeled examples are identified correctly, so long as
+        none are mislabled with the positive label. Negatively labeled
+        examples correspond to entities which should never appear in
+        biomolecular interactions.
+
+        F1 score is not reported in validation results because the class
+        balance in data labeled through Adeft's Acromine-like algorithm
+        does not necessarily reflect the class balance in the true population
+        of documents where a shortform is used. It is still useful however
+        for model selection purposes in the absence of more specific
+        misclassification costs which could be used for cost-sensitive
+        learning.
+
+        George Forman and Martin Scholz. 2010. Apples-to-apples in
+        cross-validation studies: pitfalls in classifier performance
+        measurement. SIGKDD Explor. Newsl. 12, 1 (June 2010), 49–57.
+        https://doi.org/10.1145/1882471.1882479
+        """
+        
         if cv is None:
             cv = StratifiedKFold(
                 n_splits=5, shuffle=True, random_state=self.random_state
@@ -385,7 +419,47 @@ class AdeftClassifier:
             n_jobs=1,
             refit=False,
     ):
+        """Validate disambiguation model using nested cross validation.
 
+        Model selection is performed in inner splits using pooled macro
+        averaged F1 score. Validation results are reported on outer splits.
+        Running this method will cause the attribute ``validation_results``
+        to be filled with a list of validation results as described in the
+        class level docstring for ``AdeftClassifier``.
+
+        Parameters
+        ----------
+        X : iterable of str
+            Training texts
+        y : iterable of str
+            True labels for training texts
+        param_grid : dict
+            Parameter grid for estimator, in form expected by Scikit_learn's
+            ``GridSearchCV`` (Adeft's ``PooledFbetaGridSearchCV`` is what is
+            actually used internally, but it's API is essentially the same as
+            ``GridSearchCV``).
+        n_outer_splits : Optional[int]
+            Number of outer splits to use in nested cross validation.
+            Default: 5
+        n_inner_splits : Optional[int]
+            Number of inner splits to use in nested cross validation.
+            Default: 5
+        refit : Optional[bool]
+            If True, perform model selection on the full dataset and refit
+            the model with the best parameters found. Default: False
+
+        Notes
+        -----
+        Calling validate will also create an attribute
+        ``inner_model_selection_results_``, containing a list of dictionaries
+        for each outer CV split. Each dictionary contains keys
+        ``"best_score"``, ``"best_params"``, and ``"cv_results"`` containing
+        the corresponding attributes of the ``PooledFbetaGridSearchCv`` object.
+        If ``refit=True``, then another attribute
+        ``outer_model_selection_results_`` will be created, containing a single
+        dictionary of model selection results for the final round of model
+        selection.
+        """
         outer_splitter = StratifiedKFold(
             n_splits=n_outer_splits, shuffle=True, random_state=self.random_state
         )
@@ -393,8 +467,8 @@ class AdeftClassifier:
             n_splits=n_inner_splits, shuffle=True, random_state=self.random_state
         )
         splits = outer_splitter.split(X, y)
-        validation_results = {}
-        model_selection_results = {}
+        validation_results = []
+        model_selection_results = []
         labels = np.unique(y)
         for i, (train_idx, test_idx) in enumerate(splits):
             X_train, y_train = _safe_split(self.estimator, X, y, train_idx)
@@ -412,17 +486,17 @@ class AdeftClassifier:
             sens, spec, support = sensitivity_specificity_support(
                 y_test, preds, labels=labels, average=None
             )
-            validation_results[i] = {
+            validation_results.append({
                 "sensitivity": sens,
                 "specificity": spec,
                 "support": support,
                 "confusion_matrix": confusion,
-            }
-            model_selection_results[i] = {
+            })
+            model_selection_results.append({
                 "best_score": best_score,
                 "best_params": best_params,
                 "cv_results": cv_results,
-            }
+            })
         self.validation_results = validation_results
         self.inner_model_selection_results_ = model_selection_results
         if refit:
