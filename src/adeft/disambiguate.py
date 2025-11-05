@@ -9,7 +9,7 @@ from hashlib import md5
 
 from adeft.locations import ADEFT_MODELS_PATH
 from adeft.recognize import AdeftRecognizer
-from adeft.modeling.classify import load_model
+from adeft.modeling.classify import AdeftClassifier
 from adeft.download import get_available_models
 
 logger = logging.getLogger(__file__)
@@ -466,7 +466,7 @@ def load_disambiguator_directly(path):
         A disambiguation model loaded from folder specified by path
     """
     model_name = os.path.basename(os.path.abspath(path))
-    model = load_model(os.path.join(path, model_name + '_model.gz'))
+    model = AdeftClassifier.load_model(os.path.join(path, model_name + '_model.gz'))
     with open(os.path.join(path, model_name + '_grounding_dict.json')) as f:
         grounding_dict = json.load(f)
     with open(os.path.join(path, model_name + '_names.json')) as f:
