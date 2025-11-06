@@ -137,63 +137,6 @@ class AdeftDisambiguator(object):
                 pred_index += 1
         return result
 
-    def update_pos_labels(self, pos_labels):
-        """Update which labels are considered pos_labels
-
-        Micro-averaged precision, recall, and f1 scores are also updated.
-
-        Warning: If this method is called on a disambiguator trained with a
-        a version prior to 0.10.0, global precision, recall, and f1 will be set
-        to NaN. Older disambiguators must be retrained to update positive
-        labels and recompute model statistics.
-
-        Parameters
-        ----------
-        pos_labels : list
-            list of strs. Should be a subset of the labels produced by the
-            underlying classifier. Check the labels attribute of the
-            AdeftDisambiguator to see which labels are produced.
-        """
-        labels = list(self.labels)
-        stats = self.classifier.stats
-        confusion = self.classifier.confusion_info
-        if stats is not None and confusion is not None:
-            num_splits = len(confusion[labels[0]][labels[0]])
-            TP = np.zeros(num_splits, dtype=int)
-            FP = np.zeros(num_splits, dtype=int)
-            FN = np.zeros(num_splits, dtype=int)
-            for label1 in self.labels:
-                for label2 in self.labels:
-                    row = np.array(confusion[label1][label2])
-                    if label1 == label2 and label1 in pos_labels:
-                        TP += row
-                    if label1 != label2 and label1 in pos_labels:
-                        FN += row
-                    if label1 != label2 and label2 in pos_labels:
-                        FP += row
-            Pr = TP/(TP + FP)
-            Rc = TP/(TP + FN)
-            Pr[Pr == float('inf')] = 0.
-            Rc[Rc == float('inf')] = 0.
-            F1 = 2/(1/Pr + 1/Rc)
-            stats['f1']['mean'] = np.round(np.mean(F1), 6)
-            stats['f1']['std'] = np.round(np.std(F1), 6)
-            stats['precision']['mean'] = np.round(np.mean(Pr), 6)
-            stats['precision']['std'] = np.round(np.std(Pr), 6)
-            stats['recall']['mean'] = np.round(np.mean(Rc), 6)
-            stats['recall']['std'] = np.round(np.std(Rc), 6)
-        elif (stats is not None and
-              set(pos_labels) != set(self.pos_labels)):
-            stats['f1']['mean'] = float('nan')
-            stats['f1']['std'] = float('nan')
-            stats['precision']['mean'] = float('nan')
-            stats['precision']['std'] = float('nan')
-            stats['recall']['mean'] = float('nan')
-            stats['recall']['std'] = float('nan')
-        self.classifier.stats = stats
-        self.classifier.pos_labels = list(pos_labels)
-        self.pos_labels = list(pos_labels)
-
     def modify_groundings(self, new_groundings=None, new_names=None):
         """Update groundings and standardized names
 
