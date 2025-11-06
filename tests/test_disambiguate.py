@@ -7,7 +7,7 @@ import logging
 
 from numpy import array_equal
 
-from adeft.modeling.classify import load_model
+from adeft.modeling.classify import AdeftClassifier
 from adeft.locations import TEST_RESOURCES_PATH
 from adeft.disambiguate import AdeftDisambiguator, load_disambiguator
 
