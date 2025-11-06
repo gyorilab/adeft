@@ -209,19 +209,6 @@ class AdeftDisambiguator(object):
                 if label in new_groundings:
                     new_label = new_groundings[label]
                     classifier.estimator.pipeline.classes_[index] = new_label
-            # Update labels in model statistics so info can be updated
-            if hasattr(classifier, 'stats') and classifier.stats:
-                label_dist = classifier.stats['label_distribution']
-                label_dist = {(new_groundings[label]
-                               if label in new_groundings
-                               else label):
-                              count
-                              for label, count in label_dist.items()}
-                classifier.stats['label_distribution'] = label_dist
-                classifier.stats = {new_groundings[label]
-                                    if label in new_groundings else label:
-                                    value for label, value in
-                                    classifier.stats.items()}
 
     def dump(self, model_name, path=None):
         """Save disambiguator to disk
