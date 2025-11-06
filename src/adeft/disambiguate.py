@@ -282,79 +282,57 @@ class AdeftDisambiguator(object):
     def info(self):
         """Get information about disambiguator and its performance.
 
-        Displays disambiguations model is able to produce. Shows class
-        balance of disambiguation labels in the models training data and
-        crossvalidated F1 score, precision, and recall on training data.
-        Classification metrics for multi-label data are calculated by taking
-        the micro-average over the positive labels. This means the metrics
-        are calculated globally by counting the total true positives,
-        false negatives, and false positives. Positive labels are starred in
-        in the displayed output. F1, Precision, and Recall are also shown for
-        for each label separately. Classification metrics may not be available
-        depending upon how the model was trained.
-
         Returns
         -------
         str
             A string representing the information about the disambigutor.
         """
-        if len(self.shortforms) > 1:
+        if len(self.shortforms) > 2:
             readable_shortforms = (','.join(self.shortforms[:-1]) + ', and ' +
                                    self.shortforms[-1])
+        elif len(self.shortforms) == 2:
+            readable_shortforms = f"{self.shortforms[0]} and {self.shortforms[1]}"
         else:
             readable_shortforms = self.shortforms[0]
-        output = 'Disambiguation model for %s\n\n' % readable_shortforms
-        output += 'Produces the disambiguations:\n'
+        output = f"Disambiguation model for {readable_shortforms}.\n"
+        output += "Produces the disambiguations:\n"
         for grounding, name in sorted(self.names.items(), key=lambda x: x[1]):
-            pos = '*' if grounding in self.pos_labels else ''
-            output += '\t%s%s\t%s\n' % (name, pos, grounding)
-        output += '\n'
-        if not (hasattr(self.classifier, 'stats') and self.classifier.stats):
+            pos = "*" if grounding in self.pos_labels else ""
+            output += f"\t{name}{pos}\t{grounding}\n"
+        output += "\n"
+        if self.classifier.validation_results is None:
             output += 'Model statistics are not available.'
             return output
 
-        model_stats = self.classifier.stats
-        output += 'Class level metrics:\n'
-        output += '--------------------\n'
-        label_distribution = model_stats['label_distribution']
-        # number of digits after the decimal place to report when
-        # displaying value of a metric
-        metric_digits = 5
-        name_pad = max((len(val) for val in self.names.values()))
-        count_pad = max(len(str(count)) for count
-                        in label_distribution.values())
-        metric_pad = metric_digits + 2
-        header = '%s\t%s\t%s\n' % ('Grounding'.ljust(name_pad),
-                                   'Count'.ljust(count_pad),
-                                   'F1'.ljust(metric_pad))
-        output += header
-        for grounding, count in sorted(label_distribution.items(),
-                                       key=lambda x: - x[1]):
-            name = (self.names[grounding]
-                    if grounding in self.names else 'Ungrounded')
-            pos = '*' if grounding in self.pos_labels else ''
-            try:
-                f1 = round(model_stats[grounding]['f1']['mean'], metric_digits)
-            except KeyError:
-                f1 = ''
-            output += '%s%s\t%s\t%s\n' % (name.rjust(name_pad), pos,
-                                          str(count).rjust(count_pad),
-                                          str(f1).rjust(metric_pad))
-        output += '\n'
-        output += 'Global Metrics:\n'
-        output += '-----------------\n'
-        f1 = round(model_stats['f1']['mean'], 5)
-        output += '\tF1 score:\t%s\n' % f1
+        validation_results = self.classifier.validation_results
+        sensitivity = np.vstack(
+            [entry["sensitivity"] for entry in validation_results]
+        )
+        specificity = np.vstack(
+            [entry["specificity"] for entry in validation_results]
+        )
 
-        precision = round(model_stats['precision']['mean'], 5)
-        output += '\tPrecision:\t%s\n' % precision
-
-        recall = round(model_stats['recall']['mean'], 5)
-        output += '\tRecall:\t\t%s\n' % recall
-        output += '\n'
-
-        output += '* Positive labels\n'
-        output += 'See Docstring for explanation\n'
+        col1_width = max(len(label) for label in self.labels) + 2
+        col2_width = 20
+        col3_width = 20
+        output += (
+            f"{'Grounding':<{col1_width}}{'Sensitivity':<{col2_width}}"
+            f"{'Specificity':<{col3_width}}\n"
+        )
+        output += f"{'-'*col1_width}{'-'*col2_width}{'-'*col3_width}\n"
+        for label, sens_mean, sens_std, spec_mean, spec_std in zip(
+                self.labels,
+                sensitivity.mean(axis=0),
+                sensitivity.std(axis=0, ddof=1),
+                specificity.mean(axis=0),
+                specificity.std(axis=0, ddof=1),
+        ):
+            output += (
+                f"{label:<{col1_width}}"
+                f"{sens_mean:.3f} ({sens_std:.3f})".ljust(col2_width)
+                f"{spec_mean:.3f} ({spec_std:.3f})".ljust(col3_width)
+                "\n"
+            )
         return output
 
 
