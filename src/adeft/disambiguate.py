@@ -298,26 +298,35 @@ class AdeftDisambiguator(object):
         specificity = np.vstack(
             [entry["specificity"] for entry in validation_results]
         )
+        support = np.vstack(
+            [entry["support"] for entry in validation_results]
+        )
 
         col1_width = max(len(label) for label in self.labels) + 2
         col2_width = 20
         col3_width = 20
+        col4_width = 12
         output += (
             f"{'Grounding':<{col1_width}}{'Sensitivity':<{col2_width}}"
-            f"{'Specificity':<{col3_width}}\n"
+            f"{'Specificity':<{col3_width}}{'Support':<{col4_width}}\n"
         )
-        output += f"{'-'*col1_width}{'-'*col2_width}{'-'*col3_width}\n"
-        for label, sens_mean, sens_std, spec_mean, spec_std in zip(
-                self.labels,
+        total_width = col1_width + col2_width + col3_width + col4_width
+        output += f"{'-'*total_width}\n"
+        for label, sens_mean, sens_std, spec_mean, spec_std, count in zip(
+                self.classifier.labels,
                 sensitivity.mean(axis=0),
                 sensitivity.std(axis=0, ddof=1),
                 specificity.mean(axis=0),
                 specificity.std(axis=0, ddof=1),
+                support.sum(axis=0),
         ):
+            sens_row = f"{sens_mean:.3f} ({sens_std:.3f})"
+            spec_row = f"{spec_mean:.3f} ({spec_std:.3f})"
             output += (
                 f"{label:<{col1_width}}"
-                f"{sens_mean:.3f} ({sens_std:.3f})".ljust(col2_width)
-                f"{spec_mean:.3f} ({spec_std:.3f})".ljust(col3_width)
+                f"{sens_row:<{col2_width}}"
+                f"{spec_row:<{col2_width}}"
+                f"{count:<{col4_width}}"
                 "\n"
             )
         return output
