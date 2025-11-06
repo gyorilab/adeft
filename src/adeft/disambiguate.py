@@ -38,8 +38,8 @@ class AdeftDisambiguator(object):
     labels : set
         Set of labels that the classifier is able to predict.
     pos_labels : list of str
-        List of labels of interest. Only these are considered when
-        calculating the micro averaged f1 score for a classifier.
+        List of labels of interest, corresponding to entities that may
+        actually appear in relevant biomolecular interactions.
     """
     def __init__(self, classifier, grounding_dict, names):
         self.classifier = classifier
