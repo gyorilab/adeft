@@ -184,6 +184,7 @@ cdef opt_input *make_opt_input(int n, int num_words):
 cdef void free_opt_input(opt_input *input_):
     """Destroy opt_input data-structure"""
     free_int_array(input_.x)
+    free_int_array(input_.indices)
     free_double_array(input_.word_prizes)
     PyMem_Free(input_)
 
