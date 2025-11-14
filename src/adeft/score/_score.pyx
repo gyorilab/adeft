@@ -100,7 +100,7 @@ cdef double_array *make_double_array(int length):
     An array of doubles along with its length
     """
     cdef double_array *output
-    output = <double_array *> PyMem_Malloc(sizeof(int_array))
+    output = <double_array *> PyMem_Malloc(sizeof(double_array))
     output.array = <double *> PyMem_Malloc(length * sizeof(double))
     output.length = length
     return output
@@ -133,7 +133,7 @@ cdef candidates_array *make_candidates_array(list encoded_tokens,
     candidates = <candidates_array *> PyMem_Malloc(sizeof(candidates_array))
     candidates.array = <int_array **> PyMem_Malloc(n * sizeof(int_array*))
     candidates.indices = <int_array **> \
-        PyMem_Malloc(n * sizeof(double_array*))
+        PyMem_Malloc(n * sizeof(int_array*))
     candidates.word_prizes = <double *> PyMem_Malloc(n * sizeof(double))
     candidates.cum_lengths = <int *> PyMem_Malloc(n * sizeof(int))
     candidates.W = W
@@ -184,7 +184,7 @@ cdef opt_input *make_opt_input(int n, int num_words):
 cdef void free_opt_input(opt_input *input_):
     """Destroy opt_input data-structure"""
     free_int_array(input_.x)
-    PyMem_Free(input_.word_prizes)
+    free_double_array(input_.word_prizes)
     PyMem_Free(input_)
 
 
