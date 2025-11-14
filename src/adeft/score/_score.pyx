@@ -638,6 +638,7 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
         PyMem_Free(char_scores[i])
         PyMem_Free(word_scores[i])
         PyMem_Free(char_prizes[i])
+        PyMem_Free(first_capture_index[i])
         if i < n:
             PyMem_Free(pointers[i])
     PyMem_Free(score_lookup)
@@ -645,6 +646,7 @@ cdef void optimize(opt_input *input_, opt_shortform *shortform,
     PyMem_Free(word_scores)
     PyMem_Free(char_prizes)
     PyMem_Free(word_use)
+    PyMem_Free(first_capture_index)
     PyMem_Free(pointers)
 
 
