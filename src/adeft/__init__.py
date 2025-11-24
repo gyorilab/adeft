@@ -1,4 +1,4 @@
-__version__ = '0.12.3'
+__version__ = '1.0.0-dev'
 
 from adeft.download import get_available_models
 

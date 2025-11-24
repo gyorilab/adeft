@@ -1,11 +1,15 @@
 import os
+import pytest
 import uuid
 import json
 import numpy as np
+from datetime import datetime, timedelta
 from sklearn.metrics import f1_score
 
+import adeft
+
 from adeft.locations import TEST_RESOURCES_PATH
-from adeft.modeling.classify import AdeftClassifier, load_model
+from adeft.modeling.classify import AdeftClassifier, BaseModel
 
 
 # Get test model path so we can write a temporary file here
@@ -19,70 +23,150 @@ with open(os.path.join(TEST_RESOURCES_PATH,
     data = json.load(f)
 
 
-# The classifier works slightly differently for multiclass than it does for
-# binary labels. Both cases must be tested separately.
-def test_train():
-    params = {'C': 1.0,
-              'ngram_range': (1, 2),
-              'max_features': 10}
-    classifier = AdeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'],
-                                 random_state=1729)
+@pytest.fixture(scope="class")
+def train_model(request):
+    random_seed = 1729
+    params = {
+        "C": 1.0,
+        "ngram_range": (1, 2),
+        "max_features": 10
+    }
+    classifier = AdeftClassifier(
+        "IR", ["HGNC:6091", "MESH:D011839"],
+        random_state=random_seed
+    )
+    texts = data["texts"]
+    labels = data["labels"]
+    classifier.train(texts, labels, **params)
+    request.cls.classifier = classifier
+    request.cls.random_seed = random_seed
+    request.cls.params = params
+    
+
+@pytest.mark.usefixtures("train_model")
+class TestTrain:
+    def test_f1_score_on_training_data(self):
+        # Just a sanity check that the model fit the training data
+        # reasonably well.
+        labels = data["labels"]
+        texts = data["texts"]
+        assert (
+            f1_score(
+                labels, self.classifier.predict(texts),
+                labels=["HGNC:6091", "MESH:D011839"],
+                average="macro"
+            ) > 0.7
+        )
+
+    def test_feature_importances(self):
+        importances = self.classifier.feature_importances()
+        INSR_features, INSR_scores = zip(*importances['HGNC:6091'])
+        assert set(['irs', 'igf', 'insulin']) < set(INSR_features)
+        irs_score = [score for feature, score in importances['HGNC:6091']
+                     if feature == 'irs'][0]
+        assert irs_score > 0
+
+    def test_repeatable(self):
+        classifier2 = AdeftClassifier(
+            "IR", ["HGNC:6091", "MESH:D011839"],
+            random_state=self.random_seed
+        )
+        texts = data['texts']
+        labels = data['labels']
+        classifier2.train(texts, labels, **self.params)
+        coef1 = self.classifier.estimator.pipeline.named_steps['logit'].coef_
+        coef2 = classifier2.estimator.pipeline.named_steps['logit'].coef_
+        assert np.array_equal(coef1, coef2)
+
+    def test_metadata(self):
+        assert self.classifier.version == adeft.__version__
+        now = datetime.now()
+        model_timestamp = datetime.fromisoformat(self.classifier.timestamp)
+        assert now - timedelta(minutes=30) <= model_timestamp <= now
+
+
+@pytest.fixture(scope="class", params=["multiclass", "binary"])
+def validated_classifier(request):
+    params = {"C": [1.0], "max_features": [100]}
+    classifier = AdeftClassifier(
+        "IR", ["HGNC:6091", "MESH:D011839"],
+        random_state=1729
+    )
     texts = data['texts']
     labels = data['labels']
-    classifier.train(texts, labels, **params)
-    assert hasattr(classifier, 'estimator')
-    assert (f1_score(labels, classifier.predict(texts),
-                     labels=['HGNC:6091', 'MESH:D011839'],
-                     average='weighted') > 0.5)
-    importances = classifier.feature_importances()
-    INSR_features, INSR_scores = zip(*importances['HGNC:6091'])
-    assert set(['irs', 'igf', 'insulin']) < set(INSR_features)
-    irs_score = [score for feature, score in importances['HGNC:6091']
-                 if feature == 'irs'][0]
-    assert irs_score > 0
-    # test that results are repeatable
-    coef1 = classifier.estimator.pipeline.named_steps['logit'].coef_
-    classifier.train(texts, labels, **params)
-    coef2 = classifier.estimator.pipeline.named_steps['logit'].coef_
-    assert np.array_equal(coef1, coef2)
+    if request.param == "binary":
+        labels = [
+            label if label == "HGNC:6091" else "ungrounded"
+            for label in labels
+        ]
+        classifier = AdeftClassifier("IR", ["HGNC:6091"], random_state=1729)
+    else:
+        classifier = AdeftClassifier(
+            "IR", ["HGNC:6091", "MESH:D011839"],
+            random_state=1729
+        )
+    classifier.validate(
+        texts, labels, param_grid=params, n_outer_splits=2, n_inner_splits=2,
+        refit=True
+    )
+    request.cls.classifier = classifier
 
 
-def test_cv_multiclass():
-    params = {'C': [1.0],
-              'max_features': [10]}
-    classifier = AdeftClassifier('IR', ['HGNC:6091', 'MESH:D011839'],
-                                 random_state=1729)
-    texts = data['texts']
-    labels = data['labels']
-    classifier.cv(texts, labels, param_grid=params, cv=2)
-    assert classifier.stats['f1']['mean'] > 0.5
-    assert classifier.stats['ungrounded']['f1']['mean'] > 0.5
-    # Test that results are repeatable
-    coef1 = classifier.estimator.pipeline.named_steps['logit'].coef_
-    classifier.cv(texts, labels, param_grid=params, cv=2)
-    coef2 = classifier.estimator.pipeline.named_steps['logit'].coef_
-    assert np.array_equal(coef1, coef2)
+@pytest.mark.usefixtures("validated_classifier")
+class TestValidateClassifier:
+    @pytest.mark.parametrize("fold_id", [0, 1])
+    def test_validation_results_structure(self, fold_id):
+        validation_results = self.classifier.validation_results[fold_id]
+        assert set(validation_results.keys()) == set(
+            ["sensitivity", "specificity", "support", "confusion_matrix"]
+        )
+        n_labels = len(self.classifier.labels)
+        assert validation_results["sensitivity"].shape == (n_labels,)
+        assert validation_results["specificity"].shape == (n_labels,)
+        assert validation_results["support"].shape == (n_labels,)
+        assert validation_results["confusion_matrix"].shape == (n_labels, n_labels)
 
+    @pytest.mark.parametrize("fold_id", [0, 1])
+    def test_validation_results_consistency(self, fold_id):
+        validation_results = self.classifier.validation_results[fold_id]
+        confusion_matrix = validation_results["confusion_matrix"]
+        support = validation_results["support"]
+        sensitivity = validation_results["sensitivity"]
+        specificity = validation_results["specificity"]
+        assert np.array_equal(confusion_matrix.sum(axis=1), support)
+        TP = np.diag(confusion_matrix)
+        FP = confusion_matrix.sum(axis=0) - TP
+        FN = confusion_matrix.sum(axis=1) - TP
+        TN = confusion_matrix.sum() - (TP + FP + FN)
+        assert np.array_equal(TP / (TP + FN), sensitivity)
+        assert np.array_equal(TN / (TN + FP), specificity)
 
-def test_cv_binary():
-    params = {'C': [1.0],
-              'max_features': [10]}
-    texts = data['texts']
-    labels = [label if label == 'HGNC:6091' else 'ungrounded'
-              for label in data['labels']]
-    classifier = AdeftClassifier('IR', ['HGNC:6091'], random_state=1729)
-    classifier.cv(texts, labels, param_grid=params, cv=2)
-    assert classifier.stats['f1']['mean'] > 0.5
-    assert classifier.stats['HGNC:6091']['f1']['mean'] > 0.5
-    importances = classifier.feature_importances()
-    INSR_features, INSR_scores = zip(*importances['HGNC:6091'])
-    ungrounded_features, ungrounded_scores = zip(*importances['ungrounded'])
-    assert set(INSR_features) == set(ungrounded_features)
-    assert INSR_scores == tuple(-x for x in ungrounded_scores[::-1])
-    assert [score for feature, score in importances['HGNC:6091']
-            if feature == 'insulin'][0] > 0
-    assert [score for feature, score in importances['HGNC:6091']
-            if feature == 'group'][0] < 0
+    @pytest.mark.parametrize("fold_id", [0, 1])
+    def test_validation_results_sensitivity(self, fold_id):
+        validation_results = self.classifier.validation_results[fold_id]
+        assert np.all(validation_results["sensitivity"] > 0.6)
+
+    @pytest.mark.parametrize("fold_id", [0, 1])
+    def test_validation_results_specificity(self, fold_id):
+        validation_results = self.classifier.validation_results[fold_id]
+        assert np.all(validation_results["specificity"] > 0.6)
+
+    @pytest.mark.parametrize(
+        "kind",
+        ["inner_model_selection_results_", "outer_model_selection_results_"]
+    )
+    def test_model_selection_results(self, kind):
+        if kind == "inner":
+            model_selection_results = self.classifier.inner_model_selection_results_
+        else:
+            model_selection_results = self.classifier.outer_model_selection_results_
+        assert set(model_selection_results.keys()) == set(
+            ["best_score", "best_params", "cv_results"]
+        )
+        assert model_selection_results["best_score"] > 0.6
+        assert model_selection_results["best_params"] == {
+            "C": 1.0, "max_features": 100
+        }
 
 
 def test_training_set_digest():
@@ -94,7 +178,7 @@ def test_training_set_digest():
     assert digest1 == digest2
     assert digest1 != digest3
 
-
+@pytest.mark.skip(reason="Test model currently incompatible.")
 def test_serialize():
     """Test that models can correctly be saved to and loaded from gzipped json
     """

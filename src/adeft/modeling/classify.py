@@ -1,28 +1,43 @@
 import gzip
 import json
-import logging
-import warnings
 import numpy as np
 from hashlib import md5
+from importlib import import_module
 from datetime import datetime
-from collections import Counter, defaultdict
 
+from imblearn.metrics import (
+    sensitivity_score, sensitivity_specificity_support, specificity_score
+)
 from sklearn.pipeline import Pipeline
-from sklearn.exceptions import ConvergenceWarning
 from sklearn.linear_model import LogisticRegression
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.model_selection import GridSearchCV, StratifiedKFold
-from sklearn.metrics import f1_score, precision_score, recall_score,\
-    make_scorer
-from sklearn.base import BaseEstimator, ClassifierMixin
-
+from sklearn.metrics import make_scorer
+from sklearn.model_selection import (
+    StratifiedKFold, RandomizedSearchCV, cross_validate
+)
+from sklearn.metrics import confusion_matrix
+from sklearn.base import BaseEstimator, ClassifierMixin, clone
+from sklearn.utils.metaestimators import _safe_split
 
 from adeft import __version__
 from adeft.nlp import english_stopwords
+from adeft.util import load_array, serialize_array
 
-warnings.filterwarnings("ignore", category=ConvergenceWarning)
+from multiprocessing import Lock
 
-logger = logging.getLogger(__file__)
+lock = Lock()
+
+
+def _count_score(y_true, y_pred, *, label1, label2):
+    y_true, y_pred = map(np.asarray, (y_true, y_pred))
+    return int(np.sum((y_true == label1) & (y_pred == label2)))
+
+
+def macro_informedness(y_true, y_pred, *, labels=None):
+    sens, spec, _ = sensitivity_specificity_support(
+        y_true, y_pred, labels=labels, average=None
+    )
+    return np.mean(sens + spec - 1)
 
 
 class BaseModel(BaseEstimator, ClassifierMixin):
@@ -177,9 +192,9 @@ class BaselineLogisticRegressionModel(BaseModel):
         logit = self.pipeline.named_steps['logit']
         if not hasattr(logit, 'coef_'):
             raise RuntimeError('Estimator has not been fit.')
-        classes_ = logit.classes_.tolist()
-        intercept_ = logit.intercept_.tolist()
-        coef_ = logit.coef_.tolist()
+        classes_ = serialize_array(logit.classes_)
+        intercept_ = serialize_array(logit.intercept_)
+        coef_ = serialize_array(logit.coef_)
 
         tfidf = self.pipeline.named_steps['tfidf']
         vocabulary_ = {term: int(frequency)
@@ -222,9 +237,9 @@ class BaselineLogisticRegressionModel(BaseModel):
             class_weight=model_info["logit"].get("class_weight"),
         )
 
-        logit.intercept_ = np.asarray(model_info["logit"]["intercept_"])
-        logit.coef_ = np.asarray(model_info["logit"]["coef_"])
-        logit.classes_ = np.asarray(model_info["logit"]["classes_"], dtype="<U64")
+        logit.intercept_ = load_array(model_info["logit"]["intercept_"])
+        logit.coef_ = load_array(model_info["logit"]["coef_"])
+        logit.classes_ = load_array(model_info["logit"]["classes_"])
 
         estimator = cls(
             stop_words=tfidf.stop_words,
@@ -240,7 +255,7 @@ class BaselineLogisticRegressionModel(BaseModel):
 
 
 class AdeftClassifier:
-    """Trains classifiers to disambiguate shortforms based on context
+    """Validates and trains classifiers to disambiguate shortforms
 
     By default, fits logistic regression models with tfidf vectorized ngram
     features. It is possible to use other types of model pipelines
@@ -255,44 +270,53 @@ class AdeftClassifier:
     pos_labels : list of str
         Labels for positive classes. These correspond to the longforms of
         interest in an application. For adeft pretrained models these are
-        typically genes and other relevant biological terms.
-
+        typically genes and other relevant biological terms. Determines
+        the positive labels for the macro-averaged F_beta metric used for
+        model selection.
     estimator : Optional[py:class:`sklearn.base.BaseEstimator`]
         An sklearn api compatible estimator conforming to the API of
         py:class:`adeft.modeling.classify.BaseModel` defined above.
-
     random_state : Optional[int]
         Controls random number generation for cross_validation splits and
-        in estimator. Default: None
+        in the estimator if the default estimator is used. Default: None
 
     Attributes
     ----------
-    stats : dict
-       Statistics describing model performance. Only available after model is
-       fit with crossvalidation
-    stop : list of str
-        List of stopwords to exclude when performing tfidf vectorization.
-        These consist of the set of stopwords in adeft.nlp.english_stopwords
-        along with the shortform(s) for which the model is being built
-    params : dict
-        Dictionary mapping parameters to their values. If fit with cv, this
-        contains the parameters with best micro averaged f1 score over
-        crossvalidation runs.
-    best_score : float
-        Best micro averaged f1 score for positive labels over crossvalidation
-        runs. This information can also be found in the stats dict and is not
-        included when models are serialized. Only available if model is fit
-        with the cv method.
-    grid_search : py:class:`sklearn.model_selection.GridSearchCV`
-        sklearn gridsearch object if model was fit with cv. This is not
-        included when model is serialized.
-    confusion_info : dict
-        Contains the confusion matrix for each pair of labels per
-        crossvalidation split. Only available if the model has been fit with
-        crossvalidation. Nested dictionary,
-        `confusion_info[label1][label2][i]` gives the number of test examples
-        where the true label is label1 and the classifier has made prediction
-        label2 in split i.
+    labels : ndarray|None
+        A readonly property containing labels seen in training data in
+        sorted order.
+        
+    validation_results : list[dict]|None
+        A list of validation results found when running the ``validate``
+        method. ``validation_results`` will be ``None`` if the ``validate``
+        method has not been run. Validation employs nested cross validation,
+        with inner splits used for model selection and outer splits used for
+        validation.  There is an entry of the `validation_results` list for
+        each outer cross validation split. Each ``dict`` entry has the
+        following keys and associated values:
+
+        "sensitivity" : ndarray
+            Array of classwise sensitivity scores (True Positive Rate) on hold
+            out set for each class in ``labels``. Classes are ordered in the same
+            order they appear in ``labels``.
+        "specificity" : ndarray
+            Array of classwise specificity scores (True Negative Rate) on hold
+            out set for each class in ``labels``. Classes are ordered in the same
+            order they appear in ``labels``.
+        "support" : ndarray
+            Array of support values, counts for each class label in the hold out
+            Classes are ordered in the same order they appear in ``labels``.
+        "confusion_matrix": ndarray
+            Full un-normalized confusion matrix with classes associated to rows
+            and columns appearing in the order classes appear in ``labels``.
+
+        Note that specific care is taken to report only metrics which do not
+        depend on the class balance in unseen data. This is because the class
+        balances in training data may not reflect balances in unseen data, due
+        to training data being sampled from high precision, low recall longform
+        expansion recognition, rather than randomly sampled from the population
+        of relevant documents.
+        
     other_metadata : dict
         Data set here by the user will be included when the model is serialized
         and remain available when the classifier is loaded again.
@@ -322,17 +346,24 @@ class AdeftClassifier:
                 stop_words=stop, random_state=random_state
             )
         self.estimator = estimator
-        self.stats = None
-        self.confusion_info = None
         self.other_metadata = None
 
-        self.best_score = None
-        self.grid_search = None
+        self.validation_results = None
         self.version = __version__
         self.timestamp = None
         self.training_set_digest = None
 
-    def train(self, texts, y, **params):
+    @property
+    def params(self):
+        return self.estimator.get_params()
+
+    @property
+    def labels(self):
+        if hasattr(self.estimator, "classes_"):
+            return self.estimator.classes_
+        return None
+
+    def train(self, X, y, **params):
         """Fits a disambiguation model
 
         Parameters
@@ -347,138 +378,95 @@ class AdeftClassifier:
         """
         # Initialize pipeline
         self.estimator.set_params(**params)
-        self.estimator.fit(texts, y)
-
-        self.best_score = None
-        self.grid_search = None
+        self.estimator.fit(X, y)
         self.timestamp = self._get_current_time()
-        self.training_set_digest = self._training_set_digest(texts)
+        self.training_set_digest = self._training_set_digest(X)
 
-    def cv(self, texts, y, param_grid, n_jobs=1, cv=5):
-        """Performs grid search to select and fit a disambiguation model
+    def validate(
+            self,
+            X,
+            y,
+            *,
+            param_distributions,
+            model_select_n_iter=10,
+            n_outer_splits=5,
+            n_inner_splits=5,
+            n_jobs=1,
+            refit=False,
+    ):
+        """Validate disambiguation model using nested cross validation.
+
+        Model selection is performed in inner splits using pooled macro
+        averaged F1 score. Validation results are reported on outer splits.
+        Running this method will cause the attribute ``validation_results``
+        to be filled with a list of validation results as described in the
+        class level docstring for ``AdeftClassifier``.
 
         Parameters
         ----------
-        texts : iterable of str
-             Training texts
+        X : iterable of str
+            Training texts
         y : iterable of str
-            True labels for the training texts
-        param_grid : Optional[dict]
-          Grid search parameters. Can contain all parameters from the train
-          method.
-        n_jobs : Optional[int]
-            Number of jobs to use when performing grid_search
-            Default: 1
-        cv : Optional[int]
-            Number of folds to use in crossvalidation. Default: 5
+            True labels for training texts
+        param_grid : dict
+            Parameter grid for estimator, in form expected by Scikit_learn's
+            ``GridSearchCV`` (Adeft's ``PooledFbetaGridSearchCV`` is what is
+            actually used internally, but it's API is essentially the same as
+            ``GridSearchCV``).
+        n_outer_splits : Optional[int]
+            Number of outer splits to use in nested cross validation.
+            Default: k5
+        n_inner_splits : Optional[int]
+            Number of inner splits to use in nested cross validation.
+            Default: 5
+        refit : Optional[bool]
+            If True, perform model selection on the full dataset and refit
+            the model with the best parameters found. Default: False
 
-        Example
-        -------
-        >>> params = {'C': [1.0, 10.0, 100.0],
-        ...    'max_features': [3000, 6000, 9000],
-        ...    'ngram_range': [(1, 1), (1, 2), (1, 3)]}
-        >>> classifier = LongformClassifier('IR', ['insulin receptor'])
-        >>> classifier.train(texts, labels, param_grid=params, n_jobs=4)
+        Notes
+        -----
+        Calling validate will also create an attribute
+        ``inner_model_selection_results_``, containing a list of dictionaries
+        for each outer CV split. Each dictionary contains keys
+        ``"best_score"``, ``"best_params"``, and ``"cv_results"`` containing
+        the corresponding attributes of the ``PooledFbetaGridSearchCv`` object.
+        If ``refit=True``, then another attribute
+        ``outer_model_selection_results_`` will be created, containing a single
+        dictionary of model selection results for the final round of model
+        selection.
         """
-        # Create scorer for use in grid search. Best params decided using
-        # f1 score. The positive labels are specified when the classifier is
-        # initialized. Uses micro-average f1, precision, and recall scores.
-        # This means metrics are calculated globally by counting all true
-        # positives, false negatives, and false positives
-        f1_scorer = make_scorer(f1_score, labels=self.pos_labels,
-                                pos_label=None,
-                                average='micro')
-        pr_scorer = make_scorer(precision_score,
-                                labels=self.pos_labels,
-                                pos_label=None,
-                                average='micro')
-        rc_scorer = make_scorer(recall_score,
-                                labels=self.pos_labels,
-                                pos_label=None,
-                                average='micro')
-
-        scorer = {'f1': f1_scorer,
-                  'pr': pr_scorer,
-                  'rc': rc_scorer}
-        all_labels = sorted(set(y))
-        for label in all_labels:
-            f1 = make_scorer(f1_score, labels=[label], pos_label=None, average=None)
-            pr = make_scorer(recall_score, labels=[label], pos_label=None, average=None)
-            rc = make_scorer(precision_score, labels=[label], pos_label=None, average=None)
-            scorer.update({'f1_%s' % label: f1,
-                           'pr_%s' % label: pr,
-                           'rc_%s' % label: rc})
+        if n_inner_splits == 1 and param_distributions is not None:
+            raise ValueError("n_inner_splits=1 is only allowed if no "
+                             " model selection is involved.")
+        outer_splitter = StratifiedKFold(
+            n_splits=n_outer_splits, shuffle=True, random_state=self.random_state
+        )
+        if n_inner_splits > 1:
+            inner_splitter = StratifiedKFold(
+                n_splits=n_inner_splits, shuffle=True, random_state=self.random_state
+            )
+            inner_scorer = make_scorer(macro_informedness, labels=self.pos_labels)
+            outer_estimator = RandomizedSearchCV(
+                self.estimator, param_distributions, n_iter=model_select_n_iter,
+                scoring=inner_scorer, n_jobs=n_jobs
+            )
+        else:
+            outer_estimator = self.estimator
+        outer_scoring = {}
+        all_labels = np.unique(y)
         for label1 in all_labels:
             for label2 in all_labels:
-                count_score = make_scorer(_count_score, label1=label1,
-                                          label2=label2)
-                scorer['count_%s_%s' % (label1, label2)] = count_score
-        logger.info('Beginning grid search in parameter space:\n'
-                    '%s' % param_grid)
-
-        num_splits = cv
-        cv = StratifiedKFold(n_splits=cv, shuffle=True, random_state=self.random_state)
-        # Fit grid_search and set the estimator for the instance of the class
-        grid_search = GridSearchCV(self.estimator, param_grid,
-                                   cv=cv, n_jobs=n_jobs, scoring=scorer,
-                                   refit='f1',
-                                   return_train_score=False)
-        grid_search.fit(texts, y)
-        logger.info('Best f1 score of %s found for' % grid_search.best_score_
-                    + ' parameter values:\n%s' % grid_search.best_params_)
-
-        cv = grid_search.cv_results_
-        best_index = cv['rank_test_f1'][0] - 1
-        labels = dict(Counter(y))
-        stats = {'label_distribution': labels,
-                 'f1': {'mean':
-                        np.round(cv['mean_test_f1'][best_index], 6),
-                        'std':
-                        np.round(cv['std_test_f1'][best_index], 6)},
-                 'precision': {'mean':
-                               np.round(cv['mean_test_pr']
-                                        [best_index], 6),
-                               'std': np.round(cv['std_test_pr']
-                                               [best_index], 6)},
-                 'recall': {'mean': np.round(cv['mean_test_rc']
-                                             [best_index], 6),
-                            'std': np.round(cv['std_test_rc']
-                                            [best_index], 6)}}
-        for label in all_labels:
-            stats.update({label:
-                          {'f1':
-                           {'mean': np.round(cv['mean_test_f1_%s'
-                                                % label][best_index], 6),
-                            'std': np.round(cv['std_test_f1_%s'
-                                               % label][best_index], 6)},
-                           'pr':
-                           {'mean': np.round(cv['mean_test_pr_%s'
-                                                % label][best_index], 6),
-                            'std': np.round(cv['std_test_pr_%s'
-                                               % label][best_index], 6)},
-                           'rc':
-                           {'mean': np.round(cv['mean_test_rc_%s'
-                                                % label][best_index], 6),
-                            'std': np.round(cv['std_test_rc_%s'
-                                               % label][best_index], 6)}}})
-
-        confusion = defaultdict(lambda: defaultdict(list))
-        for label1 in all_labels:
-            for label2 in all_labels:
-                for i in range(num_splits):
-                    key = 'split%s_test_count_%s_%s' % (i, label1, label2)
-                    val = int(cv[key][best_index])
-                    confusion[label1][label2].append(val)
-        confusion = {key: dict(value) for key, value in confusion.items()}
-        params = grid_search.best_params_
-        params['random_state'] = self.random_state
-        self.estimator = grid_search.best_estimator_
-        self.best_score = grid_search.best_score_
-        self.grid_search = grid_search
-        self.stats = stats
-        self.confusion_info = confusion
-        self.timestamp = self._get_current_time()
-        self.training_set_digest = self._training_set_digest(texts)
+                count_score = make_scorer(
+                    _count_score, label1=label1, label2=label2
+                )
+                outer_scoring[f"count_{label1}_{label2}"] = count_score
+        scores = cross_validate(
+            outer_estimator, X, y,
+            scoring=outer_scoring, cv=outer_splitter,
+            n_jobs=n_jobs if n_inner_splits == 1 else 1
+        )
+        self.outer_cv_results = scores
+        return self
 
     def predict_proba(self, texts):
         """Predict class probabilities for a list-like of texts"""
@@ -502,31 +490,45 @@ class AdeftClassifier:
         """
 
         model_info = {"estimator_info": self.estimator.get_model_info()}
+        estimator_class = self.estimator.__class__
+        model_info["estimator_module"] = estimator_class.__module__
+        model_info["estimator_name"] = estimator_class.__qualname__
+
         model_info.update(
             {
                 "shortforms": self.shortforms,
                 "pos_labels": self.pos_labels,
             }
         )
-        # Model statistics may not be available depending on
-        # how the model was fit
-        if hasattr(self, 'stats') and self.stats is not None:
-            model_info['stats'] = self.stats
-        # These attributes may not exist in older models
-        if hasattr(self, 'timestamp') and self.timestamp is not None:
-            model_info['timestamp'] = self.timestamp
-        if hasattr(self, 'training_set_digest') and \
-           self.training_set_digest is not None:
-            model_info['training_set_digest'] = self.training_set_digest
-        if hasattr(self, 'params') and self.params is not None:
-            model_info['params'] = self.params
-        if hasattr(self, 'version') and self.version is not None:
-            model_info['version'] = self.version
-        if hasattr(self, 'confusion_info') and self.confusion_info is not None:
-            model_info['confusion_info'] = self.confusion_info
-        if hasattr(self, 'other_metadata') and self.other_metadata is not None:
-            model_info['other_metadata'] = self.other_metadata
+        model_info["validation_results"] = {
+            fold_id: {key: val.tolist() for key, val in entry.items()}
+            for fold_id, entry in self.validation_results.items()
+        }
+        model_info["version"] = self.version
+        model_info["timestamp"] = self.timestamp
+        model_info["training_set_digest"] = self.training_set_digest
+        model_info["other_metadata"] = self.other_metadata
+
         return model_info
+
+    @classmethod
+    def load_from_model_info(cls, model_info):
+        shortforms = model_info['shortforms']
+        pos_labels = model_info['pos_labels']
+        estimator_info = model_info["estimator_info"]
+        estimator_module = import_module(model_info["estimator_module"])
+        estimator_class = getattr(estimator_module, model_info["estimator_name"])
+        estimator = estimator_class.load_from_model_info(estimator_info)
+        longform_model = cls(
+            shortforms=shortforms, pos_labels=pos_labels, estimator=estimator
+        )
+        longform_model.estimator = estimator
+        validation_results = model_info["validation_results"]
+        longform_model.validation_results = {
+            fold_id: {key: np.asarray(val) for key, val in entry.items()}
+            for fold_id, entry in validation_results.items()
+        }
+        return longform_model
 
     def dump_model(self, filepath):
         """Serialize model to gzipped json
@@ -541,6 +543,14 @@ class AdeftClassifier:
         json_bytes = json_str.encode('utf-8')
         with gzip.GzipFile(filepath, 'w') as fout:
             fout.write(json_bytes)
+
+    @classmethod
+    def load_model(cls, filepath):
+        with gzip.GzipFile(filepath, 'r') as fin:
+            json_bytes = fin.read()
+        json_str = json_bytes.decode('utf-8')
+        model_info = json.loads(json_str)
+        return cls.load_from_model_info(model_info)
 
     def feature_importances(self):
         """Return feature importance scores for each label."""
@@ -560,30 +570,13 @@ class AdeftClassifier:
         return md5(hashed_texts.encode('utf-8')).hexdigest()
 
 
-def load_model(filepath):
-    """Load previously serialized model
-
-    Parameters
-    ----------
-    filepath : str
-       path to model file
-
-    Returns
-    -------
-    longform_model : py:class:`adeft.classify.AdeftClassifier`
-        The classifier that was loaded from the given path.
-    """
-    with gzip.GzipFile(filepath, 'r') as fin:
-        json_bytes = fin.read()
-    json_str = json_bytes.decode('utf-8')
-    model_info = json.loads(json_str)
-    return load_model_info(model_info)
-
-
 def load_model_info(
         model_info, *, estimator_class=BaselineLogisticRegressionModel
 ):
     """Return a longform model from a model info JSON object.
+
+    This is currently being kept around for backwards compatibility
+    purposes, because it's used in Gilda for Gilda models.
 
     Parameters
     ----------
@@ -624,8 +617,3 @@ def load_model_info(
     if 'other_metadata' in model_info:
         longform_model.other_metadata = model_info['other_metadata']
     return longform_model
-
-
-def _count_score(y_true, y_pred, label1=0, label2=1):
-    return sum((y == label1 and pred == label2)
-               for y, pred in zip(y_true, y_pred))

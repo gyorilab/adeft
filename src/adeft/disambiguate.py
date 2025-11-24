@@ -9,7 +9,7 @@ from hashlib import md5
 
 from adeft.locations import ADEFT_MODELS_PATH
 from adeft.recognize import AdeftRecognizer
-from adeft.modeling.classify import load_model
+from adeft.modeling.classify import AdeftClassifier
 from adeft.download import get_available_models
 
 logger = logging.getLogger(__file__)
@@ -38,8 +38,8 @@ class AdeftDisambiguator(object):
     labels : set
         Set of labels that the classifier is able to predict.
     pos_labels : list of str
-        List of labels of interest. Only these are considered when
-        calculating the micro averaged f1 score for a classifier.
+        List of labels of interest, corresponding to entities that may
+        actually appear in relevant biomolecular interactions.
     """
     def __init__(self, classifier, grounding_dict, names):
         self.classifier = classifier
@@ -137,63 +137,6 @@ class AdeftDisambiguator(object):
                 pred_index += 1
         return result
 
-    def update_pos_labels(self, pos_labels):
-        """Update which labels are considered pos_labels
-
-        Micro-averaged precision, recall, and f1 scores are also updated.
-
-        Warning: If this method is called on a disambiguator trained with a
-        a version prior to 0.10.0, global precision, recall, and f1 will be set
-        to NaN. Older disambiguators must be retrained to update positive
-        labels and recompute model statistics.
-
-        Parameters
-        ----------
-        pos_labels : list
-            list of strs. Should be a subset of the labels produced by the
-            underlying classifier. Check the labels attribute of the
-            AdeftDisambiguator to see which labels are produced.
-        """
-        labels = list(self.labels)
-        stats = self.classifier.stats
-        confusion = self.classifier.confusion_info
-        if stats is not None and confusion is not None:
-            num_splits = len(confusion[labels[0]][labels[0]])
-            TP = np.zeros(num_splits, dtype=int)
-            FP = np.zeros(num_splits, dtype=int)
-            FN = np.zeros(num_splits, dtype=int)
-            for label1 in self.labels:
-                for label2 in self.labels:
-                    row = np.array(confusion[label1][label2])
-                    if label1 == label2 and label1 in pos_labels:
-                        TP += row
-                    if label1 != label2 and label1 in pos_labels:
-                        FN += row
-                    if label1 != label2 and label2 in pos_labels:
-                        FP += row
-            Pr = TP/(TP + FP)
-            Rc = TP/(TP + FN)
-            Pr[Pr == float('inf')] = 0.
-            Rc[Rc == float('inf')] = 0.
-            F1 = 2/(1/Pr + 1/Rc)
-            stats['f1']['mean'] = np.round(np.mean(F1), 6)
-            stats['f1']['std'] = np.round(np.std(F1), 6)
-            stats['precision']['mean'] = np.round(np.mean(Pr), 6)
-            stats['precision']['std'] = np.round(np.std(Pr), 6)
-            stats['recall']['mean'] = np.round(np.mean(Rc), 6)
-            stats['recall']['std'] = np.round(np.std(Rc), 6)
-        elif (stats is not None and
-              set(pos_labels) != set(self.pos_labels)):
-            stats['f1']['mean'] = float('nan')
-            stats['f1']['std'] = float('nan')
-            stats['precision']['mean'] = float('nan')
-            stats['precision']['std'] = float('nan')
-            stats['recall']['mean'] = float('nan')
-            stats['recall']['std'] = float('nan')
-        self.classifier.stats = stats
-        self.classifier.pos_labels = list(pos_labels)
-        self.pos_labels = list(pos_labels)
-
     def modify_groundings(self, new_groundings=None, new_names=None):
         """Update groundings and standardized names
 
@@ -266,19 +209,6 @@ class AdeftDisambiguator(object):
                 if label in new_groundings:
                     new_label = new_groundings[label]
                     classifier.estimator.pipeline.classes_[index] = new_label
-            # Update labels in model statistics so info can be updated
-            if hasattr(classifier, 'stats') and classifier.stats:
-                label_dist = classifier.stats['label_distribution']
-                label_dist = {(new_groundings[label]
-                               if label in new_groundings
-                               else label):
-                              count
-                              for label, count in label_dist.items()}
-                classifier.stats['label_distribution'] = label_dist
-                classifier.stats = {new_groundings[label]
-                                    if label in new_groundings else label:
-                                    value for label, value in
-                                    classifier.stats.items()}
 
     def dump(self, model_name, path=None):
         """Save disambiguator to disk
@@ -339,79 +269,66 @@ class AdeftDisambiguator(object):
     def info(self):
         """Get information about disambiguator and its performance.
 
-        Displays disambiguations model is able to produce. Shows class
-        balance of disambiguation labels in the models training data and
-        crossvalidated F1 score, precision, and recall on training data.
-        Classification metrics for multi-label data are calculated by taking
-        the micro-average over the positive labels. This means the metrics
-        are calculated globally by counting the total true positives,
-        false negatives, and false positives. Positive labels are starred in
-        in the displayed output. F1, Precision, and Recall are also shown for
-        for each label separately. Classification metrics may not be available
-        depending upon how the model was trained.
-
         Returns
         -------
         str
             A string representing the information about the disambigutor.
         """
-        if len(self.shortforms) > 1:
+        if len(self.shortforms) > 2:
             readable_shortforms = (','.join(self.shortforms[:-1]) + ', and ' +
                                    self.shortforms[-1])
+        elif len(self.shortforms) == 2:
+            readable_shortforms = f"{self.shortforms[0]} and {self.shortforms[1]}"
         else:
             readable_shortforms = self.shortforms[0]
-        output = 'Disambiguation model for %s\n\n' % readable_shortforms
-        output += 'Produces the disambiguations:\n'
+        output = f"Disambiguation model for {readable_shortforms}.\n"
+        output += "Produces the disambiguations:\n"
         for grounding, name in sorted(self.names.items(), key=lambda x: x[1]):
-            pos = '*' if grounding in self.pos_labels else ''
-            output += '\t%s%s\t%s\n' % (name, pos, grounding)
-        output += '\n'
-        if not (hasattr(self.classifier, 'stats') and self.classifier.stats):
+            pos = "*" if grounding in self.pos_labels else ""
+            output += f"\t{name}{pos}\t{grounding}\n"
+        output += "\n"
+        if self.classifier.validation_results is None:
             output += 'Model statistics are not available.'
             return output
 
-        model_stats = self.classifier.stats
-        output += 'Class level metrics:\n'
-        output += '--------------------\n'
-        label_distribution = model_stats['label_distribution']
-        # number of digits after the decimal place to report when
-        # displaying value of a metric
-        metric_digits = 5
-        name_pad = max((len(val) for val in self.names.values()))
-        count_pad = max(len(str(count)) for count
-                        in label_distribution.values())
-        metric_pad = metric_digits + 2
-        header = '%s\t%s\t%s\n' % ('Grounding'.ljust(name_pad),
-                                   'Count'.ljust(count_pad),
-                                   'F1'.ljust(metric_pad))
-        output += header
-        for grounding, count in sorted(label_distribution.items(),
-                                       key=lambda x: - x[1]):
-            name = (self.names[grounding]
-                    if grounding in self.names else 'Ungrounded')
-            pos = '*' if grounding in self.pos_labels else ''
-            try:
-                f1 = round(model_stats[grounding]['f1']['mean'], metric_digits)
-            except KeyError:
-                f1 = ''
-            output += '%s%s\t%s\t%s\n' % (name.rjust(name_pad), pos,
-                                          str(count).rjust(count_pad),
-                                          str(f1).rjust(metric_pad))
-        output += '\n'
-        output += 'Global Metrics:\n'
-        output += '-----------------\n'
-        f1 = round(model_stats['f1']['mean'], 5)
-        output += '\tF1 score:\t%s\n' % f1
+        validation_results = self.classifier.validation_results
+        sensitivity = np.vstack(
+            [entry["sensitivity"] for entry in validation_results]
+        )
+        specificity = np.vstack(
+            [entry["specificity"] for entry in validation_results]
+        )
+        support = np.vstack(
+            [entry["support"] for entry in validation_results]
+        )
 
-        precision = round(model_stats['precision']['mean'], 5)
-        output += '\tPrecision:\t%s\n' % precision
-
-        recall = round(model_stats['recall']['mean'], 5)
-        output += '\tRecall:\t\t%s\n' % recall
-        output += '\n'
-
-        output += '* Positive labels\n'
-        output += 'See Docstring for explanation\n'
+        col1_width = max(len(label) for label in self.labels) + 2
+        col2_width = 20
+        col3_width = 20
+        col4_width = 12
+        output += (
+            f"{'Grounding':<{col1_width}}{'Sensitivity':<{col2_width}}"
+            f"{'Specificity':<{col3_width}}{'Support':<{col4_width}}\n"
+        )
+        total_width = col1_width + col2_width + col3_width + col4_width
+        output += f"{'-'*total_width}\n"
+        for label, sens_mean, sens_std, spec_mean, spec_std, count in zip(
+                self.classifier.labels,
+                sensitivity.mean(axis=0),
+                sensitivity.std(axis=0, ddof=1),
+                specificity.mean(axis=0),
+                specificity.std(axis=0, ddof=1),
+                support.sum(axis=0),
+        ):
+            sens_row = f"{sens_mean:.3f} ({sens_std:.3f})"
+            spec_row = f"{spec_mean:.3f} ({spec_std:.3f})"
+            output += (
+                f"{label:<{col1_width}}"
+                f"{sens_row:<{col2_width}}"
+                f"{spec_row:<{col2_width}}"
+                f"{count:<{col4_width}}"
+                "\n"
+            )
         return output
 
 
@@ -466,7 +383,7 @@ def load_disambiguator_directly(path):
         A disambiguation model loaded from folder specified by path
     """
     model_name = os.path.basename(os.path.abspath(path))
-    model = load_model(os.path.join(path, model_name + '_model.gz'))
+    model = AdeftClassifier.load_model(os.path.join(path, model_name + '_model.gz'))
     with open(os.path.join(path, model_name + '_grounding_dict.json')) as f:
         grounding_dict = json.load(f)
     with open(os.path.join(path, model_name + '_names.json')) as f:
