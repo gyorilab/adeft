@@ -29,7 +29,7 @@ Open Source Software,* 5(45), 1708, https://doi.org/10.21105/joss.01708
 
 ## Installation
 
-Adeft works with Python versions 3.5 and above. It is available on PyPi and can be installed with the command
+Adeft works with Python versions 3.8 and above. It is available on PyPi and can be installed with the command
 
     $ pip install adeft
 
