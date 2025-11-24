@@ -7,6 +7,13 @@ import logging
 
 from numpy import array_equal
 
+try:
+    from indra.statements.validate import assert_valid_id
+except ImportError:
+    assert_valid_id = None
+
+
+from adeft import get_available_models
 from adeft.modeling.classify import load_model
 from adeft.locations import TEST_RESOURCES_PATH
 from adeft.disambiguate import AdeftDisambiguator, load_disambiguator
@@ -119,3 +126,15 @@ def test_modify_groundings_error():
     ad = load_disambiguator('IR', path=TEST_MODEL_PATH)
     with pytest.raises(ValueError):
         ad.modify_groundings(new_groundings={'MESH:D011839': 'HGNC:6091'})
+
+
+@pytest.mark.skipif(assert_valid_id is None, reason="indra is not available")
+@pytest.mark.parametrize("shortform", get_available_models().keys())
+def test_grounding_validity(shortform):
+    disamb = load_disambiguator(shortform)
+    for grounding in disamb.names:
+        if ":" not in grounding:
+            # Need to skip ungrounded labels which have no ":"
+            continue
+        db, ns = grounding.split(":", maxsplit=1)
+        assert_valid_id(db, ns)
