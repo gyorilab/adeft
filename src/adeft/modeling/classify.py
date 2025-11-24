@@ -5,19 +5,39 @@ from hashlib import md5
 from importlib import import_module
 from datetime import datetime
 
-from imblearn.metrics import sensitivity_specificity_support
+from imblearn.metrics import (
+    sensitivity_score, sensitivity_specificity_support, specificity_score
+)
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import make_scorer
+from sklearn.model_selection import (
+    StratifiedKFold, RandomizedSearchCV, cross_validate
+)
 from sklearn.metrics import confusion_matrix
 from sklearn.base import BaseEstimator, ClassifierMixin, clone
 from sklearn.utils.metaestimators import _safe_split
 
 from adeft import __version__
-from adeft.modeling.validate import PooledFbetaGridSearchCV
 from adeft.nlp import english_stopwords
 from adeft.util import load_array, serialize_array
+
+from multiprocessing import Lock
+
+lock = Lock()
+
+
+def _count_score(y_true, y_pred, *, label1, label2):
+    y_true, y_pred = map(np.asarray, (y_true, y_pred))
+    return int(np.sum((y_true == label1) & (y_pred == label2)))
+
+
+def macro_informedness(y_true, y_pred, *, labels=None):
+    sens, spec, _ = sensitivity_specificity_support(
+        y_true, y_pred, labels=labels, average=None
+    )
+    return np.mean(sens + spec - 1)
 
 
 class BaseModel(BaseEstimator, ClassifierMixin):
@@ -343,52 +363,6 @@ class AdeftClassifier:
             return self.estimator.classes_
         return None
 
-    def grid_search_to_select_model(
-            self, X, y, param_grid, *, cv=None, refit=False, n_jobs=1
-    ):
-        """Perform a grid search to select a model
-
-        Model selection is based on a pooled macro averaged F1 score as
-        recommended in the classic Apples-to-Apples paper by Forman and
-        Scholz. With positive labels determined by the ``pos_labels``.
-        F1 is used for model selection because it is of no concern whether
-        negatively labeled examples are identified correctly, so long as
-        none are mislabled with the positive label. Negatively labeled
-        examples correspond to entities which should never appear in
-        biomolecular interactions.
-
-        F1 score is not reported in validation results because the class
-        balance in data labeled through Adeft's Acromine-like algorithm
-        does not necessarily reflect the class balance in the true population
-        of documents where a shortform is used. It is still useful however
-        for model selection purposes in the absence of more specific
-        misclassification costs which could be used for cost-sensitive
-        learning.
-
-        George Forman and Martin Scholz. 2010. Apples-to-apples in
-        cross-validation studies: pitfalls in classifier performance
-        measurement. SIGKDD Explor. Newsl. 12, 1 (June 2010), 49–57.
-        https://doi.org/10.1145/1882471.1882479
-        """
-        
-        if cv is None:
-            cv = StratifiedKFold(
-                n_splits=5, shuffle=True, random_state=self.random_state
-            )
-        estimator = clone(self.estimator)
-        grid_search = PooledFbetaGridSearchCV(
-            estimator, param_grid, pos_labels=self.pos_labels, cv=cv,
-            refit=refit, n_jobs=n_jobs
-        )
-        grid_search.fit(X, y)
-        estimator = grid_search.best_estimator_
-        return (
-            estimator,
-            grid_search.best_score_,
-            grid_search.cv_results_,
-            grid_search.best_params_,
-        )
-
     def train(self, X, y, **params):
         """Fits a disambiguation model
 
@@ -413,7 +387,8 @@ class AdeftClassifier:
             X,
             y,
             *,
-            param_grid,
+            param_distributions,
+            model_select_n_iter=10,
             n_outer_splits=5,
             n_inner_splits=5,
             n_jobs=1,
@@ -440,7 +415,7 @@ class AdeftClassifier:
             ``GridSearchCV``).
         n_outer_splits : Optional[int]
             Number of outer splits to use in nested cross validation.
-            Default: 5
+            Default: k5
         n_inner_splits : Optional[int]
             Number of inner splits to use in nested cross validation.
             Default: 5
@@ -460,55 +435,37 @@ class AdeftClassifier:
         dictionary of model selection results for the final round of model
         selection.
         """
+        if n_inner_splits == 1 and param_distributions is not None:
+            raise ValueError("n_inner_splits=1 is only allowed if no "
+                             " model selection is involved.")
         outer_splitter = StratifiedKFold(
             n_splits=n_outer_splits, shuffle=True, random_state=self.random_state
         )
-        inner_splitter = StratifiedKFold(
-            n_splits=n_inner_splits, shuffle=True, random_state=self.random_state
+        if n_inner_splits > 1:
+            inner_splitter = StratifiedKFold(
+                n_splits=n_inner_splits, shuffle=True, random_state=self.random_state
+            )
+            inner_scorer = make_scorer(macro_informedness, labels=self.pos_labels)
+            outer_estimator = RandomizedSearchCV(
+                self.estimator, param_distributions, n_iter=model_select_n_iter,
+                scoring=inner_scorer, n_jobs=n_jobs
+            )
+        else:
+            outer_estimator = self.estimator
+        outer_scoring = {}
+        all_labels = np.unique(y)
+        for label1 in all_labels:
+            for label2 in all_labels:
+                count_score = make_scorer(
+                    _count_score, label1=label1, label2=label2
+                )
+                outer_scoring[f"count_{label1}_{label2}"] = count_score
+        scores = cross_validate(
+            outer_estimator, X, y,
+            scoring=outer_scoring, cv=outer_splitter,
+            n_jobs=n_jobs if n_inner_splits == 1 else 1
         )
-        splits = outer_splitter.split(X, y)
-        validation_results = []
-        model_selection_results = []
-        labels = np.unique(y)
-        for i, (train_idx, test_idx) in enumerate(splits):
-            X_train, y_train = _safe_split(self.estimator, X, y, train_idx)
-            # TODO: allow custom parameter tuning strategies to be passed in,
-            # rather than just hardcoding in a single round of grid search.
-            estimator, best_score, cv_results, best_params = self.grid_search_to_select_model(
-                X_train, y_train, param_grid, cv=inner_splitter, refit=True,
-                n_jobs=n_jobs
-            )
-            X_test, y_test = _safe_split(self.estimator, X, y, test_idx)
-            preds = estimator.predict(X_test)
-            confusion = confusion_matrix(
-                y_test, preds, labels=labels
-            )
-            sens, spec, support = sensitivity_specificity_support(
-                y_test, preds, labels=labels, average=None
-            )
-            validation_results.append({
-                "sensitivity": sens,
-                "specificity": spec,
-                "support": support,
-                "confusion_matrix": confusion,
-            })
-            model_selection_results.append({
-                "best_score": best_score,
-                "best_params": best_params,
-                "cv_results": cv_results,
-            })
-        self.validation_results = validation_results
-        self.inner_model_selection_results_ = model_selection_results
-        if refit:
-            _, best_score, cv_results, best_params = self.grid_search_to_select_model(
-                X, y, param_grid, cv=outer_splitter, refit=False, n_jobs=n_jobs
-            )
-            self.train(X, y, **best_params)
-            self.outer_model_selection_results_ = {
-                "best_score": best_score,
-                "best_params": best_params,
-                "cv_results": cv_results,
-            }
+        self.outer_cv_results = scores
         return self
 
     def predict_proba(self, texts):
@@ -611,3 +568,52 @@ class AdeftClassifier:
         hashed_texts = ''.join(md5(text.encode('utf-8')).hexdigest()
                                for text in sorted(texts))
         return md5(hashed_texts.encode('utf-8')).hexdigest()
+
+
+def load_model_info(
+        model_info, *, estimator_class=BaselineLogisticRegressionModel
+):
+    """Return a longform model from a model info JSON object.
+
+    This is currently being kept around for backwards compatibility
+    purposes, because it's used in Gilda for Gilda models.
+
+    Parameters
+    ----------
+    model_info : dict
+        The JSON object containing the attributes of a model.
+
+    Returns
+    -------
+    longform_model : py:class:`adeft.classify.AdeftClassifier`
+        The classifier that was loaded from the given JSON object.
+    """
+    shortforms = model_info['shortforms']
+    pos_labels = model_info['pos_labels']
+    if "estimator_info" in model_info:
+        estimator_info = model_info["estimator_info"]
+    else:
+        estimator_info = {"logit": model_info["logit"], "tfidf": model_info["tfidf"]}
+
+    estimator = estimator_class.load_from_model_info(estimator_info)
+    longform_model = AdeftClassifier(
+        shortforms=shortforms, pos_labels=pos_labels, estimator=estimator
+    )
+    longform_model.estimator = estimator
+    # These attributes do not exist in older adeft models.
+    # For backwards compatibility we check if they are present
+    if 'stats' in model_info:
+        longform_model.stats = model_info['stats']
+    if 'timestamp' in model_info:
+        longform_model.timestamp = model_info['timestamp']
+    if 'training_set_digest' in model_info:
+        longform_model.training_set_digest = model_info['training_set_digest']
+    if 'params' in model_info:
+        longform_model.params = model_info['params']
+    if 'version' in model_info:
+        longform_model.version == model_info['version']
+    if 'confusion_info' in model_info:
+        longform_model.confusion_info = model_info['confusion_info']
+    if 'other_metadata' in model_info:
+        longform_model.other_metadata = model_info['other_metadata']
+    return longform_model
